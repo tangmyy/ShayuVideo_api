@@ -14,6 +14,12 @@ public class IPUtil {
     * 此外我们如果使用了多级（LVS/Nginx）反向代理的话，ip需要从X-Forwarded-For中获得第一个非unknown的IP才是用户的有效ip。
     * @param request
     * @return
+    * x-forwarded-for - 最常用的代理IP头
+    * Proxy-Client-IP - 某些代理服务器的专用头
+    * WL-Proxy-Client-IP - WebLogic代理的头
+    * HTTP_CLIENT_IP - 客户端IP头
+    * HTTP_X_FORWARDED_FOR - 另一种转发头
+    * request.getRemoteAddr() - 最后备选，直接连接IP
     */
    public static String getRequestIp(HttpServletRequest request) {
       String ip = request.getHeader("x-forwarded-for");

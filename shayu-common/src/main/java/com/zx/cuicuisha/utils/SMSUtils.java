@@ -60,7 +60,13 @@ public class SMSUtils {
             System.out.println(e.toString());
         }
     }
-
+    //    public static void main(String[] args) {
+    //        try {
+    //            new SMSUtils().sendSMS("18812345612", "7896");
+    //        } catch (Exception e) {
+    //            e.printStackTrace();
+    //        }
+    //    }
 }
 
 

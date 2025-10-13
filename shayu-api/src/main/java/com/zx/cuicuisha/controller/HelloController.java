@@ -2,7 +2,6 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.utils.SMSUtils;
-import com.zx.cuicuisha.utils.SendSms;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;

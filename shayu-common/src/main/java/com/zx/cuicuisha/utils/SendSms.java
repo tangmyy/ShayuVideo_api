@@ -32,9 +32,7 @@ public class SendSms {
       // 为了保护密钥安全，建议将密钥设置在环境变量中或者配置文件中，请参考凭证管理 https://github.com/TencentCloud/tencentcloud-sdk-java?tab=readme-ov-file#%E5%87%AD%E8%AF%81%E7%AE%A1%E7%90%86。
       // 硬编码密钥到代码中有可能随代码泄露而暴露，有安全隐患，并不推荐。
       // SecretId、SecretKey 查询: https://console.cloud.tencent.com/cam/capi
-      // Credential cred = new Credential("SecretId", "SecretKey");
-      // Credential cred = new Credential(tencentCloudProperties.getSecretId(), tencentCloudProperties.getSecretKey());
-      Credential cred = new Credential("AKIDDH8nEbnpg7PVRD2wsilohSBj0LYcWEwZ","nZBawFQgx75qndNvJYcWHqBOadUCj8JM");
+      Credential cred = new Credential(tencentCloudProperties.getSecretId(), tencentCloudProperties.getSecretKey());
 
       // 实例化一个http选项，可选的，没有特殊需求可以跳过
       HttpProfile httpProfile = new HttpProfile();
@@ -88,12 +86,12 @@ public class SendSms {
       req.setTemplateId(templateId);
 
       /* 模板参数: 模板参数的个数需要与 TemplateId 对应模板的变量个数保持一致，若无模板参数，则设置为空 */
-      String[] templateParamSet = {"666"};
+      String[] templateParamSet = {code};
       req.setTemplateParamSet(templateParamSet);
 
       /* 下发手机号码，采用 E.164 标准，+[国家或地区码][手机号]
        * 示例如：+8613711112222， 其中前面有一个+号 ，86为国家码，13711112222为手机号，最多不要超过200个手机号 */
-      String[] phoneNumberSet = {"+8616689532246"};
+      String[] phoneNumberSet = {"+86" + phone};
       req.setPhoneNumberSet(phoneNumberSet);
 
       /* 用户的 session 内容（无需要可忽略）: 可以携带用户侧 ID 等上下文信息，server 会原样返回 */
@@ -133,13 +131,13 @@ public class SendSms {
       }
    }
 
-   public static void main(String[] args) {
-      try {
-         new SendSms().sendSMS("", "");
-         System.out.println("短信发送成功！");
-      } catch (Exception e) {
-         e.printStackTrace();
-      }
-
-   }
+   // public static void main(String[] args) {
+   //    try {
+   //       new SendSms().sendSMS("", "");
+   //       System.out.println("短信发送成功！");
+   //    } catch (Exception e) {
+   //       e.printStackTrace();
+   //    }
+   //
+   // }
 }
