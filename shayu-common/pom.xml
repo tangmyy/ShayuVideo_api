@@ -32,6 +32,13 @@
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
 
+        <!-- 引入 redis 依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+            <version>2.5.4</version> <!-- 需要写明版本 -->
+        </dependency>
+
         <!-- lombok工具 -->
         <dependency>
             <groupId>org.projectlombok</groupId>

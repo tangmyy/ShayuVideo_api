@@ -18,7 +18,7 @@ spring:
       max-lifetime: 18000000                  # 连接池的最大生命时长（毫秒），超时则会被释放（retired）
       connection-test-query: SELECT 1
   redis:
-    host: 10.0.4.12
+    host: 106.54.6.213
     port: 6379
     database: 0
     password: 2004
