@@ -1,7 +1,7 @@
 package com.zx.cuicuisha.grace.result;
 
 /**
- * @Description: 自定义响应数据结构 (老版本)
+ * @Description: 自定义响应数据结构 (老版本) JSONResult
  * 				本类可提供给 H5/ios/安卓/公众号/小程序 使用
  * 				前端接受此类数据（json object)后，可自行根据业务去实现相关功能
  * 				200：表示成功

@@ -1,9 +1,11 @@
 package com.zx.cuicuisha.grace.result;
 
+import lombok.Data;
+
 import java.util.Map;
 
 /**
- * 自定义响应数据类型枚举 (升级版本)
+ * 自定义响应数据类型枚举 (升级版本) GraceJSONResult
  *
  * @Description: 自定义响应数据结构
  * 				本类可提供给 H5/ios/安卓/公众号/小程序 使用
@@ -11,6 +13,7 @@ import java.util.Map;
  * 基于ResponseStatusEnum类	枚举
  */
 
+@Data
 public class ResponseDataStructureEnum {
 
     // 响应业务状态码
@@ -112,37 +115,5 @@ public class ResponseDataStructureEnum {
     }
 
     public ResponseDataStructureEnum() {
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public String getMsg() {
-        return msg;
-    }
-
-    public void setMsg(String msg) {
-        this.msg = msg;
-    }
-
-    public Object getData() {
-        return data;
-    }
-
-    public void setData(Object data) {
-        this.data = data;
-    }
-
-    public Boolean getSuccess() {
-        return success;
-    }
-
-    public void setSuccess(Boolean success) {
-        this.success = success;
     }
 }
