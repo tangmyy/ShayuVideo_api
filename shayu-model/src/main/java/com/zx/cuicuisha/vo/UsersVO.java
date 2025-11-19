@@ -17,7 +17,7 @@ public class UsersVO {
    private String id;
    private String mobile;
    private String nickname;
-   private String imoocNum;
+   private String videoNum;
    private String face;
    private Integer sex;
    private Date birthday;
@@ -27,7 +27,7 @@ public class UsersVO {
    private String district;
    private String description;
    private String bgImg;
-   private Integer canImoocNumBeUpdated;
+   private Integer canVideoNumBeUpdated;
    private Date createdTime;
    private Date updatedTime;
    private String userToken;           // 用户token，传递给前端
