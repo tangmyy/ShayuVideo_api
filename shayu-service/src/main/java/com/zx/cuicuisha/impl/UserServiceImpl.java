@@ -15,7 +15,6 @@ import com.zx.cuicuisha.enums.Sex;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 
-
 // import com.zx.cuicuisha.bo.UpdatedUserBO;
 // import com.zx.cuicuisha.vo.UsersVO;
 // import com.zx.cuicuisha.enums.UserInfoModifyType;
@@ -23,7 +22,6 @@ import com.zx.cuicuisha.utils.DateUtil;
 // import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 // import org.springframework.beans.BeanUtils;
 // import java.lang.reflect.Type;
-
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -33,7 +31,6 @@ public class UserServiceImpl implements UserService {
    @Autowired
    private Sid sid;
    private static final String USER_FACE1 = "https://c-ssl.duitang.com/uploads/blog/202211/15/20221115121911_a9ab2.png";
-
 
    @Override
    public Users queryMobileIsExist(String mobile) {
@@ -47,7 +44,6 @@ public class UserServiceImpl implements UserService {
    @Override
    @Transactional
    public Users createUser(String mobile) {
-
       // 获取全局唯一主键
       String userId = sid.nextShort();
       Users user = new Users();
@@ -69,8 +65,12 @@ public class UserServiceImpl implements UserService {
       user.setUpdatedTime(new Date());
 
       usersMapper.insert(user);
-
       return user;
+   }
+
+   @Override
+   public Users getUser(String userId) {
+      return usersMapper.selectByPrimaryKey(userId);
    }
 
 }

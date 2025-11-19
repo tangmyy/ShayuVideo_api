@@ -30,7 +30,9 @@ public class UsersVO {
    private Integer canImoocNumBeUpdated;
    private Date createdTime;
    private Date updatedTime;
-
-   private String userToken;       // 用户token，传递给前端
-
+   private String userToken;           // 用户token，传递给前端
+   private Integer myFollowsCounts;    // 我关注的
+   private Integer myFansCounts;       // 我的粉丝
+   // private Integer myLikedVlogCounts;  // 我收到的赞
+   private Integer totalLikeMeCounts;     // 我的视频收到的赞
 }
