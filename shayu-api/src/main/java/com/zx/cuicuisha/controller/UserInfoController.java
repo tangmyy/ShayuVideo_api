@@ -1,11 +1,13 @@
 package com.zx.cuicuisha.controller;
 
 
+import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -25,12 +27,38 @@ public class UserInfoController extends BaseInfoProperties {
       UsersVO usersVO = new UsersVO();
       BeanUtils.copyProperties(user, usersVO);
       // 我的关注总数
-      redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
       // 我的粉丝总数
-      redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
+      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
       // 我的获赞总数 视频+评论的获赞总和
-      redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + REDIS_VLOGER_BE_LIKED_COUNTS + ":" +userId);
-      return usersVO;
+      String likedVlogCountsStr = redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + userId);
+      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+
+      Integer myFollowsCounts = 0;
+      Integer myFansCounts = 0;
+      Integer likedVlogCounts = 0;
+      Integer likedVlogerCounts = 0;
+      Integer totalLikeMeCounts = 0;
+
+      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
+         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
+      }
+      if (StringUtils.isNotBlank(myFansCountsStr)) {
+         myFansCounts = Integer.valueOf(myFansCountsStr);
+      }
+       if (StringUtils.isNotBlank(likedVlogCountsStr)) {
+           likedVlogCounts = Integer.valueOf(likedVlogCountsStr);
+       }
+      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
+         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
+      }
+      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
+
+      usersVO.setMyFollowsCounts(myFollowsCounts);
+      usersVO.setMyFansCounts(myFansCounts);
+      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
+
+      return ResponseDataStructureEnum.ok(usersVO);
    }
 
 }
