@@ -51,7 +51,7 @@ public class UserServiceImpl implements UserService {
       user.setId(userId);
       user.setMobile(mobile);
       user.setNickname("用户:" + DesensitizationUtil.commonDisplay(mobile));
-      user.setImoocNum("用户：" + DesensitizationUtil.commonDisplay(mobile));
+      user.setVideoNum("用户：" + DesensitizationUtil.commonDisplay(mobile));
       user.setFace(USER_FACE1);
       user.setBirthday(DateUtil.stringToDate("1900-01-01"));
       user.setSex(Sex.secret.type);
@@ -60,7 +60,7 @@ public class UserServiceImpl implements UserService {
       user.setCity("");
       user.setDistrict("");
       user.setDescription("这家伙很懒，什么都没留下~");
-      user.setCanImoocNumBeUpdated(YesOrNo.YES.type);
+      user.setCanVideoNumBeUpdated(YesOrNo.YES.type);
       user.setCreatedTime(new Date());
       user.setUpdatedTime(new Date());
 
