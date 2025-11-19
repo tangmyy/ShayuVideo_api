@@ -17,7 +17,7 @@ public class UsersVO {
    private String id;
    private String mobile;
    private String nickname;
-   private String imoocNum;
+   private String videoNum;
    private String face;
    private Integer sex;
    private Date birthday;
@@ -27,10 +27,12 @@ public class UsersVO {
    private String district;
    private String description;
    private String bgImg;
-   private Integer canImoocNumBeUpdated;
+   private Integer canVideoNumBeUpdated;
    private Date createdTime;
    private Date updatedTime;
-
-   private String userToken;       // 用户token，传递给前端
-
+   private String userToken;           // 用户token，传递给前端
+   private Integer myFollowsCounts;    // 我关注的
+   private Integer myFansCounts;       // 我的粉丝
+   // private Integer myLikedVlogCounts;  // 我收到的赞   // 无需返回给前端
+   private Integer totalLikeMeCounts;     // 我的视频收到的赞
 }

@@ -15,7 +15,6 @@ import com.zx.cuicuisha.enums.Sex;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 
-
 // import com.zx.cuicuisha.bo.UpdatedUserBO;
 // import com.zx.cuicuisha.vo.UsersVO;
 // import com.zx.cuicuisha.enums.UserInfoModifyType;
@@ -23,7 +22,6 @@ import com.zx.cuicuisha.utils.DateUtil;
 // import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 // import org.springframework.beans.BeanUtils;
 // import java.lang.reflect.Type;
-
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -33,7 +31,6 @@ public class UserServiceImpl implements UserService {
    @Autowired
    private Sid sid;
    private static final String USER_FACE1 = "https://c-ssl.duitang.com/uploads/blog/202211/15/20221115121911_a9ab2.png";
-
 
    @Override
    public Users queryMobileIsExist(String mobile) {
@@ -47,7 +44,6 @@ public class UserServiceImpl implements UserService {
    @Override
    @Transactional
    public Users createUser(String mobile) {
-
       // 获取全局唯一主键
       String userId = sid.nextShort();
       Users user = new Users();
@@ -55,7 +51,7 @@ public class UserServiceImpl implements UserService {
       user.setId(userId);
       user.setMobile(mobile);
       user.setNickname("用户:" + DesensitizationUtil.commonDisplay(mobile));
-      user.setImoocNum("用户：" + DesensitizationUtil.commonDisplay(mobile));
+      user.setVideoNum("用户：" + DesensitizationUtil.commonDisplay(mobile));
       user.setFace(USER_FACE1);
       user.setBirthday(DateUtil.stringToDate("1900-01-01"));
       user.setSex(Sex.secret.type);
@@ -64,13 +60,17 @@ public class UserServiceImpl implements UserService {
       user.setCity("");
       user.setDistrict("");
       user.setDescription("这家伙很懒，什么都没留下~");
-      user.setCanImoocNumBeUpdated(YesOrNo.YES.type);
+      user.setCanVideoNumBeUpdated(YesOrNo.YES.type);
       user.setCreatedTime(new Date());
       user.setUpdatedTime(new Date());
 
       usersMapper.insert(user);
-
       return user;
+   }
+
+   @Override
+   public Users getUser(String userId) {
+      return usersMapper.selectByPrimaryKey(userId);
    }
 
 }

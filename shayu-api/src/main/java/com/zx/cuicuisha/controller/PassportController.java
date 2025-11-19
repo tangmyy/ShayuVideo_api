@@ -99,10 +99,16 @@ public class PassportController extends BaseInfoProperties {
       BeanUtils.copyProperties(user, usersVO);
       usersVO.setUserToken(uToken);
 
-
-
       return ResponseDataStructureEnum.ok(usersVO);
    }
+
+   @PostMapping("logout")
+   public Object logout(@Valid @RequestBody String userId, HttpServletRequest request) throws Exception {
+      // 清除用户会话信息即可, 前端也需要清除本地app中的用户信息和token信息
+      redis.del(REDIS_USER_TOKEN + ":" + userId);
+      return ResponseDataStructureEnum.ok();
+   }
+
 
 }
 
