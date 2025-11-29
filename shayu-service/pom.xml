@@ -3,7 +3,7 @@
     <parent>
         <artifactId>ShayuVideo_api</artifactId>
         <groupId>com.zx.cuicuisha</groupId>
-        <version>1.0-SNAPSHOT</version>
+        <version>${revision}</version>
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
@@ -17,7 +17,7 @@
         <dependency>
             <groupId>com.zx.cuicuisha</groupId>
             <artifactId>shayu-mapper</artifactId>
-            <version>1.0-SNAPSHOT</version>
+            <version>${revision}</version>
         </dependency>
     </dependencies>
 

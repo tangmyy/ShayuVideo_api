@@ -1,7 +1,10 @@
 package com.zx.cuicuisha.controller;
 
 
+import com.zx.cuicuisha.bo.UpdatedUserBO;
+import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.vo.UsersVO;
@@ -61,4 +64,12 @@ public class UserInfoController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(usersVO);
    }
 
+   // /userInfo/modifyUserInfo
+   @PostMapping("/modifyUserInfo")
+   public ResponseDataStructureEnum modifyUserInfo(@RequestBody UpdatedUserBO updatedUserBO,
+                                                   @RequestParam Integer type) throws Exception{
+      UserInfoModifyType.checkUserInfoTypeIsRight(type);
+      Users newUserInfo =  userService.updateUserInfo(updatedUserBO, type);
+      return ResponseDataStructureEnum.ok(newUserInfo);
+   }
 }

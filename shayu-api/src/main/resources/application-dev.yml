@@ -5,7 +5,7 @@ spring:
   datasource: # 数据源的相关配置
     type: com.zaxxer.hikari.HikariDataSource      # 数据源的类型，可以更改为其他的数据源配置，比如druid
     driver-class-name: com.mysql.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
-#    url: jdbc:mysql://192.168.18.165:3306/shayuvideo?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
+    # url: jdbc:mysql://192.168.18.165:3306/shayuvideo?useUnicode=true&characterEncoding=UTF-8&autoReconnect=true
     url: jdbc:mysql://localhost:3306/shayuvideo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 2004
@@ -18,8 +18,18 @@ spring:
       pool-name: DataSourceHikariCP           # 连接池的名字
       max-lifetime: 18000000                  # 连接池的最大生命时长（毫秒），超时则会被释放（retired）
       connection-test-query: SELECT 1
+  # Redis 配置
   redis:
     host: 106.54.6.213
     port: 6379
     database: 0
     password: 2004
+# MinIO 配置 顶格配置否则找不到
+minio:
+  endpoint: http://10.0.4.12:9000      # MinIO服务地址
+  fileHost: http://10.0.4.12:9000      # 文件地址host
+  bucketName: shayu                      # 存储桶bucket名称
+  accessKey: root                         # 用户名
+  secretKey: 20042004                     # 密码
+  imgSize: 1024                           # 图片大小限制，单位：m
+  fileSize: 1024                          # 文件大小限制，单位：m

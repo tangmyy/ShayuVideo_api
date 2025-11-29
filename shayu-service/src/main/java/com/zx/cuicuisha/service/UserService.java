@@ -1,6 +1,8 @@
 package com.zx.cuicuisha.service;
 
+import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.pojo.Users;
+import org.springframework.transaction.annotation.Transactional;
 
 
 public interface UserService {
@@ -20,5 +22,15 @@ public interface UserService {
     */
    public Users getUser(String userId);
 
+   /**
+    * 用户信息修改-1
+    */
+   @Transactional
+   public  Users updateUserInfo(UpdatedUserBO updatedUserBO);
 
+   /**
+    * 用户信息修改-2
+    */
+   @Transactional
+   public  Users updateUserInfo(UpdatedUserBO updatedUserBO, Integer type);
 }

@@ -4,7 +4,8 @@
 
   <groupId>com.zx.cuicuisha</groupId>
   <artifactId>ShayuVideo_api</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <!-- 使用属性定义版本 -->
+  <version>${revision}</version>
 
   <name>ShayuVideo_api Maven Webapp</name>
   <url>http://maven.apache.org</url>
@@ -27,6 +28,9 @@
   </parent>
 
   <properties>
+    <!-- 项目版本属性 -->
+    <revision>v0.1.4</revision>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     <java.version>1.8</java.version>
@@ -36,7 +40,7 @@
     <mapper-spring-boot-starter.version>2.1.5</mapper-spring-boot-starter.version>
     <pagehelper-spring-boot-starter.version>1.2.12</pagehelper-spring-boot-starter.version>
 
-    <okhttp.version>4.2.2</okhttp.version>
+    <!-- <okhttp.version>4.2.2</okhttp.version> -->
     <jackson.version>2.10.2</jackson.version>
 
     <commons-codec.version>1.11</commons-codec.version>
@@ -47,7 +51,6 @@
     <slf4j.version>1.7.21</slf4j.version>
     <joda-time.version>2.10.6</joda-time.version>
   </properties>
-
   <!--
       使用dependencyManagement的目的是为了保证父工程的干净，
       也就是说父工程他只负责管理依赖，以及依赖的版本，而不会导入额外的jar依赖。
@@ -100,11 +103,12 @@
         <version>${pagehelper-spring-boot-starter.version}</version>
       </dependency>
 
-      <dependency>
-        <groupId>com.squareup.okhttp3</groupId>
-        <artifactId>okhttp</artifactId>
-        <version>${okhttp.version}</version>
-      </dependency>
+      <!-- okhttp3 与Minio冲突 -->
+      <!-- <dependency> -->
+      <!--   <groupId>com.squareup.okhttp3</groupId> -->
+      <!--   <artifactId>okhttp</artifactId> -->
+      <!--   <version>${okhttp.version}</version> -->
+      <!-- </dependency> -->
 
       <!-- jackson -->
       <dependency>
