@@ -19,16 +19,16 @@ public class FileController {
    @Autowired
    private MinIOConfig minIOConfig;
 
-   @PostMapping("upload")
-   public ResponseDataStructureEnum upload(MultipartFile file) throws Exception {
-
-      String fileName = file.getOriginalFilename();
-
-      MinIOUtils.uploadFile(minIOConfig.getBucketName(), fileName, file.getInputStream());
-
-      String imgUrl = minIOConfig.getFileHost()
-            + "/" + minIOConfig.getBucketName()
-            + "/" + fileName;
-      return ResponseDataStructureEnum.ok(imgUrl);
-   }
+   // @PostMapping("upload")
+   // public ResponseDataStructureEnum upload(MultipartFile file) throws Exception {
+   //
+   //    String fileName = file.getOriginalFilename();
+   //
+   //    MinIOUtils.uploadFile(minIOConfig.getBucketName(), fileName, file.getInputStream());
+   //
+   //    String imgUrl = minIOConfig.getFileHost()
+   //          + "/" + minIOConfig.getBucketName()
+   //          + "/" + fileName;
+   //    return ResponseDataStructureEnum.ok(imgUrl);
+   // }
 }
