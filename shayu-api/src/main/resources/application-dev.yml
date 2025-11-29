@@ -20,14 +20,14 @@ spring:
       connection-test-query: SELECT 1
   # Redis 配置
   redis:
-    host: 106.54.6.213
+    host: 10.0.4.12
     port: 6379
     database: 0
     password: 2004
 # MinIO 配置 顶格配置否则找不到
 minio:
-  endpoint: http://10.0.4.12:9000      # MinIO服务地址
-  fileHost: http://10.0.4.12:9000      # 文件地址host
+  endpoint: http://106.54.6.213:9000      # MinIO服务地址
+  fileHost: http://106.54.6.213:9000      # 文件地址host
   bucketName: shayu                      # 存储桶bucket名称
   accessKey: root                         # 用户名
   secretKey: 20042004                     # 密码
