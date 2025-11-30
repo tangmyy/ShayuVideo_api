@@ -1,13 +1,21 @@
 package com.zx.cuicuisha.base;
 
+import com.github.pagehelper.PageInfo;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.utils.RedisOperator;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 
 public class BaseInfoProperties {
 
    @Autowired
    public RedisOperator redis;
+
+   public static final Integer COMMON_START_PAGE = 1;
+   public static final Integer COMMON_START_PAGE_ZERO = 0;
+   public static final Integer COMMON_PAGE_SIZE = 10;
 
    public static final String MOBILE_SMSCODE = "mobile:smscode";
    public static final String REDIS_USER_TOKEN = "redis_user_token";
@@ -20,4 +28,15 @@ public class BaseInfoProperties {
    public static final String REDIS_VLOG_BE_LIKED_COUNTS = "redis_vlog_be_liked_counts";
    public static final String REDIS_VLOGER_BE_LIKED_COUNTS = "redis_vloger_be_liked_counts";
 
+
+   public PagedGridResult setterPagedGrid(List<?> list, Integer page) {
+      PageInfo<?> pageList = new PageInfo<>(list);
+      PagedGridResult gridResult = new PagedGridResult();
+      gridResult.setRows(list);
+      gridResult.setPage(page);
+      gridResult.setRecords(pageList.getTotal());
+      gridResult.setTotal(pageList.getPages());
+      return gridResult;
+   }
 }
+

@@ -1,11 +1,14 @@
 package com.zx.cuicuisha.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.VlogService;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
@@ -20,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
-public class VlogServiceImpl implements VlogService {
+public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    @Autowired
    private VlogMapper vlogMapper;
@@ -51,14 +54,19 @@ public class VlogServiceImpl implements VlogService {
    }
 
    @Override
-   public List<IndexVlogVO> getIndexVlogList(String search) {
+   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize) {
+
+      // 开始分页
+      PageHelper.startPage(page, pageSize);
+
       Map<String, Object> map = new HashMap<>();
       if (StringUtils.isNoneBlank(search)){
          map.put("search", search);
       }
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogList(map);
 
-      return list;
+      // return list;
+      return setterPagedGrid(list, page);
    }
 
 

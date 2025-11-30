@@ -1,6 +1,7 @@
 package com.zx.cuicuisha.service;
 
 import com.zx.cuicuisha.bo.VlogBO;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 
 import java.util.List;
@@ -13,7 +14,9 @@ public interface VlogService {
    /**
     * 查询首页/搜索的vlog列表
     */
-   public List<IndexVlogVO> getIndexVlogList(String search);
+   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize);
+   // public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
+
    // /**
    //  * 根据视频主键查询vlog
    //  */

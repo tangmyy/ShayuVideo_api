@@ -30,7 +30,7 @@ public class VlogBO {
    private String cover;
 
    @NotBlank(message = "标题不能为空")
-   @Size(min = 2, message = "标题长度不能小于2个字符")
+   @Size(min = 4, message = "标题长度不能小于4个字符")
    private String title;
 
    @NotNull(message = "视频宽度不能为空")

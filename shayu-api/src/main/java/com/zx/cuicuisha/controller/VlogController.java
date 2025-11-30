@@ -4,13 +4,11 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.service.VlogService;
-import com.zx.cuicuisha.vo.IndexVlogVO;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 
 @Slf4j
@@ -29,9 +27,12 @@ public class VlogController extends BaseInfoProperties {
    }
 
    @GetMapping("indexList")
-   public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String seaech){
+   public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String seaech, @RequestParam Integer page, @RequestParam Integer pageSize){
 
-      List<IndexVlogVO> list =  vlogService.getIndexVlogList(seaech);
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+
+      PagedGridResult list =  vlogService.getIndexVlogList(seaech, page, pageSize);
 
       return ResponseDataStructureEnum.ok(list);
 
