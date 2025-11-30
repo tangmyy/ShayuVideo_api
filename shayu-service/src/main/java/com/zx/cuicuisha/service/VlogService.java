@@ -7,20 +7,15 @@ import com.zx.cuicuisha.vo.IndexVlogVO;
 import java.util.List;
 
 public interface VlogService {
-   /**
-    * 新增vlog视频
-    */
-   public void createVlog(VlogBO vlogBO);
-   /**
-    * 查询首页/搜索的vlog列表
-    */
-   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize);
-   // public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
 
-   // /**
-   //  * 根据视频主键查询vlog
-   //  */
+   // 新增vlog视频
+   public void createVlog(VlogBO vlogBO);
+   // 查询首页/搜索的vlog列表
+   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize);
+   // 根据视频主键查询vlog
+   public IndexVlogVO getVlogDetailById(String userId);
    // public IndexVlogVO getVlogDetailById(String userId, String vlogId);
+
    // /**
    //  * 用户把视频改为公开/私密的视频
    //  */
