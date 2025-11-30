@@ -1,13 +1,7 @@
-package com.zx.cuicuisha.controller;
+package com.zx.cuicuisha.base;
 
 import com.zx.cuicuisha.utils.RedisOperator;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 
 public class BaseInfoProperties {

@@ -1,5 +1,6 @@
 package com.zx.cuicuisha.controller;
 
+import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.RedisLoginBO;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -9,23 +10,15 @@ import com.zx.cuicuisha.utils.IPUtil;
 import com.zx.cuicuisha.utils.SendSms;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.UUID;
 

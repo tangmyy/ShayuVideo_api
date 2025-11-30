@@ -2,6 +2,7 @@ package com.zx.cuicuisha.controller;
 
 
 import com.zx.cuicuisha.MinIOConfig;
+import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
 import com.zx.cuicuisha.enums.UserInfoModifyType;
@@ -71,7 +72,7 @@ public class UserInfoController extends BaseInfoProperties {
 
       return ResponseDataStructureEnum.ok(usersVO);
    }
-
+   // 用户信息修改
    @PostMapping("/modifyUserInfo")
    public ResponseDataStructureEnum modifyUserInfo(@RequestBody UpdatedUserBO updatedUserBO,
                                                    @RequestParam Integer type) throws Exception{
@@ -79,7 +80,7 @@ public class UserInfoController extends BaseInfoProperties {
       Users newUserInfo =  userService.updateUserInfo(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
    }
-
+   // 用户 头像 背景图 修改
    @PostMapping("/modifyImage")
    public ResponseDataStructureEnum upload(@RequestParam String userId,
                                            @RequestParam Integer type,
