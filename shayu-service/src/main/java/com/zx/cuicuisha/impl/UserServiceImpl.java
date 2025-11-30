@@ -38,6 +38,15 @@ public class UserServiceImpl implements UserService {
    private Sid sid;
    private static final String USER_FACE1 = "https://c-ssl.duitang.com/uploads/blog/202211/15/20221115121911_a9ab2.png";
 
+   // 验证用户ID是否存在
+   @Override
+   public boolean isUserExists(String userId) {
+      if (userId == null || userId.trim().isEmpty()) {
+         return false;
+      }
+      return getUser(userId) != null;
+   }
+
    @Override
    public Users queryMobileIsExist(String mobile) {
       Example userExample = new Example(Users.class);
