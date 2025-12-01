@@ -1,10 +1,8 @@
 package com.zx.cuicuisha.impl;
 
-// import org.springframework.data.domain.Example; 同名 没用
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.exceptions.GraceException;
-import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.utils.DesensitizationUtil;
@@ -21,14 +19,6 @@ import com.zx.cuicuisha.enums.Sex;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 
-// import com.zx.cuicuisha.bo.UpdatedUserBO;
-// import com.zx.cuicuisha.vo.UsersVO;
-// import com.zx.cuicuisha.enums.UserInfoModifyType;
-// import com.zx.cuicuisha.exceptions.GraceException;
-// import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
-// import org.springframework.beans.BeanUtils;
-// import java.lang.reflect.Type;
-
 @Service
 public class UserServiceImpl implements UserService {
 
@@ -37,15 +27,6 @@ public class UserServiceImpl implements UserService {
    @Autowired
    private Sid sid;
    private static final String USER_FACE1 = "https://c-ssl.duitang.com/uploads/blog/202211/15/20221115121911_a9ab2.png";
-
-   // 验证用户ID是否存在
-   @Override
-   public boolean isUserExists(String userId) {
-      if (userId == null || userId.trim().isEmpty()) {
-         return false;
-      }
-      return getUser(userId) != null;
-   }
 
    @Override
    public Users queryMobileIsExist(String mobile) {

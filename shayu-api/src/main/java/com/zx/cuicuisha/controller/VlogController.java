@@ -2,6 +2,7 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.VlogBO;
+import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -40,5 +41,16 @@ public class VlogController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(vlogId));
    }
 
+   @PostMapping("changeToPrivate")
+   public ResponseDataStructureEnum changeToPrivate(@RequestParam String userId, @RequestParam String vlogId){
+      vlogService.changeToPrivateOrPublic(userId, vlogId, YesOrNo.YES.type);
+      return  ResponseDataStructureEnum.ok();
+   }
+
+   @PostMapping("changeToPublic")
+   public ResponseDataStructureEnum changeToPublic(@RequestParam String userId, @RequestParam String vlogId){
+      vlogService.changeToPrivateOrPublic(userId, vlogId, YesOrNo.NO.type);
+      return  ResponseDataStructureEnum.ok();
+   }
 
 }

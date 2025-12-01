@@ -8,13 +8,6 @@ import org.springframework.transaction.annotation.Transactional;
 public interface UserService {
 
    /**
-    * 验证用户ID是否存在
-    * @param userId 用户ID
-    * @return 如果用户存在返回true，否则返回false
-    */
-   public boolean isUserExists(String userId);
-
-   /**
     * 判断用户是否存在, 如果存在则返回用户信息
     */
    public Users queryMobileIsExist(String mobile);

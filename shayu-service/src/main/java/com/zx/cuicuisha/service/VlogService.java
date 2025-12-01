@@ -16,10 +16,9 @@ public interface VlogService {
    public IndexVlogVO getVlogDetailById(String userId);
    // public IndexVlogVO getVlogDetailById(String userId, String vlogId);
 
-   // /**
-   //  * 用户把视频改为公开/私密的视频
-   //  */
-   // public void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo);
+   // 用户把视频改为公开/私密的视频
+   public void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo);
+
    // /**
    //  * 查询用的公开/私密的视频列表
    //  */

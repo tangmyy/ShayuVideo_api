@@ -16,6 +16,7 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tk.mybatis.mapper.entity.Example;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -82,6 +83,21 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
 
       return null;
+   }
+
+   @Transactional
+   @Override
+   public void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo) {
+
+      Example example = new Example(Vlog.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("id", vlogId);
+      criteria.andEqualTo("vlogerId", userId);
+
+      Vlog pendingVlog = new Vlog();
+      pendingVlog.setIsPrivate(yesOrNo);
+
+      vlogMapper.updateByExampleSelective(pendingVlog, example);
    }
 
 
