@@ -53,4 +53,21 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   @GetMapping("myPublicList")
+   public ResponseDataStructureEnum myPublicList(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.queryMyVlogList(userId, page, pageSize, YesOrNo.NO.type);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+
+   @GetMapping("myPrivateList")
+   public ResponseDataStructureEnum myPrivateList(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.queryMyVlogList(userId, page, pageSize, YesOrNo.YES.type);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+
+
 }

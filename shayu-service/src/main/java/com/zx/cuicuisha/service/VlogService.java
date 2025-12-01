@@ -19,10 +19,9 @@ public interface VlogService {
    // 用户把视频改为公开/私密的视频
    public void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo);
 
-   // /**
-   //  * 查询用的公开/私密的视频列表
-   //  */
-   // public PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo);
+   // 查询用的公开/私密的视频列表
+   public PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo);
+
    // /**
    //  * 用户点赞/喜欢视频
    //  */

@@ -100,5 +100,19 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlogMapper.updateByExampleSelective(pendingVlog, example);
    }
 
+   @Override
+   public PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo) {
+
+      Example example = new Example(Vlog.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("vlogerId", userId);
+      criteria.andEqualTo("isPrivate", yesOrNo);
+
+      PageHelper.startPage(page, pageSize);
+      List<Vlog> list = vlogMapper.selectByExample(example);
+
+      return setterPagedGrid(list, page);
+   }
+
 
 }
