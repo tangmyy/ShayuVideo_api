@@ -32,7 +32,9 @@ public enum ResponseStatusEnum {
     FILE_MAX_SIZE_2MB_ERROR(5132,false,"仅支持2MB大小以下的图片上传！"),
     FILE_NOT_EXIST_ERROR(514,false,"你所查看的文件不存在！"),
     USER_STATUS_ERROR(515,false,"用户状态参数出错！"),
-    USER_NOT_EXIST_ERROR(516,false,"用户不存在！"),
+    USER_NOT_EXIST_ERROR(516,false,"当前用户不存在！"),
+    VLOGER_NOT_EXIST_ERROR(517,false,"被关注的用户不存在！"),
+    FANS_FOLLOW_YOURSELF_ERROR(517,false,"用户不能关注自己！"),
 
     // 自定义系统级别异常 54x
     SYSTEM_INDEX_OUT_OF_BOUNDS(541, false, "系统错误，数组越界！"),
