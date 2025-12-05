@@ -31,7 +31,6 @@ public class VlogController extends BaseInfoProperties {
    public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String search, @RequestParam Integer page, @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
-
       PagedGridResult list = vlogService.getIndexVlogList(search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
