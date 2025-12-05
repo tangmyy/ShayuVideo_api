@@ -1,6 +1,7 @@
 package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
@@ -10,10 +11,7 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @Slf4j
 @Api(tags = "FansController 粉丝相关业务功能的接口")
@@ -28,7 +26,6 @@ public class FansController extends BaseInfoProperties {
 
    @PostMapping("follow")
    public ResponseDataStructureEnum follow(@RequestParam String myId, @RequestParam String vlogerId) {
-
       // 判断两个id不能为空
       if (StringUtils.isBlank(myId) || StringUtils.isBlank(vlogerId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
@@ -50,9 +47,23 @@ public class FansController extends BaseInfoProperties {
       // 保存粉丝关系到数据库
       fansService.doFollow(myId, vlogerId);
       fansService.updateFollowCache(myId, vlogerId);
-
       return ResponseDataStructureEnum.ok();
    }
+
+   @PostMapping("cancel")
+   public ResponseDataStructureEnum cancel(@RequestParam String myId, @RequestParam String vlogerId) {
+      // 保存粉丝关系到数据库
+      fansService.doCancel(myId, vlogerId);
+      fansService.updateCancelCache(myId, vlogerId);
+      return ResponseDataStructureEnum.ok();
+   }
+
+   @GetMapping("queryDoIFollowVloger")
+   public ResponseDataStructureEnum queryDoIFollowVloger(@RequestParam String myId, @RequestParam String vlogerId) {
+      boolean followYN = fansService.queryDoIFollowVloger(myId, vlogerId);
+      return ResponseDataStructureEnum.ok(followYN);
+   }
+
 }
 /**
  * fixme: 答: 分开好

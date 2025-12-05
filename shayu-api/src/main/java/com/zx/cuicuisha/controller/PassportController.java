@@ -86,7 +86,7 @@ public class PassportController extends BaseInfoProperties {
       String uToken = UUID.randomUUID().toString();
       redis.set(REDIS_USER_TOKEN + ":" + user.getId(), uToken);
       // 4. 用户登录注册成功以后, 删除redis中的短信验证码
-      redis.del(MOBILE_SMSCODE + ":" + mobile);
+      redis.delete(MOBILE_SMSCODE + ":" + mobile);
       // 5. 返回用户会话token令牌给前端
       UsersVO usersVO = new UsersVO();
       BeanUtils.copyProperties(user, usersVO);
@@ -98,7 +98,7 @@ public class PassportController extends BaseInfoProperties {
    @PostMapping("logout")
    public Object logout(@RequestParam String userId, HttpServletRequest request) throws Exception {
       // 清除用户会话信息即可, 前端也需要清除本地app中的用户信息和token信息
-      redis.del(REDIS_USER_TOKEN + ":" + userId);
+      redis.delete(REDIS_USER_TOKEN + ":" + userId);
       return ResponseDataStructureEnum.ok();
    }
 
