@@ -1,11 +1,15 @@
 package com.zx.cuicuisha.impl;
 
+import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.FansMapper;
+import com.zx.cuicuisha.mapper.FansMapperCustom;
 import com.zx.cuicuisha.pojo.Fans;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.FansVO;
+import com.zx.cuicuisha.vo.VlogerVO;
 import lombok.extern.slf4j.Slf4j;
 import org.n3r.idworker.Sid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +17,9 @@ import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Repository
@@ -21,6 +27,9 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
 
    @Autowired
    private FansMapper fansMapper;
+
+   @Autowired
+   private FansMapperCustom fansMapperCustom;
 
    @Autowired
    private Sid sid;
@@ -128,11 +137,20 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    // 查询我关注的博主列表
    @Override
    public PagedGridResult queryMyFollows(String myId, Integer page, Integer pageSize) {
-      return null;
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      PageHelper.startPage(page, pageSize);
+      List<VlogerVO> list = fansMapperCustom.queryMyFollows(map);
+      return setterPagedGrid(list, page);
    }
+
    // 查询我的粉丝列表
    @Override
    public PagedGridResult queryMyFans(String myId, Integer page, Integer pageSize) {
-      return null;
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      PageHelper.startPage(page, pageSize);
+      List<FansVO> list = fansMapperCustom.queryMyFans(map);
+      return setterPagedGrid(list, page);
    }
 }

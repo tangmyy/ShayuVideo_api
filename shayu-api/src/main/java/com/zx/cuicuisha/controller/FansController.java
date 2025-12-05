@@ -7,6 +7,7 @@ import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.UserService;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -63,6 +64,23 @@ public class FansController extends BaseInfoProperties {
       boolean followYN = fansService.queryDoIFollowVloger(myId, vlogerId);
       return ResponseDataStructureEnum.ok(followYN);
    }
+
+   @GetMapping("queryMyFollows")
+   public ResponseDataStructureEnum queryMyFollows(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize) {
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = fansService.queryMyFollows(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+
+   @GetMapping("queryMyFans")
+   public ResponseDataStructureEnum queryMyFans(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize) {
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = fansService.queryMyFans(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+
 
 }
 /**
