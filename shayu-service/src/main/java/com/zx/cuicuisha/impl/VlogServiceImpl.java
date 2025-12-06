@@ -59,6 +59,21 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    }
 
+   private IndexVlogVO setterVO(IndexVlogVO vlogVO, String userId) {
+      String vlogerId = vlogVO.getVlogerId();
+      String vlogId = vlogVO.getVlogId();
+      if (StringUtils.isNotBlank(userId)) {
+         // 用户是否关注该博主
+         boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
+         vlogVO.setDoIFollowVloger(doIFollowVloger);
+         // 判断当前用户是否点赞过视频
+         vlogVO.setDoILikeThisVlog(doILikeVlog(userId, vlogId));
+      }
+      // 获得当前视频被点赞过的总数
+      vlogVO.setLikeCounts(getVlogBeLikedCounts(vlogId));
+      return vlogVO;
+   }
+
    @Override
    public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize) {
       // 开始分页
@@ -68,20 +83,9 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          map.put("search", search);
       }
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogList(map);
-      for (IndexVlogVO vlog : list) {
-         String vlogerId = vlog.getVlogerId();
-         String vlogId = vlog.getVlogId();
-         if (StringUtils.isNotBlank(userId)) {
-            // 用户是否关注该博主
-            boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
-            vlog.setDoIFollowVloger(doIFollowVloger);
-            // 判断当前用户是否点赞过视频
-            vlog.setDoILikeThisVlog(doILikeVlog(userId, vlogId));
-         }
-         // 获得当前视频被点赞过的总数
-         vlog.setLikeCounts(getVlogBeLikedCounts(vlogId));
+      for (IndexVlogVO vlogVO : list) {
+         setterVO(vlogVO, userId);
       }
-      // return list;
       return setterPagedGrid(list, page);
    }
    // 获取用户是否点赞过该视频
@@ -110,13 +114,13 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    }
 
    @Override
-   public IndexVlogVO getVlogDetailById(String vlogId) {
+   public IndexVlogVO getVlogDetailById(String userId, String vlogId) {
       Map<String, Object> map = new HashMap<>();
       map.put("vlogId", vlogId);
       List<IndexVlogVO> list = vlogMapperCustom.getVlogDetailById(map);
       if (list != null && !list.isEmpty()){
          IndexVlogVO vlogVO = list.get(0);
-         return vlogVO;
+         return setterVO(vlogVO, userId);
       }
       return null;
    }

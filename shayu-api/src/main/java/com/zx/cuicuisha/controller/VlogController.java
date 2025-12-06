@@ -72,7 +72,7 @@ public class VlogController extends BaseInfoProperties {
 
    @GetMapping("detail")
    public ResponseDataStructureEnum detail(@RequestParam(defaultValue = "") String userId, @RequestParam String vlogId){
-      return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(vlogId));
+      return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(userId, vlogId));
    }
 
    @PostMapping("changeToPrivate")
@@ -139,7 +139,7 @@ public class VlogController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
       // 判断视频id对应的视频是否存在
-      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(userId, vlogId);
       if (vlogVO == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
       }
@@ -166,7 +166,7 @@ public class VlogController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
       // 判断视频id对应的视频是否存在
-      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(userId, vlogId);
       if (vlogVO == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
       }
