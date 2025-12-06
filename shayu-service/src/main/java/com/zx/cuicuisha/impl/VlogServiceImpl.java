@@ -94,11 +94,16 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    // 获取该视频获赞总数
    @Override
    public Integer getVlogBeLikedCounts(String vlogId){
-      String countsStr = redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId);
-      if (StringUtils.isNoneBlank(countsStr)){
-         countsStr = "0";
+      try {
+         String countsStr = redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId);
+         if (StringUtils.isBlank(countsStr)) {
+            countsStr = "0";
+         }
+         return Integer.valueOf(countsStr);
+      } catch (Exception e) {
+         log.error("获取视频{}点赞数失败: {}", vlogId, e.getMessage());
+         return 0;
       }
-      return  Integer.valueOf(countsStr);
    }
 
    @Override
@@ -151,6 +156,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    public void updateLikeVlog(String userId, String vlogerId, String vlogId) {
       try {
          // 点赞以后，视频点赞数/发布者获赞数 +1
+         redis.increment(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
          redis.increment(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
          //  我点赞的视频，关联关系保存到redis
          redis.set(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId, "1");
@@ -173,6 +179,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    public void updateUnLikeVlog(String userId, String vlogerId, String vlogId) {
       try {
          // 取消点赞以后，视频点赞数/发布者获赞数 -1
+         redis.decrement(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
          redis.decrement(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
          //  我取消点赞的视频，关联关系保存到redis
          redis.delete(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId);
@@ -182,4 +189,12 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
    }
 
+   @Override
+   public PagedGridResult getMyLikedVlogList(String userId, Integer page, Integer pageSize) {
+      PageHelper.startPage(page, pageSize);
+      Map<String, Object> map = new HashMap<>();
+      map.put("userId", userId);
+      List<IndexVlogVO> list = vlogMapperCustom.getMyLikedVlogList(map);
+      return setterPagedGrid(list, page);
+   }
 }

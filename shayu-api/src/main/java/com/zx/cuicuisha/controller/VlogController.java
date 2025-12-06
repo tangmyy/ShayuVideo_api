@@ -62,6 +62,10 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   /**
+    * 我的公开视频
+    * @return
+    */
    @GetMapping("myPublicList")
    public ResponseDataStructureEnum myPublicList(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
@@ -69,7 +73,10 @@ public class VlogController extends BaseInfoProperties {
       PagedGridResult gridResult = vlogService.queryMyVlogList(userId, page, pageSize, YesOrNo.NO.type);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
-
+   /**
+    * 我的私密视频
+    * @return
+    */
    @GetMapping("myPrivateList")
    public ResponseDataStructureEnum myPrivateList(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
@@ -77,6 +84,18 @@ public class VlogController extends BaseInfoProperties {
       PagedGridResult gridResult = vlogService.queryMyVlogList(userId, page, pageSize, YesOrNo.YES.type);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
+   /**
+    * 我的喜欢视频
+    * @return
+    */
+   @GetMapping("myLikedList")
+   public ResponseDataStructureEnum myLikedList(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.getMyLikedVlogList(userId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+
 
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
