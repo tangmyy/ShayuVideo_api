@@ -35,6 +35,8 @@ public enum ResponseStatusEnum {
     USER_NOT_EXIST_ERROR(516,false,"当前用户不存在！"),
     VLOGER_NOT_EXIST_ERROR(517,false,"被关注的用户不存在！"),
     FANS_FOLLOW_YOURSELF_ERROR(517,false,"用户不能关注自己！"),
+    VLOG_NOT_EXIST_ERROR(518, false,"视频不存在"),
+
 
     // 自定义系统级别异常 54x
     SYSTEM_INDEX_OUT_OF_BOUNDS(541, false, "系统错误，数组越界！"),

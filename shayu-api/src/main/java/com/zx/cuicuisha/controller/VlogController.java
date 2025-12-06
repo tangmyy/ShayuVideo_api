@@ -4,10 +4,16 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
+import com.zx.cuicuisha.pojo.Users;
+import com.zx.cuicuisha.pojo.Vlog;
+import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.IndexVlogVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,6 +24,8 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 public class VlogController extends BaseInfoProperties {
 
+   @Autowired
+   private UserService userService;
    @Autowired
    private VlogService vlogService;
 
@@ -70,13 +78,28 @@ public class VlogController extends BaseInfoProperties {
 
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
+      // 判断三个id不能为空
+      if (StringUtils.isBlank(userId) || StringUtils.isBlank(vlogerId) || StringUtils.isBlank(vlogId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 判断用户id对应的用户是否存在
+      Users user = userService.getUser(userId);
+      if (user == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 判断博主id对应的用户是否存在
+      Users vloger = userService.getUser(vlogerId);
+      if (vloger == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
+      }
+      // 判断视频id对应的视频是否存在
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      if (vlogVO == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
       // 我点赞的视频，关联关系保存到数据库
       vlogService.userLikeVlog(userId, vlogId);
-      // 点赞以后，视频点赞数/发布者获赞数 +1
-      redis.increment(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
-      redis.increment(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
-      //  我点赞的视频，关联关系保存到redis
-      redis.set(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId, "1");
+      vlogService.updateLikeVlog(userId, vlogerId, vlogId);
       return  ResponseDataStructureEnum.ok();
    }
 }

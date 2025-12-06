@@ -72,23 +72,21 @@ public class UserInfoController extends BaseInfoProperties {
 
       return ResponseDataStructureEnum.ok(usersVO);
    }
+
    // 用户信息修改
    @PostMapping("/modifyUserInfo")
-   public ResponseDataStructureEnum modifyUserInfo(@RequestBody UpdatedUserBO updatedUserBO,
-                                                   @RequestParam Integer type) throws Exception{
+   public ResponseDataStructureEnum modifyUserInfo(@RequestBody UpdatedUserBO updatedUserBO, @RequestParam Integer type) throws Exception{
       UserInfoModifyType.checkUserInfoTypeIsRight(type);
       Users newUserInfo =  userService.updateUserInfo(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
    }
+
    // 用户 头像 背景图 修改
    @PostMapping("/modifyImage")
-   public ResponseDataStructureEnum upload(@RequestParam String userId,
-                                           @RequestParam Integer type,
-                                                   MultipartFile file) throws Exception {
+   public ResponseDataStructureEnum upload(@RequestParam String userId, @RequestParam Integer type, MultipartFile file) throws Exception {
       if (type != FileTypeEnum.BGIMG.type && type != FileTypeEnum.FACE.type){
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.FILE_UPLOAD_FAILD);
       }
-
       String fileName = file.getOriginalFilename();
       MinIOUtils.uploadFile(minIOConfig.getBucketName(), fileName, file.getInputStream());
       String imgUrl = minIOConfig.getFileHost()

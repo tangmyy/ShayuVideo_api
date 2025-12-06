@@ -12,6 +12,7 @@ import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
 import org.springframework.beans.BeanUtils;
@@ -25,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
@@ -105,6 +107,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       return setterPagedGrid(list, page);
    }
 
+   // 点赞视频
    @Transactional
    @Override
    public void userLikeVlog(String userId, String vlogId) {
@@ -114,6 +117,19 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       likedVlog.setVlogId(vlogId);
       likedVlog.setUserId(userId);
       myLikedVlogMapper.insert(likedVlog);
+   }
+   // 更新点赞视频时相关的缓存
+   public void updateLikeVlog(String userId, String vlogerId, String vlogId) {
+      try {
+         // 点赞以后，视频点赞数/发布者获赞数 +1
+         redis.increment(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
+         redis.increment(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
+         //  我点赞的视频，关联关系保存到redis
+         redis.set(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId, "1");
+         log.info("更新点赞视频缓存成功：myId={}, vlogId={}", userId, vlogId);
+      } catch (Exception e) {
+         log.error("更新点赞视频缓存失败：myId={}, vlogId={}", userId, vlogId, e);
+      }
    }
 
 }
