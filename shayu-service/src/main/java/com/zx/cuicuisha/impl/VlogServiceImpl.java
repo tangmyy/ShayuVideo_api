@@ -122,13 +122,34 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    public void updateLikeVlog(String userId, String vlogerId, String vlogId) {
       try {
          // 点赞以后，视频点赞数/发布者获赞数 +1
-         redis.increment(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
          redis.increment(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
          //  我点赞的视频，关联关系保存到redis
          redis.set(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId, "1");
-         log.info("更新点赞视频缓存成功：myId={}, vlogId={}", userId, vlogId);
+         log.info("点赞视频缓存成功：myId={}, vlogId={}", userId, vlogId);
       } catch (Exception e) {
-         log.error("更新点赞视频缓存失败：myId={}, vlogId={}", userId, vlogId, e);
+         log.error("点赞视频缓存失败：myId={}, vlogId={}", userId, vlogId, e);
+      }
+   }
+
+   // 取消点赞视频
+   @Transactional
+   @Override
+   public void userUnLikeVlog(String userId, String vlogId) {
+      MyLikedVlog likedVlog = new MyLikedVlog();
+      likedVlog.setVlogId(vlogId);
+      likedVlog.setUserId(userId);
+      myLikedVlogMapper.delete(likedVlog);
+   }
+   // 更新取消点赞视频时相关的缓存
+   public void updateUnLikeVlog(String userId, String vlogerId, String vlogId) {
+      try {
+         // 取消点赞以后，视频点赞数/发布者获赞数 -1
+         redis.decrement(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
+         //  我取消点赞的视频，关联关系保存到redis
+         redis.delete(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId);
+         log.info("取消点赞视频缓存成功：myId={}, vlogId={}", userId, vlogId);
+      } catch (Exception e) {
+         log.error("取消点赞视频缓存失败：myId={}, vlogId={}", userId, vlogId, e);
       }
    }
 

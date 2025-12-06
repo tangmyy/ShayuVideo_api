@@ -102,4 +102,31 @@ public class VlogController extends BaseInfoProperties {
       vlogService.updateLikeVlog(userId, vlogerId, vlogId);
       return  ResponseDataStructureEnum.ok();
    }
+
+   @PostMapping("unlike")
+   public ResponseDataStructureEnum unlike(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
+      // 判断三个id不能为空
+      if (StringUtils.isBlank(userId) || StringUtils.isBlank(vlogerId) || StringUtils.isBlank(vlogId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 判断用户id对应的用户是否存在
+      Users user = userService.getUser(userId);
+      if (user == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 判断博主id对应的用户是否存在
+      Users vloger = userService.getUser(vlogerId);
+      if (vloger == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
+      }
+      // 判断视频id对应的视频是否存在
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      if (vlogVO == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 我点赞的视频，关联关系从数据库删除
+      vlogService.userUnLikeVlog(userId, vlogId);
+      vlogService.updateUnLikeVlog(userId, vlogerId, vlogId);
+      return  ResponseDataStructureEnum.ok();
+   }
 }

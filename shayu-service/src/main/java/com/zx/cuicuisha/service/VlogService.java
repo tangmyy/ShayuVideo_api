@@ -29,10 +29,11 @@ public interface VlogService {
    // 更新点赞视频时相关的缓存
    public void updateLikeVlog(String userId, String vlogerId, String vlogId);
 
-      // /**
-   //  * 用户取消点赞/喜欢视频
-   //  */
-   // public void userUnLikeVlog(String userId, String vlogId);
+   // 用户取消点赞/取消喜欢视频
+   public void userUnLikeVlog(String userId, String vlogId);
+   // 更新取消点赞视频时相关的缓存
+   public void updateUnLikeVlog(String userId, String vlogerId, String vlogId);
+
    // /**
    //  * 获得用户点赞视频的总数
    //  */
