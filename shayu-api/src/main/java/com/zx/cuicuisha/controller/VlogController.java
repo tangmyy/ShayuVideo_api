@@ -33,7 +33,10 @@ public class VlogController extends BaseInfoProperties {
       vlogService.createVlog(vlogBO);
       return ResponseDataStructureEnum.ok();
    }
-
+   /**
+    * 推荐视频流
+    * @return
+    */
    @GetMapping("indexList")
    public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String userId,
                                               @RequestParam(defaultValue = "") String search,
@@ -44,10 +47,32 @@ public class VlogController extends BaseInfoProperties {
       PagedGridResult list = vlogService.getIndexVlogList(userId, search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
+   /**
+    * 关注视频流
+    * @return
+    */
+   @GetMapping("followList")
+   public ResponseDataStructureEnum followList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.getMyFollowVlogList(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
+   /**
+    * 朋友视频流
+    * @return
+    */
+   @GetMapping("friendList")
+   public ResponseDataStructureEnum friendList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.getMyFriendVlogList(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
 
    @GetMapping("detail")
    public ResponseDataStructureEnum detail(@RequestParam(defaultValue = "") String userId, @RequestParam String vlogId){
-      return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(vlogId));
+      return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(userId, vlogId));
    }
 
    @PostMapping("changeToPrivate")
@@ -114,7 +139,7 @@ public class VlogController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
       // 判断视频id对应的视频是否存在
-      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(userId, vlogId);
       if (vlogVO == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
       }
@@ -141,7 +166,7 @@ public class VlogController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
       // 判断视频id对应的视频是否存在
-      IndexVlogVO vlogVO = vlogService.getVlogDetailById(vlogId);
+      IndexVlogVO vlogVO = vlogService.getVlogDetailById(userId, vlogId);
       if (vlogVO == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
       }
