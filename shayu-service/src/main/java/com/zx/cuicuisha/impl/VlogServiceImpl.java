@@ -9,6 +9,7 @@ import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.pojo.MyLikedVlog;
 import com.zx.cuicuisha.pojo.Vlog;
+import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
@@ -30,6 +31,8 @@ import java.util.Map;
 @Service
 public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
+   @Autowired
+   private FansService fansService;
    @Autowired
    private VlogMapper vlogMapper;
    @Autowired
@@ -70,8 +73,8 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          String vlogId = vlog.getVlogId();
          if (StringUtils.isNotBlank(userId)) {
             // 用户是否关注该博主
-            // boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
-            // vlog.setDoIFollowVloger(doIFollowVloger);
+            boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
+            vlog.setDoIFollowVloger(doIFollowVloger);
             // 判断当前用户是否点赞过视频
             vlog.setDoILikeThisVlog(doILikeVlog(userId, vlogId));
          }
@@ -195,6 +198,27 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       Map<String, Object> map = new HashMap<>();
       map.put("userId", userId);
       List<IndexVlogVO> list = vlogMapperCustom.getMyLikedVlogList(map);
+      return setterPagedGrid(list, page);
+   }
+
+   @Override
+   public PagedGridResult getMyFollowVlogList(String myId, Integer page, Integer pageSize) {
+      PageHelper.startPage(page, pageSize);
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      List<IndexVlogVO> list = vlogMapperCustom.getMyFollowVlogList(map);
+      for (IndexVlogVO vlog : list) {
+         String vlogerId = vlog.getVlogerId();
+         String vlogId = vlog.getVlogId();
+         if (StringUtils.isNotBlank(myId)) {
+            // 用户必定关注了该博主
+            vlog.setDoIFollowVloger(true);
+            // 判断当前用户是否点赞过视频
+            vlog.setDoILikeThisVlog(doILikeVlog(myId, vlogId));
+         }
+         // 获得当前视频被点赞过的总数
+         vlog.setLikeCounts(getVlogBeLikedCounts(vlogId));
+      }
       return setterPagedGrid(list, page);
    }
 }

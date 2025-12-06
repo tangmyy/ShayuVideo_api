@@ -59,7 +59,7 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       return fan;
    }
 
-   // 查询关注(是/否)
+   // 查询是/否关注该博主
    @Override
    public boolean queryDoIFollowVloger(String myId, String vlogerId) {
       // 1.传统

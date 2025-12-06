@@ -33,7 +33,10 @@ public class VlogController extends BaseInfoProperties {
       vlogService.createVlog(vlogBO);
       return ResponseDataStructureEnum.ok();
    }
-
+   /**
+    * 推荐视频流
+    * @return
+    */
    @GetMapping("indexList")
    public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String userId,
                                               @RequestParam(defaultValue = "") String search,
@@ -43,6 +46,17 @@ public class VlogController extends BaseInfoProperties {
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult list = vlogService.getIndexVlogList(userId, search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
+   }
+   /**
+    * 关注视频流
+    * @return
+    */
+   @GetMapping("followList")
+   public ResponseDataStructureEnum followList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.getMyFollowVlogList(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
    }
 
    @GetMapping("detail")
