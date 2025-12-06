@@ -12,7 +12,7 @@ public interface VlogService {
    public void createVlog(VlogBO vlogBO);
 
    // 查询首页/搜索的vlog列表
-   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize);
+   public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
 
    // 根据视频主键查询vlog
    public IndexVlogVO getVlogDetailById(String userId);
@@ -34,10 +34,9 @@ public interface VlogService {
    // 更新取消点赞视频时相关的缓存
    public void updateUnLikeVlog(String userId, String vlogerId, String vlogId);
 
-   // /**
-   //  * 获得用户点赞视频的总数
-   //  */
-   // public Integer getVlogBeLikedCounts(String vlogId);
+   // 获得用户点赞视频的总数
+   public Integer getVlogBeLikedCounts(String vlogId);
+
    // /**
    //  * 查询用户点赞过的短视频
    //  */

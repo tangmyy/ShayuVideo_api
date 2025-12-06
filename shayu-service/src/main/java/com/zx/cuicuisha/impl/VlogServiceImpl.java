@@ -32,10 +32,8 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    @Autowired
    private VlogMapper vlogMapper;
-
    @Autowired
    private VlogMapperCustom vlogMapperCustom;
-
    @Autowired
    private MyLikedVlogMapper myLikedVlogMapper;
 
@@ -59,7 +57,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    }
 
    @Override
-   public PagedGridResult getIndexVlogList(String search, Integer page, Integer pageSize) {
+   public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize) {
       // 开始分页
       PageHelper.startPage(page, pageSize);
       Map<String, Object> map = new HashMap<>();
@@ -67,8 +65,40 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          map.put("search", search);
       }
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogList(map);
+      for (IndexVlogVO vlog : list) {
+         String vlogerId = vlog.getVlogerId();
+         String vlogId = vlog.getVlogId();
+         if (StringUtils.isNotBlank(userId)) {
+            // 用户是否关注该博主
+            // boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
+            // vlog.setDoIFollowVloger(doIFollowVloger);
+            // 判断当前用户是否点赞过视频
+            vlog.setDoILikeThisVlog(doILikeVlog(userId, vlogId));
+         }
+         // 获得当前视频被点赞过的总数
+         vlog.setLikeCounts(getVlogBeLikedCounts(vlogId));
+      }
       // return list;
       return setterPagedGrid(list, page);
+   }
+   // 获取用户是否点赞过该视频
+   private boolean doILikeVlog(String myId, String vlogId){
+      String doILike = redis.get(REDIS_USER_LIKE_VLOG + ":" + myId + ":" + vlogId);
+      boolean isLike = false;
+      if (StringUtils.isNoneBlank(doILike) && doILike.equalsIgnoreCase("1")){
+         isLike = true;
+      }
+      return  isLike;
+   }
+
+   // 获取该视频获赞总数
+   @Override
+   public Integer getVlogBeLikedCounts(String vlogId){
+      String countsStr = redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId);
+      if (StringUtils.isNoneBlank(countsStr)){
+         countsStr = "0";
+      }
+      return  Integer.valueOf(countsStr);
    }
 
    @Override
@@ -80,7 +110,6 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          IndexVlogVO vlogVO = list.get(0);
          return vlogVO;
       }
-
       return null;
    }
 

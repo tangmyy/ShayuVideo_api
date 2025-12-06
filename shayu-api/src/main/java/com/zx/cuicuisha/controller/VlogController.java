@@ -6,7 +6,6 @@ import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
-import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -36,10 +35,13 @@ public class VlogController extends BaseInfoProperties {
    }
 
    @GetMapping("indexList")
-   public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String search, @RequestParam Integer page, @RequestParam Integer pageSize){
+   public ResponseDataStructureEnum indexList(@RequestParam(defaultValue = "") String userId,
+                                              @RequestParam(defaultValue = "") String search,
+                                              @RequestParam Integer page,
+                                              @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
-      PagedGridResult list = vlogService.getIndexVlogList(search, page, pageSize);
+      PagedGridResult list = vlogService.getIndexVlogList(userId, search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
 
@@ -128,5 +130,10 @@ public class VlogController extends BaseInfoProperties {
       vlogService.userUnLikeVlog(userId, vlogId);
       vlogService.updateUnLikeVlog(userId, vlogerId, vlogId);
       return  ResponseDataStructureEnum.ok();
+   }
+
+   @PostMapping("totalLikedCounts")
+   public ResponseDataStructureEnum totalLikedCounts(@RequestParam String vlogId) {
+      return ResponseDataStructureEnum.ok(vlogService.getVlogBeLikedCounts(vlogId));
    }
 }
