@@ -68,5 +68,15 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
 
-
+   @PostMapping("like")
+   public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
+      // 我点赞的视频，关联关系保存到数据库
+      vlogService.userLikeVlog(userId, vlogId);
+      // 点赞以后，视频点赞数/发布者获赞数 +1
+      redis.increment(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
+      redis.increment(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
+      //  我点赞的视频，关联关系保存到redis
+      redis.set(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId, "1");
+      return  ResponseDataStructureEnum.ok();
+   }
 }
