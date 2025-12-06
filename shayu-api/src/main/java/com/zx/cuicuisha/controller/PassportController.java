@@ -1,5 +1,6 @@
 package com.zx.cuicuisha.controller;
 
+import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.RedisLoginBO;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -9,23 +10,15 @@ import com.zx.cuicuisha.utils.IPUtil;
 import com.zx.cuicuisha.utils.SendSms;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 
-import javax.servlet.http.HttpServletRequest;
 import javax.validation.Valid;
 import java.util.UUID;
 
@@ -93,7 +86,7 @@ public class PassportController extends BaseInfoProperties {
       String uToken = UUID.randomUUID().toString();
       redis.set(REDIS_USER_TOKEN + ":" + user.getId(), uToken);
       // 4. 用户登录注册成功以后, 删除redis中的短信验证码
-      redis.del(MOBILE_SMSCODE + ":" + mobile);
+      redis.delete(MOBILE_SMSCODE + ":" + mobile);
       // 5. 返回用户会话token令牌给前端
       UsersVO usersVO = new UsersVO();
       BeanUtils.copyProperties(user, usersVO);
@@ -103,11 +96,12 @@ public class PassportController extends BaseInfoProperties {
    }
 
    @PostMapping("logout")
-   public Object logout(@Valid @RequestBody String userId, HttpServletRequest request) throws Exception {
+   public Object logout(@RequestParam String userId, HttpServletRequest request) throws Exception {
       // 清除用户会话信息即可, 前端也需要清除本地app中的用户信息和token信息
-      redis.del(REDIS_USER_TOKEN + ":" + userId);
+      redis.delete(REDIS_USER_TOKEN + ":" + userId);
       return ResponseDataStructureEnum.ok();
    }
+
 
 
 }

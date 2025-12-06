@@ -23,8 +23,8 @@ public enum ResponseStatusEnum {
     USER_INACTIVE_ERROR(509,false,"请前往[账号设置]修改信息激活后再进行后续操作！"),
     USER_INFO_UPDATED_ERROR(5091,false,"用户信息修改失败！"),
     USER_INFO_UPDATED_NICKNAME_EXIST_ERROR(5092,false,"昵称已经存在！"),
-    USER_INFO_UPDATED_IMOOCNUM_EXIST_ERROR(5092,false,"账号已经存在！"),
-    USER_INFO_CANT_UPDATED_IMOOCNUM_ERROR(5092,false,"账号无法修改！"),
+    USER_INFO_UPDATED_VIDEONUM_EXIST_ERROR(5092,false,"账号已经存在！"),
+    USER_INFO_CANT_UPDATED_VIDEONUM_ERROR(5092,false,"账号无法修改！"),
     FILE_UPLOAD_NULL_ERROR(510,false,"文件不能为空，请选择一个文件再上传！"),
     FILE_UPLOAD_FAILD(511,false,"文件上传失败！"),
     FILE_FORMATTER_FAILD(512,false,"文件图片格式不支持！"),
@@ -32,7 +32,11 @@ public enum ResponseStatusEnum {
     FILE_MAX_SIZE_2MB_ERROR(5132,false,"仅支持2MB大小以下的图片上传！"),
     FILE_NOT_EXIST_ERROR(514,false,"你所查看的文件不存在！"),
     USER_STATUS_ERROR(515,false,"用户状态参数出错！"),
-    USER_NOT_EXIST_ERROR(516,false,"用户不存在！"),
+    USER_NOT_EXIST_ERROR(516,false,"当前用户不存在！"),
+    VLOGER_NOT_EXIST_ERROR(517,false,"被关注的用户不存在！"),
+    FANS_FOLLOW_YOURSELF_ERROR(517,false,"用户不能关注自己！"),
+    VLOG_NOT_EXIST_ERROR(518, false,"视频不存在"),
+
 
     // 自定义系统级别异常 54x
     SYSTEM_INDEX_OUT_OF_BOUNDS(541, false, "系统错误，数组越界！"),

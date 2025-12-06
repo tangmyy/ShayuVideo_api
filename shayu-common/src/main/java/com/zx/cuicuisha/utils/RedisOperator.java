@@ -114,7 +114,7 @@ public class RedisOperator {
 	 *
 	 * @param key
 	 */
-	public void del(String key) {
+	public void delete(String key) {
 		redisTemplate.delete(key);
 	}
 

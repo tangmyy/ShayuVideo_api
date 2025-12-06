@@ -1,18 +1,17 @@
 package com.zx.cuicuisha.vo;
 
-import lombok.AllArgsConstructor;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
-import javax.persistence.Column;
-import javax.persistence.Id;
 import java.util.Date;
 
+
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class UsersVO {
    private String id;
    private String mobile;
