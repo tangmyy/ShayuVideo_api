@@ -58,6 +58,17 @@ public class VlogController extends BaseInfoProperties {
       PagedGridResult gridResult = vlogService.getMyFollowVlogList(myId, page, pageSize);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
+   /**
+    * 朋友视频流
+    * @return
+    */
+   @GetMapping("friendList")
+   public ResponseDataStructureEnum friendList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = vlogService.getMyFriendVlogList(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
 
    @GetMapping("detail")
    public ResponseDataStructureEnum detail(@RequestParam(defaultValue = "") String userId, @RequestParam String vlogId){

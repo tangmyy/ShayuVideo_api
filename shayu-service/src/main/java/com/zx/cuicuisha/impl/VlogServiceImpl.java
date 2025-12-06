@@ -221,4 +221,25 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
       return setterPagedGrid(list, page);
    }
+
+   @Override
+   public PagedGridResult getMyFriendVlogList(String myId, Integer page, Integer pageSize) {
+      PageHelper.startPage(page, pageSize);
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      List<IndexVlogVO> list = vlogMapperCustom.getMyFriendVlogList(map);
+      for (IndexVlogVO vlog : list) {
+         String vlogerId = vlog.getVlogerId();
+         String vlogId = vlog.getVlogId();
+         if (StringUtils.isNotBlank(myId)) {
+            // 用户必定关注了该博主
+            vlog.setDoIFollowVloger(true);
+            // 判断当前用户是否点赞过视频
+            vlog.setDoILikeThisVlog(doILikeVlog(myId, vlogId));
+         }
+         // 获得当前视频被点赞过的总数
+         vlog.setLikeCounts(getVlogBeLikedCounts(vlogId));
+      }
+      return setterPagedGrid(list, page);
+   }
 }
