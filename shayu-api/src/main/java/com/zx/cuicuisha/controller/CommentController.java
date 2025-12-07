@@ -9,6 +9,7 @@ import com.zx.cuicuisha.vo.CommentVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -46,14 +47,14 @@ public class CommentController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(commentVO);
    }
 
-   // @GetMapping("counts")
-   // public ResponseDataStructureEnum counts(@RequestParam String vlogId) {
-   //    String countsStr = redis.get(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId);
-   //    if (StringUtils.isBlank(countsStr)) {
-   //       countsStr = "0";
-   //    }
-   //    return ResponseDataStructureEnum.ok(Integer.valueOf(countsStr));
-   // }
+   @GetMapping("counts")
+   public ResponseDataStructureEnum counts(@RequestParam String vlogId) {
+      String countsStr = redis.get(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId);
+      if (StringUtils.isBlank(countsStr)) {
+         countsStr = "0";
+      }
+      return ResponseDataStructureEnum.ok(Integer.valueOf(countsStr));
+   }
    //
    // @GetMapping("list")
    // public ResponseDataStructureEnum list(@RequestParam String vlogId, @RequestParam(defaultValue = "") String userId,
