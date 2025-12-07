@@ -4,8 +4,6 @@ import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 
-import java.util.List;
-
 public interface VlogService {
 
    // 新增vlog视频
