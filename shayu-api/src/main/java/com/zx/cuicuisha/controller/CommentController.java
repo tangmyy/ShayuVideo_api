@@ -55,27 +55,19 @@ public class CommentController extends BaseInfoProperties {
       }
       return ResponseDataStructureEnum.ok(Integer.valueOf(countsStr));
    }
-   //
-   // @GetMapping("list")
-   // public ResponseDataStructureEnum list(@RequestParam String vlogId, @RequestParam(defaultValue = "") String userId,
-   //                                       @RequestParam Integer page, @RequestParam Integer pageSize) {
-   //
-   //    return ResponseDataStructureEnum.ok(
-   //          commentService.queryVlogComments(
-   //                vlogId,
-   //                userId,
-   //                page,
-   //                pageSize));
-   // }
-   //
-   // @DeleteMapping("delete")
-   // public ResponseDataStructureEnum delete(@RequestParam String commentUserId, @RequestParam String commentId, @RequestParam String vlogId) {
-   //    commentService.deleteComment(commentUserId,
-   //          commentId,
-   //          vlogId);
-   //    return ResponseDataStructureEnum.ok();
-   // }
-   //
+
+   @GetMapping("list")
+   public ResponseDataStructureEnum list(@RequestParam String vlogId, @RequestParam(defaultValue = "") String userId,
+                                         @RequestParam Integer page, @RequestParam Integer pageSize) {
+      return ResponseDataStructureEnum.ok(commentService.queryVlogComments(vlogId, userId, page, pageSize));
+   }
+
+   @DeleteMapping("delete")
+   public ResponseDataStructureEnum delete(@RequestParam String commentUserId, @RequestParam String commentId, @RequestParam String vlogId) {
+      commentService.deleteComment(commentUserId, commentId, vlogId);
+      return ResponseDataStructureEnum.ok();
+   }
+
    // @Autowired
    // public RabbitTemplate rabbitTemplate;
    //

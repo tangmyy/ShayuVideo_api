@@ -1,8 +1,10 @@
 package com.zx.cuicuisha.impl;
 
+import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.mapper.CommentMapper;
+import com.zx.cuicuisha.mapper.CommentMapperCustom;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -14,6 +16,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Repository
@@ -21,6 +26,8 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Autowired
    private CommentMapper commentMapper;
+   @Autowired
+   private CommentMapperCustom commentMapperCustom;
 
    @Autowired
    private Sid sid;
@@ -38,7 +45,9 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       comment.setContent(commentBO.getContent());
       comment.setLikeCounts(0);
       comment.setCreateTime(new Date());
+      // 插入数据
       commentMapper.insert(comment);
+      // redis中累加
       redis.increment(REDIS_VLOG_COMMENT_COUNTS + ":" + commentBO.getVlogId(), 1);
       // 留言后的最新评论需要返回给前端进行展示
       CommentVO commentVO = new CommentVO();
@@ -48,12 +57,22 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Override
    public PagedGridResult queryVlogComments(String vlogId, String userId, Integer page, Integer pageSize) {
-      return null;
+      Map<String, Object> map = new HashMap<>();
+      map.put("vlogId", vlogId);
+      PageHelper.startPage(page, pageSize);
+      List<CommentVO> list = commentMapperCustom.getCommentList(map);
+      return setterPagedGrid(list, page);
    }
 
    @Override
    public void deleteComment(String commentUserId, String commentId, String vlogId) {
-
+      Comment pendingDelete = new Comment();
+      pendingDelete.setId(commentId);
+      pendingDelete.setCommentUserId(commentUserId);
+      // 从数据库删除
+      commentMapper.delete(pendingDelete);
+      // redis中累减
+      redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
    }
 
    @Override
