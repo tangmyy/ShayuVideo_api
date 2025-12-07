@@ -76,6 +76,7 @@ public class CommentController extends BaseInfoProperties {
       // TODO： 优化bigkey
       redis.incrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
       // redis.hset(REDIS_USER_LIKE_COMMENT, userId, "1");        hset = setHashValue
+      // TODO：优化value="1" 为枚举类中的值 再进行传参
       redis.setHashValue(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId, "1");
 
       // 系统消息：点赞评论

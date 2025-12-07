@@ -3,6 +3,7 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.CommentBO;
+import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.CommentMapper;
 import com.zx.cuicuisha.mapper.CommentMapperCustom;
 import com.zx.cuicuisha.pojo.Comment;
@@ -10,6 +11,7 @@ import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,6 +63,22 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       map.put("vlogId", vlogId);
       PageHelper.startPage(page, pageSize);
       List<CommentVO> list = commentMapperCustom.getCommentList(map);
+      // TODO：优化 抽象封装两个方法
+      for (CommentVO commentVO:list) {
+         String commentId = commentVO.getCommentId();
+         // 当前短视频的某个评论的点赞总数
+         String countsStr = redis.getHashValue(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId);
+         Integer counts = 0;
+         if (StringUtils.isNotBlank(countsStr)) {
+            counts = Integer.valueOf(countsStr);
+         }
+         commentVO.setLikeCounts(counts);
+         // 判断当前用户是否点赞过该评论
+         String doILike = redis.hget(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
+         if (StringUtils.isNotBlank(doILike) && doILike.equalsIgnoreCase("1")) {
+            commentVO.setIsLike(YesOrNo.YES.type);
+         }
+      }
       return setterPagedGrid(list, page);
    }
 
@@ -77,6 +95,6 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Override
    public Comment getComment(String id) {
-      return null;
+      return commentMapper.selectByPrimaryKey(id);
    }
 }
