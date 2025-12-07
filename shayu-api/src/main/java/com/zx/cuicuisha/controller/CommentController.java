@@ -28,6 +28,9 @@ public class CommentController extends BaseInfoProperties {
    @Autowired
    private VlogService vlogService;
 
+   // @Autowired
+   // public RabbitTemplate rabbitTemplate;
+
    @ApiOperation(value = "发表评论")
    @PostMapping("create")
    public ResponseDataStructureEnum create(@RequestBody @Valid CommentBO commentBO) throws Exception {
@@ -68,48 +71,42 @@ public class CommentController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok();
    }
 
-   // @Autowired
-   // public RabbitTemplate rabbitTemplate;
-   //
-   // @PostMapping("like")
-   // public ResponseDataStructureEnum like(@RequestParam String commentId, @RequestParam String userId) {
-   //
-   //    // 故意犯错，bigkey
-   //    redis.incrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
-   //    redis.setHashValue(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId, "1");
-   //    //        redis.hset(REDIS_USER_LIKE_COMMENT, userId, "1");
-   //
-   //
-   //    // 系统消息：点赞评论
-   //    Comment comment = commentService.getComment(commentId);
-   //    Vlog vlog = vlogService.getVlog(comment.getVlogId());
-   //    Map msgContent = new HashMap();
-   //    msgContent.put("vlogId", vlog.getId());
-   //    msgContent.put("vlogCover", vlog.getCover());
-   //    msgContent.put("commentId", commentId);
-   //    //        msgService.createMsg(userId,
-   //    //                            comment.getCommentUserId(),
-   //    //                            MessageEnum.LIKE_COMMENT.type,
-   //    //                            msgContent);
-   //
-   //    // MQ异步解耦
-   //    MessageMO messageMO = new MessageMO();
-   //    messageMO.setFromUserId(userId);
-   //    messageMO.setToUserId(comment.getCommentUserId());
-   //    messageMO.setMsgContent(msgContent);
-   //    rabbitTemplate.convertAndSend(
-   //          RabbitMQConfig.EXCHANGE_MSG,
-   //          "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,
-   //          JsonUtils.objectToJson(messageMO));
-   //
-   //    return ResponseDataStructureEnum.ok();
-   // }
-   //
-   // @PostMapping("unlike")
-   // public ResponseDataStructureEnum unlike(@RequestParam String commentId, @RequestParam String userId) {
-   //    redis.decrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
-   //    redis.hdel(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
-   //    return ResponseDataStructureEnum.ok();
-   // }
+   @PostMapping("like")
+   public ResponseDataStructureEnum like(@RequestParam String commentId, @RequestParam String userId) {
+      // TODO： 优化bigkey
+      redis.incrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
+      // redis.hset(REDIS_USER_LIKE_COMMENT, userId, "1");        hset = setHashValue
+      redis.setHashValue(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId, "1");
+
+      // 系统消息：点赞评论
+      // Comment comment = commentService.getComment(commentId);
+      // Vlog vlog = vlogService.getVlog(comment.getVlogId());
+      // Map msgContent = new HashMap();
+      // msgContent.put("vlogId", vlog.getId());
+      // msgContent.put("vlogCover", vlog.getCover());
+      // msgContent.put("commentId", commentId);
+      //        msgService.createMsg(userId,
+      //                            comment.getCommentUserId(),
+      //                            MessageEnum.LIKE_COMMENT.type,
+      //                            msgContent);
+      // // MQ异步解耦
+      // MessageMO messageMO = new MessageMO();
+      // messageMO.setFromUserId(userId);
+      // messageMO.setToUserId(comment.getCommentUserId());
+      // messageMO.setMsgContent(msgContent);
+      // rabbitTemplate.convertAndSend(
+      //       RabbitMQConfig.EXCHANGE_MSG,
+      //       "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,
+      //       JsonUtils.objectToJson(messageMO));
+      return ResponseDataStructureEnum.ok();
+   }
+
+   @PostMapping("unlike")
+   public ResponseDataStructureEnum unlike(@RequestParam String commentId, @RequestParam String userId) {
+      redis.decrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
+      // redis.hdel(REDIS_USER_LIKE_COMMENT, userId, "1");        hdel = deleteHash
+      redis.deleteHash(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
+      return ResponseDataStructureEnum.ok();
+   }
 }
 

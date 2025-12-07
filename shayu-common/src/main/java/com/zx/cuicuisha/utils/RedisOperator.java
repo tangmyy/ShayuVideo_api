@@ -235,7 +235,7 @@ public class RedisOperator {
 	 * @param key
 	 * @param fields
 	 */
-	public void hdel(String key, Object... fields) {
+	public void deleteHash(String key, Object... fields) {
 		redisTemplate.opsForHash().delete(key, fields);
 	}
 
