@@ -1,4 +1,4 @@
-package com.zx.cuicuisha;
+package com.zx.cuicuisha.base;
 
 import org.springframework.amqp.core.*;
 import org.springframework.beans.factory.annotation.Qualifier;

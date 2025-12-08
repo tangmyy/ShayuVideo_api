@@ -1,6 +1,6 @@
 package com.zx.cuicuisha.controller;
 
-import com.zx.cuicuisha.RabbitMQConfig;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.utils.SMSUtils;
 import io.swagger.annotations.Api;
@@ -56,11 +56,18 @@ public class HelloController {
    @Autowired
    public RabbitTemplate rabbitTemplate;
 
-   @ApiOperation(value = "MQ的测试路由")
-   @GetMapping("produce")
-   public Object produce() throws Exception {
+   @ApiOperation(value = "MQ的测试路由 - 发送消息")
+   @GetMapping("produc_send")
+   public Object produc_send() throws Exception {
       rabbitTemplate.convertAndSend(
-         RabbitMQConfig.EXCHANGE_MSG, "sys.msg.send", "我发了一个消息~~");
+         RabbitMQConfig.EXCHANGE_MSG, "sys.msg.send", "我发送了一个消息~~");
+      return ResponseDataStructureEnum.ok();
+   }
+   @ApiOperation(value = "MQ的测试路由 - 删除消息")
+   @GetMapping("produce_delete")
+   public Object produce_delete() throws Exception {
+      rabbitTemplate.convertAndSend(
+         RabbitMQConfig.EXCHANGE_MSG, "sys.msg.delete", "我删除了一个消息~~");
       return ResponseDataStructureEnum.ok();
    }
 }
