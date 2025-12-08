@@ -3,6 +3,7 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.VlogBO;
+import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
@@ -10,6 +11,7 @@ import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.pojo.MyLikedVlog;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.FansService;
+import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
@@ -39,9 +41,11 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    private VlogMapperCustom vlogMapperCustom;
    @Autowired
    private MyLikedVlogMapper myLikedVlogMapper;
-
    @Autowired
    private Sid sid;
+   @Autowired
+   private MsgService msgService;
+
 
    @Transactional
    @Override
@@ -158,6 +162,21 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       likedVlog.setVlogId(vlogId);
       likedVlog.setUserId(userId);
       myLikedVlogMapper.insert(likedVlog);
+      // 系统消息：点赞短视频
+      Vlog vlog = this.getVlog(vlogId);
+      Map msgContent = new HashMap();
+      msgContent.put("vlogId", vlogId);
+      msgContent.put("vlogCover", vlog.getCover());
+      msgService.createMsg(userId, vlog.getVlogerId(), MessageEnum.LIKE_VLOG.type, msgContent);
+      // MQ异步解耦
+      // MessageMO messageMO = new MessageMO();
+      // messageMO.setFromUserId(userId);
+      // messageMO.setToUserId(vlog.getVlogerId());
+      // messageMO.setMsgContent(msgContent);
+      // rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
+   }
+   public Vlog getVlog(String id) {
+      return vlogMapper.selectByPrimaryKey(id);
    }
    // 更新点赞视频时相关的缓存
    public void updateLikeVlog(String userId, String vlogerId, String vlogId) {

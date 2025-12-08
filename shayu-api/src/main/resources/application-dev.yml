@@ -26,7 +26,7 @@ spring:
     password: 2004
   data:
     mongodb:
-      uri: mongodb://root:root@106.54.6.213:27017
+      uri: mongodb://root:2004@106.54.6.213:27017
       database: shayuvideo
 # MinIO 配置 顶格配置否则找不到
 minio:
