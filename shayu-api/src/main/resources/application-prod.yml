@@ -2,8 +2,6 @@ server:
   port: 8088
 
 spring:
-  application:
-    name: shayuvideo-nacos
   datasource: # 数据源的相关配置
     type: com.zaxxer.hikari.HikariDataSource      # 数据源的类型，可以更改为其他的数据源配置，比如druid
     driver-class-name: com.mysql.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
@@ -38,8 +36,8 @@ spring:
     password: 2004
     virtual-host: shayuvideo
   # Nacos 配置
-#  application:
-#    name: shayuvideo-nacos
+  application:
+    name: shayuvideo-nacos
   cloud:
     nacos:
       discovery:

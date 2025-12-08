@@ -8,6 +8,7 @@ import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -17,6 +18,14 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RefreshScope
 public class HelloController {
+
+   @Value("${nacos.counts}")
+   private Integer nacosCounts;
+
+   @GetMapping("nacosCounts")
+   public Object nacosCounts() {
+      return ResponseDataStructureEnum.ok("nacosCounts的数值为：" + nacosCounts);
+   }
 
    @ApiOperation(value = "hello - 测试项目基本运行路由")
    @GetMapping("hello")
