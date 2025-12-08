@@ -2,22 +2,26 @@ package com.zx.cuicuisha.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
+import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.MyLikedVlog;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,6 +49,8 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    private Sid sid;
    @Autowired
    private MsgService msgService;
+   @Autowired
+   public RabbitTemplate rabbitTemplate;
 
 
    @Transactional
@@ -167,13 +173,13 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       Map msgContent = new HashMap();
       msgContent.put("vlogId", vlogId);
       msgContent.put("vlogCover", vlog.getCover());
-      msgService.createMsg(userId, vlog.getVlogerId(), MessageEnum.LIKE_VLOG.type, msgContent);
+      // msgService.createMsg(userId, vlog.getVlogerId(), MessageEnum.LIKE_VLOG.type, msgContent);
       // MQ异步解耦
-      // MessageMO messageMO = new MessageMO();
-      // messageMO.setFromUserId(userId);
-      // messageMO.setToUserId(vlog.getVlogerId());
-      // messageMO.setMsgContent(msgContent);
-      // rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(userId);
+      messageMO.setToUserId(vlog.getVlogerId());
+      messageMO.setMsgContent(msgContent);
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
    }
    @Override
    public Vlog getVlog(String id) {
