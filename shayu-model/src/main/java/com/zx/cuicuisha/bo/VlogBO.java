@@ -9,9 +9,9 @@ import javax.validation.constraints.*;
 import org.hibernate.validator.constraints.URL;
 
 @Data
-@AllArgsConstructor
-@NoArgsConstructor
 @ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class VlogBO {
 
    @NotBlank(message = "ID不能为空")
