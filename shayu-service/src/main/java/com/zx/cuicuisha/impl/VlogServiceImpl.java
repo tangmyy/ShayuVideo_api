@@ -175,6 +175,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       // messageMO.setMsgContent(msgContent);
       // rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
    }
+   @Override
    public Vlog getVlog(String id) {
       return vlogMapper.selectByPrimaryKey(id);
    }

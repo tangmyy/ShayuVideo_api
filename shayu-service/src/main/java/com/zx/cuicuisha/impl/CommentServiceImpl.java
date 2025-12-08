@@ -3,11 +3,15 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.CommentBO;
+import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.CommentMapper;
 import com.zx.cuicuisha.mapper.CommentMapperCustom;
 import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
+import com.zx.cuicuisha.service.MsgService;
+import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
@@ -30,9 +34,12 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
    private CommentMapper commentMapper;
    @Autowired
    private CommentMapperCustom commentMapperCustom;
-
    @Autowired
    private Sid sid;
+   @Autowired
+   private VlogService vlogService;
+   @Autowired
+   private MsgService msgService;
 
    @Override
    public CommentVO createComment(CommentBO commentBO) {
@@ -54,6 +61,28 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       // 留言后的最新评论需要返回给前端进行展示
       CommentVO commentVO = new CommentVO();
       BeanUtils.copyProperties(comment, commentVO);
+
+      // 系统消息：评论/回复
+      Vlog vlog = vlogService.getVlog(commentBO.getVlogId());
+      Map msgContent = new HashMap();
+      msgContent.put("vlogId", vlog.getId());
+      msgContent.put("vlogCover", vlog.getCover());
+      msgContent.put("commentId", commentId);
+      msgContent.put("commentContent", commentBO.getContent());
+      Integer type = MessageEnum.COMMENT_VLOG.type;
+      String routeType = MessageEnum.COMMENT_VLOG.enValue;
+      if (StringUtils.isNotBlank(commentBO.getFatherCommentId()) && !commentBO.getFatherCommentId().equalsIgnoreCase("0")) {
+         type = MessageEnum.REPLY_YOU.type;
+         routeType = MessageEnum.REPLY_YOU.enValue;
+      }
+      msgService.createMsg(commentBO.getCommentUserId(), commentBO.getVlogerId(), type, msgContent);
+
+      // MQ异步解耦
+      // MessageMO messageMO = new MessageMO();
+      // messageMO.setFromUserId(commentBO.getCommentUserId());
+      // messageMO.setToUserId(commentBO.getVlogerId());
+      // messageMO.setMsgContent(msgContent);
+      // rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + routeType, JsonUtils.objectToJson(messageMO));
       return commentVO;
    }
 

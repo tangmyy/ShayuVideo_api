@@ -1,6 +1,7 @@
 package com.zx.cuicuisha.service;
 
 import com.zx.cuicuisha.bo.VlogBO;
+import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 
@@ -25,7 +26,8 @@ public interface VlogService {
    public void userLikeVlog(String userId, String vlogId);
    // 更新点赞视频时相关的缓存
    public void updateLikeVlog(String userId, String vlogerId, String vlogId);
-
+   // 根据主键查询视频信息
+   public Vlog getVlog(String id);
    // 用户取消点赞/取消喜欢视频
    public void userUnLikeVlog(String userId, String vlogId);
    // 更新取消点赞视频时相关的缓存
