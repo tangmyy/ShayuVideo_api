@@ -2,20 +2,24 @@ package com.zx.cuicuisha.impl;
 
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.mapper.FansMapper;
 import com.zx.cuicuisha.mapper.FansMapperCustom;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
+import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.FansVO;
 import com.zx.cuicuisha.vo.VlogerVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,6 +41,8 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    private Sid sid;
    @Autowired
    private MsgService msgService;
+   @Autowired
+   public RabbitTemplate rabbitTemplate;
 
    /**
     * 查询粉丝关系 --> 提供给关注和取关使用
@@ -97,12 +103,12 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       // 插入新的粉丝关系记录
       fansMapper.insert(fans);
       // 系统消息：关注
-      msgService.createMsg(myId, vlogerId, MessageEnum.FOLLOW_YOU.type, null);
-      // MessageMO messageMO = new MessageMO();
-      // messageMO.setFromUserId(myId);
-      // messageMO.setToUserId(vlogerId);
+      // msgService.createMsg(myId, vlogerId, MessageEnum.FOLLOW_YOU.type, null);
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(myId);
+      messageMO.setToUserId(vlogerId);
       // 优化：使用mq异步解耦
-      // rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
    }
 
    // 更新关注相关的缓存
