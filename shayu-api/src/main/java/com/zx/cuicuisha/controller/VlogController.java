@@ -146,6 +146,11 @@ public class VlogController extends BaseInfoProperties {
       // 我点赞的视频，关联关系保存到数据库
       vlogService.userLikeVlog(userId, vlogId);
       vlogService.updateLikeVlog(userId, vlogerId, vlogId);
+
+      // 点赞完毕，获得当前在redis中的总数
+      // 比如获得总计数为 1k/1w/10w, 假定阈值（配置）为2000, 此时1k满足2000, 则触发入库
+
+
       return  ResponseDataStructureEnum.ok();
    }
 

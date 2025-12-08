@@ -5,7 +5,7 @@ spring:
   datasource: # 数据源的相关配置
     type: com.zaxxer.hikari.HikariDataSource      # 数据源的类型，可以更改为其他的数据源配置，比如druid
     driver-class-name: com.mysql.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
-    url: jdbc:mysql://10.0.4.12:3306/shayuvideo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    url: jdbc:mysql://106.54.6.213:3306/shayuvideo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
     username: root
     password: 2004
     hikari:
@@ -19,23 +19,38 @@ spring:
       connection-test-query: SELECT 1
   # Redis 配置
   redis:
-    host: 10.0.4.12
+    host: 106.54.6.213
     port: 6379
     database: 0
     password: 2004
-  # mongodb 配置
+  # Mongodb 配置
   data:
     mongodb:
       uri: mongodb://root:2004@106.54.6.213:27017
       database: shayuvideo
-  # rabbitmq 配置
+  # Rabbitmq 配置
   rabbitmq:
-    host: 10.0.4.12
+    host: 106.54.6.213
     port: 5672
     username: tmyyy
     password: 2004
     virtual-host: shayuvideo
-# MinIO 配置 顶格配置否则找不到
+  # Nacos 配置
+  application:
+    name: shayuvideo-nacos
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 106.54.6.213:8848
+#counts: 100
+# 打开监控
+management:
+  endpoint:
+    web:
+      exposure:
+        include: '*'
+
+# MinIO 配置 顶格配置否则找不到 使用外网IP
 minio:
   endpoint: http://106.54.6.213:9000      # MinIO服务地址
   fileHost: http://106.54.6.213:9000      # 文件地址host
