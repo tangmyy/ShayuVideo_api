@@ -24,26 +24,21 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
 
    @Autowired
    private MessageRepository messageRepository;
-
    @Autowired
    private UserService userService;
 
    @Override
    public void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
-
       Users fromUser = userService.getUser(fromUserId);
-
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(fromUserId);
       messageMO.setFromNickname(fromUser.getNickname());
       messageMO.setFromFace(fromUser.getFace());
       messageMO.setToUserId(toUserId);
       messageMO.setMsgType(type);
-
       if (msgContent != null) {
          messageMO.setMsgContent(msgContent);
       }
-
       messageMO.setCreateTime(new Date());
       messageRepository.save(messageMO);
    }
@@ -61,7 +56,6 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
             if (map == null) {
                map = new HashMap();
             }
-
             String relationship = redis.get(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + msg.getToUserId() + ":" + msg.getFromUserId());
             if (StringUtils.isNotBlank(relationship) && relationship.equalsIgnoreCase("1")) {
                map.put("isFriend", true);

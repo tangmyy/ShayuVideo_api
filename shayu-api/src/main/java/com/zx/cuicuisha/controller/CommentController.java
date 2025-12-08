@@ -2,8 +2,12 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.CommentBO;
+import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
+import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
+import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.vo.CommentVO;
 import io.swagger.annotations.Api;
@@ -14,6 +18,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
+import java.util.HashMap;
+import java.util.Map;
 
 @Slf4j
 @Api(tags = "CommentController 评论模块的接口")
@@ -23,11 +29,10 @@ public class CommentController extends BaseInfoProperties {
 
    @Autowired
    private CommentService commentService;
-   // @Autowired
-   // private MsgService msgService;
    @Autowired
    private VlogService vlogService;
-
+   @Autowired
+   private MsgService msgService;
    // @Autowired
    // public RabbitTemplate rabbitTemplate;
 
@@ -80,16 +85,13 @@ public class CommentController extends BaseInfoProperties {
       redis.setHashValue(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId, "1");
 
       // 系统消息：点赞评论
-      // Comment comment = commentService.getComment(commentId);
-      // Vlog vlog = vlogService.getVlog(comment.getVlogId());
-      // Map msgContent = new HashMap();
-      // msgContent.put("vlogId", vlog.getId());
-      // msgContent.put("vlogCover", vlog.getCover());
-      // msgContent.put("commentId", commentId);
-      //        msgService.createMsg(userId,
-      //                            comment.getCommentUserId(),
-      //                            MessageEnum.LIKE_COMMENT.type,
-      //                            msgContent);
+      Comment comment = commentService.getComment(commentId);
+      Vlog vlog = vlogService.getVlog(comment.getVlogId());
+      Map msgContent = new HashMap();
+      msgContent.put("vlogId", vlog.getId());
+      msgContent.put("vlogCover", vlog.getCover());
+      msgContent.put("commentId", commentId);
+      msgService.createMsg(userId, comment.getCommentUserId(), MessageEnum.LIKE_COMMENT.type, msgContent);
       // // MQ异步解耦
       // MessageMO messageMO = new MessageMO();
       // messageMO.setFromUserId(userId);
