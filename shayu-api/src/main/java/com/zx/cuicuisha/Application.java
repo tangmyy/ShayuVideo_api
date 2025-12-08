@@ -8,6 +8,7 @@ import org.springframework.data.mongodb.repository.config.EnableMongoRepositorie
 
 
 
+
 @SpringBootApplication
 @MapperScan(basePackages = "com.zx.cuicuisha.mapper")
 @ComponentScan(basePackages = {"com.zx.cuicuisha", "org.n3r.idworker"})

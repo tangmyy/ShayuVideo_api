@@ -24,10 +24,18 @@ spring:
     port: 6379
     database: 0
     password: 2004
+  # mongodb 配置
   data:
     mongodb:
       uri: mongodb://root:2004@106.54.6.213:27017
       database: shayuvideo
+  # rabbitmq 配置
+  rabbitmq:
+    host: 10.0.4.12
+    port: 5672
+    username: tmyyy
+    password: 2004
+    virtual-host: shayuvideo
 # MinIO 配置 顶格配置否则找不到
 minio:
   endpoint: http://106.54.6.213:9000      # MinIO服务地址
