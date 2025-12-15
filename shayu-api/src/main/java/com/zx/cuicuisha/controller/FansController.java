@@ -81,6 +81,24 @@ public class FansController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
 
+   /**
+    * 管理端：粉丝列表
+    * /fans/admin/list
+    *
+    * @param myId 用户id（查看该用户的粉丝列表）
+    * @param page 页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @GetMapping("admin/list")
+   public ResponseDataStructureEnum adminList(@RequestParam String myId,
+                                              @RequestParam(required = false) Integer page,
+                                              @RequestParam(required = false) Integer pageSize) {
+      if (page == null){ page = COMMON_START_PAGE; }
+      if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult gridResult = fansService.queryMyFans(myId, page, pageSize);
+      return  ResponseDataStructureEnum.ok(gridResult);
+   }
 
 }
 /**
