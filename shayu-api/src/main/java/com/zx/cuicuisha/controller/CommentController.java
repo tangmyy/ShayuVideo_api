@@ -111,5 +111,29 @@ public class CommentController extends BaseInfoProperties {
       redis.deleteHash(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
       return ResponseDataStructureEnum.ok();
    }
+
+   /**
+    * 管理端：评论列表
+    * /comment/admin/list
+    *
+    * @param vlogId  视频ID（必填）
+    * @param userId  当前登录用户ID（可选，用于标记是否点赞；管理端可传空）
+    * @param page    页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @GetMapping("admin/list")
+   public ResponseDataStructureEnum adminList(@RequestParam String vlogId,
+                                              @RequestParam(required = false, defaultValue = "") String userId,
+                                              @RequestParam(required = false) Integer page,
+                                              @RequestParam(required = false) Integer pageSize) {
+      if (page == null) {
+         page = COMMON_START_PAGE;
+      }
+      if (pageSize == null) {
+         pageSize = COMMON_PAGE_SIZE;
+      }
+      return ResponseDataStructureEnum.ok(commentService.queryVlogComments(vlogId, userId, page, pageSize));
+   }
 }
 
