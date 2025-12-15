@@ -198,4 +198,28 @@ public class VlogController extends BaseInfoProperties {
    public ResponseDataStructureEnum totalLikedCounts(@RequestParam String vlogId) {
       return ResponseDataStructureEnum.ok(vlogService.getVlogBeLikedCounts(vlogId));
    }
+
+   /**
+    * 管理端：视频列表
+    * /vlog/admin/list
+    *
+    * @param search 搜索关键字（可选）
+    * @param page   页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @GetMapping("admin/list")
+   public ResponseDataStructureEnum adminList(@RequestParam(required = false) String search,
+                                              @RequestParam(required = false) Integer page,
+                                              @RequestParam(required = false) Integer pageSize) {
+      if (page == null) {
+         page = COMMON_START_PAGE;
+      }
+      if (pageSize == null) {
+         pageSize = COMMON_PAGE_SIZE;
+      }
+      // 管理端不需要指定 userId，这里传空字符串
+      PagedGridResult list = vlogService.getIndexVlogList("", search == null ? "" : search, page, pageSize);
+      return ResponseDataStructureEnum.ok(list);
+   }
 }
