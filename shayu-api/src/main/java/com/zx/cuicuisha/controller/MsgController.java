@@ -35,5 +35,28 @@ public class MsgController extends BaseInfoProperties {
       List<MessageMO> list = msgService.queryList(userId, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
+   /**
+    * 管理端：消息列表
+    * /msg/admin/list
+    *
+    * @param userId 接收消息的用户id
+    * @param page   页码（从0开始，默认0）
+    * @param pageSize 每页数量（默认10）
+    * @return 当前用户的消息列表
+    */
+   @GetMapping("admin/list")
+   public ResponseDataStructureEnum adminList(@RequestParam String userId,
+                                              @RequestParam(required = false) Integer page,
+                                              @RequestParam(required = false) Integer pageSize) {
+      // mongodb 从0分页，区别于数据库
+      if (page == null) {
+         page = COMMON_START_PAGE_ZERO;
+      }
+      if (pageSize == null) {
+         pageSize = COMMON_PAGE_SIZE;
+      }
+      List<MessageMO> list = msgService.queryList(userId, page, pageSize);
+      return ResponseDataStructureEnum.ok(list);
+   }
 }
 
