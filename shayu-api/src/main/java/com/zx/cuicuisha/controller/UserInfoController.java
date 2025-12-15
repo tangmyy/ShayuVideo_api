@@ -11,6 +11,7 @@ import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.MinIOUtils;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
@@ -100,5 +101,43 @@ public class UserInfoController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(users);
    }
 
+   /**
+    * 查询用户列表（支持分页和搜索）
+    * @param name 搜索名称（昵称或手机号，可选）
+    * @param date 注册日期（格式：YYYY-MM-DD，可选）
+    * @param page 页码（默认1）
+    * @param pageSize 每页数量（默认10）
+    * @return 分页结果
+    */
+   @GetMapping("/list")
+   public ResponseDataStructureEnum list(
+         @RequestParam(required = false) String name,
+         @RequestParam(required = false) String date,
+         @RequestParam(required = false) Integer page,
+         @RequestParam(required = false) Integer pageSize) {
+      
+      // 设置默认值
+      if (page == null) {
+         page = COMMON_START_PAGE;
+      }
+      if (pageSize == null) {
+         pageSize = COMMON_PAGE_SIZE;
+      }
+      
+      // 将name参数同时用于昵称和手机号搜索
+      String nickname = null;
+      String mobile = null;
+      if (StringUtils.isNotBlank(name)) {
+         // 如果name是纯数字，认为是手机号；否则认为是昵称
+         if (name.matches("\\d+")) {
+            mobile = name;
+         } else {
+            nickname = name;
+         }
+      }
+      
+      PagedGridResult result = userService.queryUserList(nickname, mobile, date, page, pageSize);
+      return ResponseDataStructureEnum.ok(result);
+   }
 
 }

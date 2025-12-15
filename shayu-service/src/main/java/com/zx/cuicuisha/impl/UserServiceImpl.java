@@ -1,5 +1,7 @@
 package com.zx.cuicuisha.impl;
 
+import com.github.pagehelper.PageHelper;
+import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.exceptions.GraceException;
@@ -9,18 +11,22 @@ import com.zx.cuicuisha.utils.DesensitizationUtil;
 import org.n3r.idworker.Sid;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
+import com.zx.cuicuisha.utils.PagedGridResult;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
+import java.util.Calendar;
 import java.util.Date;
+import java.util.List;
 import com.zx.cuicuisha.enums.Sex;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 
 @Service
-public class UserServiceImpl implements UserService {
+public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
    @Autowired
    private UsersMapper usersMapper;
@@ -113,6 +119,64 @@ public class UserServiceImpl implements UserService {
          updatedUserBO.setCanVideoNumBeUpdated(YesOrNo.NO.type);
       }
       return updateUserInfo(updatedUserBO);
+   }
+
+   @Override
+   public PagedGridResult queryUserList(String nickname, String mobile, String date, Integer page, Integer pageSize) {
+      // 开始分页
+      PageHelper.startPage(page, pageSize);
+      
+      // 构建查询条件
+      Example example = new Example(Users.class);
+      Example.Criteria criteria = example.createCriteria();
+      
+      // 昵称模糊搜索
+      if (StringUtils.isNotBlank(nickname)) {
+         criteria.andLike("nickname", "%" + nickname + "%");
+      }
+      
+      // 手机号模糊搜索
+      if (StringUtils.isNotBlank(mobile)) {
+         criteria.andLike("mobile", "%" + mobile + "%");
+      }
+      
+      // 注册日期搜索（按创建日期）
+      if (StringUtils.isNotBlank(date)) {
+         try {
+            Date searchDate = DateUtil.stringToDate(date);
+            if (searchDate != null) {
+               // 查询当天的数据（从00:00:00到23:59:59）
+               Calendar startCal = Calendar.getInstance();
+               startCal.setTime(searchDate);
+               startCal.set(Calendar.HOUR_OF_DAY, 0);
+               startCal.set(Calendar.MINUTE, 0);
+               startCal.set(Calendar.SECOND, 0);
+               startCal.set(Calendar.MILLISECOND, 0);
+               Date startDate = startCal.getTime();
+               
+               Calendar endCal = Calendar.getInstance();
+               endCal.setTime(searchDate);
+               endCal.set(Calendar.HOUR_OF_DAY, 23);
+               endCal.set(Calendar.MINUTE, 59);
+               endCal.set(Calendar.SECOND, 59);
+               endCal.set(Calendar.MILLISECOND, 999);
+               Date endDate = endCal.getTime();
+               
+               criteria.andBetween("createdTime", startDate, endDate);
+            }
+         } catch (Exception e) {
+            // 日期格式错误，忽略该条件
+         }
+      }
+      
+      // 按创建时间倒序排列
+      example.setOrderByClause("created_time DESC");
+      
+      // 执行查询
+      List<Users> list = usersMapper.selectByExample(example);
+      
+      // 返回分页结果
+      return setterPagedGrid(list, page);
    }
 
 }

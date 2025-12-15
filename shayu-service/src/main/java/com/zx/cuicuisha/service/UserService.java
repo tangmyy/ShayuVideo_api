@@ -2,6 +2,7 @@ package com.zx.cuicuisha.service;
 
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.pojo.Users;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -33,4 +34,15 @@ public interface UserService {
     */
    @Transactional
    public  Users updateUserInfo(UpdatedUserBO updatedUserBO, Integer type);
+
+   /**
+    * 查询用户列表（支持分页和搜索）
+    * @param nickname 昵称（模糊搜索）
+    * @param mobile 手机号（模糊搜索）
+    * @param date 注册日期（格式：YYYY-MM-DD）
+    * @param page 页码
+    * @param pageSize 每页数量
+    * @return 分页结果
+    */
+   public PagedGridResult queryUserList(String nickname, String mobile, String date, Integer page, Integer pageSize);
 }
