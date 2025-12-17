@@ -140,4 +140,19 @@ public class UserInfoController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(result);
    }
 
+   /**
+    * 管理端：修改用户信息
+    * @param updatedUserBO 用户信息对象
+    * @return 修改后的用户信息
+    */
+   @PostMapping("/admin/update")
+   public ResponseDataStructureEnum adminUpdate(@RequestBody UpdatedUserBO updatedUserBO) throws Exception {
+      if (StringUtils.isBlank(updatedUserBO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 管理端直接修改，不需要type参数，跳过业务校验
+      Users updatedUser = userService.updateUserInfo(updatedUserBO);
+      return ResponseDataStructureEnum.ok(updatedUser);
+   }
+
 }

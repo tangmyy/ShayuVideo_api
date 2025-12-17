@@ -45,4 +45,11 @@ public interface UserService {
     * @return 分页结果
     */
    public PagedGridResult queryUserList(String nickname, String mobile, String date, Integer page, Integer pageSize);
+
+   /**
+    * 删除用户
+    * @param userId 用户ID
+    */
+   @Transactional
+   public void deleteUser(String userId);
 }

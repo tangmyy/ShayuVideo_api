@@ -24,7 +24,9 @@ import java.util.List;
 import com.zx.cuicuisha.enums.Sex;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Service
 public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
@@ -177,6 +179,34 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       
       // 返回分页结果
       return setterPagedGrid(list, page);
+   }
+
+   @Transactional
+   @Override
+   public void deleteUser(String userId) {
+      // 检查用户是否存在
+      Users user = getUser(userId);
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      
+      // 删除用户
+      int result = usersMapper.deleteByPrimaryKey(userId);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      
+      // 删除Redis中的相关缓存
+      try {
+         redis.delete(REDIS_USER_TOKEN + ":" + userId);
+         redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+         redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
+         redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+         log.info("删除用户缓存成功：userId={}", userId);
+      } catch (Exception e) {
+         log.error("删除用户缓存失败：userId={}", userId, e);
+         // 缓存删除失败不影响主流程，只记录日志
+      }
    }
 
 }
