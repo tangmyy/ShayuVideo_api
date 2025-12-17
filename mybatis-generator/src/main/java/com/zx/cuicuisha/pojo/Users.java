@@ -18,10 +18,10 @@ public class Users {
     private String nickname;
 
     /**
-     * 慕课号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
+     * 视频号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
      */
-    @Column(name = "imooc_num")
-    private String imoocNum;
+    @Column(name = "video_num")
+    private String videoNum;
 
     /**
      * 头像
@@ -70,10 +70,10 @@ public class Users {
     private String bgImg;
 
     /**
-     * 慕课号能否被修改，1：默认，可以修改；0，无法修改
+     * 视频号能否被修改，1：默认，可以修改；0，无法修改
      */
-    @Column(name = "can_imooc_num_be_updated")
-    private Integer canImoocNumBeUpdated;
+    @Column(name = "can_video_num_be_updated")
+    private Integer canVideoNumBeUpdated;
 
     /**
      * 创建时间 创建时间
@@ -138,21 +138,21 @@ public class Users {
     }
 
     /**
-     * 获取慕课号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
+     * 获取视频号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
      *
-     * @return imooc_num - 慕课号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
+     * @return video_num - 视频号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
      */
-    public String getImoocNum() {
-        return imoocNum;
+    public String getVideoNum() {
+        return videoNum;
     }
 
     /**
-     * 设置慕课号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
+     * 设置视频号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
      *
-     * @param imoocNum 慕课号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
+     * @param videoNum 视频号，类似头条号，抖音号，公众号，唯一标识，需要限制修改次数，比如终生1次，每年1次，每半年1次等，可以用于付费修改。
      */
-    public void setImoocNum(String imoocNum) {
-        this.imoocNum = imoocNum;
+    public void setVideoNum(String videoNum) {
+        this.videoNum = videoNum;
     }
 
     /**
@@ -318,21 +318,21 @@ public class Users {
     }
 
     /**
-     * 获取慕课号能否被修改，1：默认，可以修改；0，无法修改
+     * 获取视频号能否被修改，1：默认，可以修改；0，无法修改
      *
-     * @return can_imooc_num_be_updated - 慕课号能否被修改，1：默认，可以修改；0，无法修改
+     * @return can_video_num_be_updated - 视频号能否被修改，1：默认，可以修改；0，无法修改
      */
-    public Integer getCanImoocNumBeUpdated() {
-        return canImoocNumBeUpdated;
+    public Integer getCanVideoNumBeUpdated() {
+        return canVideoNumBeUpdated;
     }
 
     /**
-     * 设置慕课号能否被修改，1：默认，可以修改；0，无法修改
+     * 设置视频号能否被修改，1：默认，可以修改；0，无法修改
      *
-     * @param canImoocNumBeUpdated 慕课号能否被修改，1：默认，可以修改；0，无法修改
+     * @param canVideoNumBeUpdated 视频号能否被修改，1：默认，可以修改；0，无法修改
      */
-    public void setCanImoocNumBeUpdated(Integer canImoocNumBeUpdated) {
-        this.canImoocNumBeUpdated = canImoocNumBeUpdated;
+    public void setCanVideoNumBeUpdated(Integer canVideoNumBeUpdated) {
+        this.canVideoNumBeUpdated = canVideoNumBeUpdated;
     }
 
     /**
