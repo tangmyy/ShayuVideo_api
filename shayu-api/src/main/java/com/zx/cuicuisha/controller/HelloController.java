@@ -1,7 +1,9 @@
 package com.zx.cuicuisha.controller;
 
+import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
+import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.SMSUtils;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -11,21 +13,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @Slf4j
 @Api(tags = "测试接口-1")
-@RestController
 @RefreshScope
+@RestController
 public class HelloController {
-
-   @Value("${nacos.counts}")
-   private Integer nacosCounts;
-
-   @GetMapping("nacosCounts")
-   public Object nacosCounts() {
-      return ResponseDataStructureEnum.ok("nacosCounts的数值为：" + nacosCounts);
-   }
 
    @ApiOperation(value = "hello - 测试项目基本运行路由")
    @GetMapping("hello")
@@ -46,6 +42,20 @@ public class HelloController {
       String code = "123456";
       smsUtils.sendSMS("16689532246", code);
       return ResponseDataStructureEnum.ok();
+   }
+
+   @Autowired
+   private MinIOConfig minIOConfig;
+
+   @ApiOperation(value = "upload - 文件上传测试的接口")
+   @PostMapping("upload")
+   public ResponseDataStructureEnum upload(MultipartFile file) throws Exception {
+      String fileName = file.getOriginalFilename();
+      MinIOUtils.uploadFile(minIOConfig.getBucketName(), fileName, file.getInputStream());
+      String imgUrl = minIOConfig.getFileHost()
+            + "/" + minIOConfig.getBucketName()
+            + "/" + fileName;
+      return ResponseDataStructureEnum.ok(imgUrl);
    }
 
    /**
@@ -80,5 +90,14 @@ public class HelloController {
       rabbitTemplate.convertAndSend(
          RabbitMQConfig.EXCHANGE_MSG, "sys.msg.delete", "我删除了一个消息~~");
       return ResponseDataStructureEnum.ok();
+   }
+
+   @Value("${nacos.counts}")
+   private Integer nacosCounts;
+
+   @ApiOperation(value = "获取nacosCounts的数值")
+   @GetMapping("nacosCounts")
+   public Object nacosCounts() {
+      return ResponseDataStructureEnum.ok("nacosCounts的数值为：" + nacosCounts);
    }
 }
