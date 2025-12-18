@@ -24,7 +24,7 @@ public interface UserService {
    public Users getUser(String userId);
 
    /**
-    * 用户信息修改-1
+    * 用户信息修改-1 - 用户 头像 背景图 修改
     */
    @Transactional
    public  Users updateUserInfo(UpdatedUserBO updatedUserBO);
