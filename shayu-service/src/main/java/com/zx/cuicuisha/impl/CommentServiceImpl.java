@@ -16,6 +16,7 @@ import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.CommentAdminVO;
 import com.zx.cuicuisha.vo.CommentVO;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -113,6 +114,28 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
             commentVO.setIsLike(YesOrNo.YES.type);
          }
       }
+      return setterPagedGrid(list, page);
+   }
+
+   /**
+    * 查询所有评论（管理端使用）
+    * @param vlogId 视频ID（可选，如果为空则不按视频筛选）
+    * @param userId 评论者ID（可选，如果为空则不按用户筛选）
+    * @param page 页码
+    * @param pageSize 每页数量
+    * @return 分页结果
+    */
+   @Override
+   public PagedGridResult queryAllComments(String vlogId, String userId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      if (StringUtils.isNotBlank(vlogId)) {
+         map.put("vlogId", vlogId);
+      }
+      if (StringUtils.isNotBlank(userId)) {
+         map.put("userId", userId);
+      }
+      PageHelper.startPage(page, pageSize);
+      List<CommentAdminVO> list = commentMapperCustom.getAllComments(map);
       return setterPagedGrid(list, page);
    }
 

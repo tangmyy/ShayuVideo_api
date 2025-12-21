@@ -147,20 +147,21 @@ public class AdminController extends BaseInfoProperties {
    /**
     * 管理端：评论列表
     * /admin/comment/list
-    * @param vlogId  视频ID（必填）
-    * @param userId  当前登录用户ID（可选，用于标记是否点赞；管理端可传空）
+    * @param vlogId  视频ID（可选，如果为空则查询所有评论，否则查询指定视频的评论）
+    * @param userId  评论者ID（可选，如果为空则不按用户筛选，否则查询指定用户发表的评论）
     * @param page    页码（可选，默认1）
     * @param pageSize 每页数量（可选，默认10）
     * @return 分页结果
     */
+   @ApiOperation(value = "查询评论列表（支持查询所有、按视频或按用户筛选）")
    @GetMapping("comment/list")
-   public ResponseDataStructureEnum commentList(@RequestParam String vlogId,
-                                              @RequestParam(required = false, defaultValue = "") String userId,
+   public ResponseDataStructureEnum commentList(@RequestParam(required = false) String vlogId,
+                                              @RequestParam(required = false) String userId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
-      return ResponseDataStructureEnum.ok(commentService.queryVlogComments(vlogId, userId, page, pageSize));
+      return ResponseDataStructureEnum.ok(commentService.queryAllComments(vlogId, userId, page, pageSize));
    }
 
    /**
