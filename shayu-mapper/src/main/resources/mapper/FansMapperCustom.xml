@@ -38,5 +38,34 @@
         ASC
   </select>
 
+  <select id="queryAllFansRelations" resultType="com.zx.cuicuisha.vo.FansAdminVO" parameterType="map">
+    SELECT
+      f.id as id,
+      f.vloger_id as vlogerId,
+      vloger.nickname as vlogerNickname,
+      vloger.face as vlogerFace,
+      f.fan_id as fanId,
+      fan.nickname as fanNickname,
+      fan.face as fanFace,
+      f.is_fan_friend_of_mine as isFanFriendOfMine
+    FROM
+      fans f
+        LEFT JOIN
+      users vloger
+      ON
+        f.vloger_id = vloger.id
+        LEFT JOIN
+      users fan
+      ON
+        f.fan_id = fan.id
+    <where>
+      <if test="paramMap.myId != null and paramMap.myId != ''">
+        f.vloger_id = #{paramMap.myId}
+      </if>
+    </where>
+    ORDER BY
+      f.id DESC
+  </select>
+
 </mapper>
 

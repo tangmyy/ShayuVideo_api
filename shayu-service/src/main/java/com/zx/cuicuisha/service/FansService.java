@@ -22,4 +22,7 @@ public interface FansService {
    // 查询我的粉丝列表
    public PagedGridResult queryMyFans(String myId, Integer page, Integer pageSize);
 
+   // 查询所有粉丝关系（管理端使用，如果myId为空则查询所有，否则查询指定用户的粉丝）
+   public PagedGridResult queryAllFansRelations(String myId, Integer page, Integer pageSize);
+
 }

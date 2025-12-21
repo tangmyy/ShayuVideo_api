@@ -158,33 +158,30 @@ public class AdminController extends BaseInfoProperties {
                                               @RequestParam(required = false, defaultValue = "") String userId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
-      if (page == null) {
-         page = COMMON_START_PAGE;
-      }
-      if (pageSize == null) {
-         pageSize = COMMON_PAGE_SIZE;
-      }
+      if (page == null) {page = COMMON_START_PAGE;}
+      if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       return ResponseDataStructureEnum.ok(commentService.queryVlogComments(vlogId, userId, page, pageSize));
    }
 
    /**
     * 管理端：粉丝列表
     * /admin/fans/list
-    * @param myId 用户id（查看该用户的粉丝列表）
+    * @param myId 用户id（可选，如果为空则查询整个fans表，否则查询指定用户的粉丝列表）
     * @param page 页码（可选，默认1）
     * @param pageSize 每页数量（可选，默认10）
     * @return 分页结果
     */
+   @ApiOperation(value = "查询粉丝列表（支持查询所有或指定用户的粉丝）")
    @GetMapping("fans/list")
-   public ResponseDataStructureEnum fansList(@RequestParam String myId,
+   public ResponseDataStructureEnum fansList(@RequestParam(required = false) String myId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
-      PagedGridResult gridResult = fansService.queryMyFans(myId, page, pageSize);
+      // 如果myId为空，查询所有粉丝关系；否则查询指定用户的粉丝
+      PagedGridResult gridResult = fansService.queryAllFansRelations(myId, page, pageSize);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
-
 
    /**
     * 管理端：消息列表

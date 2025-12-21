@@ -13,6 +13,7 @@ import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.FansAdminVO;
 import com.zx.cuicuisha.vo.FansVO;
 import com.zx.cuicuisha.vo.VlogerVO;
 import lombok.extern.slf4j.Slf4j;
@@ -186,6 +187,24 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
             fanslist.setFriend(true);
          }
       }
+      return setterPagedGrid(list, page);
+   }
+
+   /**
+    * 查询所有粉丝关系（管理端使用）
+    * @param myId 用户ID，如果为空则查询所有粉丝关系，否则查询指定用户的粉丝
+    * @param page 页码
+    * @param pageSize 每页数量
+    * @return 分页结果
+    */
+   @Override
+   public PagedGridResult queryAllFansRelations(String myId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      if (StringUtils.isNotBlank(myId)) {
+         map.put("myId", myId);
+      }
+      PageHelper.startPage(page, pageSize);
+      List<FansAdminVO> list = fansMapperCustom.queryAllFansRelations(map);
       return setterPagedGrid(list, page);
    }
 }
