@@ -65,4 +65,12 @@ public interface UserService {
     */
    @Transactional
    public Users deleteOrRestoreUser(String userId);
+
+   /**
+    * 封禁/恢复用户（切换用户状态）
+    * @param userId 用户ID
+    * @return 操作后的用户信息
+    */
+   @Transactional
+   public Users banOrRestoreUser(String userId);
 }

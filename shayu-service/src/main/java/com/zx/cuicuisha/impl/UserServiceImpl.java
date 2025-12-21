@@ -307,4 +307,45 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return usersMapper.selectByPrimaryKey(userId);
    }
 
+   /**
+    * 封禁/恢复用户（切换用户状态）
+    * 如果用户是正常状态（status = 0），则封禁（设置为 1）
+    * 如果用户是封禁状态（status = 1），则恢复（设置为 0）
+    */
+   @Transactional
+   @Override
+   public Users banOrRestoreUser(String userId) {
+      // 管理后台可以直接查询用户，不过滤 is_deleted
+      Users user = usersMapper.selectByPrimaryKey(userId);
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 切换用户状态
+      Integer currentStatus = user.getStatus();
+      Integer newStatus = (currentStatus == null || currentStatus == 0) ? 1 : 0;
+      Users updateUser = new Users();
+      updateUser.setId(userId);
+      updateUser.setStatus(newStatus);
+      updateUser.setUpdatedTime(new Date());
+      int result = usersMapper.updateByPrimaryKeySelective(updateUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 如果是封禁操作，删除Redis中的相关缓存
+      if (newStatus == 1) {
+         try {
+            redis.delete(REDIS_USER_TOKEN + ":" + userId);
+            redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+            redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
+            redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+            log.info("封禁用户缓存清理成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("封禁用户缓存清理失败：userId={}", userId, e);
+            // 缓存删除失败不影响主流程，只记录日志
+         }
+      }
+      // 返回更新后的用户信息
+      return usersMapper.selectByPrimaryKey(userId);
+   }
+
 }
