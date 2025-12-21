@@ -36,7 +36,19 @@ public interface UserService {
    public  Users updateUserInfo(UpdatedUserBO updatedUserBO, Integer type);
 
    /**
-    * 查询用户列表（支持分页和搜索）
+    * 管理后台修改用户信息（允许修改已逻辑删除的用户和status字段）
+    */
+   @Transactional
+   public Users updateUserInfoForAdmin(UpdatedUserBO updatedUserBO, Integer type);
+
+   /**
+    * 管理后台修改用户信息（不带type参数，用于修改头像、背景图等，允许修改已逻辑删除的用户和status、isDeleted字段）
+    */
+   @Transactional
+   public Users updateUserInfoForAdmin(UpdatedUserBO updatedUserBO);
+
+   /**
+    * 管理后台查询用户列表（支持分页和搜索，不过滤已逻辑删除的用户）
     * @param nickname 昵称（模糊搜索）
     * @param mobile 手机号（模糊搜索）
     * @param date 注册日期（格式：YYYY-MM-DD）
@@ -44,7 +56,7 @@ public interface UserService {
     * @param pageSize 每页数量
     * @return 分页结果
     */
-   public PagedGridResult queryUserList(String nickname, String mobile, String date, Integer page, Integer pageSize);
+   public PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize);
 
    /**
     * 删除用户

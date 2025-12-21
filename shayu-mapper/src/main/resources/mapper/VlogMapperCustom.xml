@@ -25,6 +25,7 @@
     v.vloger_id = u.id
     WHERE
     v.is_private = 0
+    AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
     <if test="paramMap.search != null and paramMap.search != ''">
       AND v.title like '%${paramMap.search}%'
     </if>
@@ -57,14 +58,13 @@
         v.vloger_id = u.id
     WHERE
       v.id = #{paramMap.vlogId}
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
   </select>
 
   <select id="getMyLikedVlogList" parameterType="map" resultType="com.zx.cuicuisha.vo.IndexVlogVO">
     SELECT
       v.id as vlogId,
       v.vloger_id as vlogerId,
---             u.face as vlogerFace,
---             u.nickname as vlogerName,
       v.title as content,
       v.tag as tag,
       v.url as url,
@@ -84,10 +84,15 @@
       users u
       ON
         mlv.user_id = u.id
+        LEFT JOIN
+      users vloger
+      ON
+        v.vloger_id = vloger.id
     WHERE
       u.id = #{paramMap.userId}
       AND
       v.is_private = 0
+      AND (vloger.is_deleted = 0 OR vloger.is_deleted IS NULL)
     ORDER BY
       v.created_time
             DESC
@@ -120,6 +125,7 @@
         f.vloger_id = u.id
     WHERE
       v.is_private = 0
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
       AND
       f.fan_id = #{paramMap.myId}
     ORDER BY
@@ -154,6 +160,7 @@
         f.fan_id = u.id
     WHERE
       v.is_private = 0
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
       AND
       f.vloger_id = #{paramMap.myId}
       AND

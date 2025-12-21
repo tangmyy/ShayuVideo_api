@@ -42,6 +42,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       Example userExample = new Example(Users.class);
       Example.Criteria criteria = userExample.createCriteria();
       criteria.andEqualTo("mobile", mobile);
+      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
       Users user = usersMapper.selectOneByExample(userExample);
       return user;
    }
@@ -67,6 +68,8 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       user.setBgImg(USER_BGIMG);
       user.setDescription("这家伙很懒，什么都没留下~");
       user.setCanVideoNumBeUpdated(YesOrNo.YES.type);
+      user.setStatus(0); // 默认正常状态
+      user.setIsDeleted(0); // 默认未逻辑删除
       user.setCreatedTime(new Date());
       user.setUpdatedTime(new Date());
 
@@ -76,16 +79,24 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
    @Override
    public Users getUser(String userId) {
-      return usersMapper.selectByPrimaryKey(userId);
+      Users user = usersMapper.selectByPrimaryKey(userId);
+      // 检查用户是否存在且未被逻辑删除
+      if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+         return null;
+      }
+      return user;
    }
 
    @Transactional
    @Override
    public Users updateUserInfo(UpdatedUserBO updatedUserBO) {
-
+      // 检查用户是否存在且未被逻辑删除
+      Users existUser = getUser(updatedUserBO.getId());
+      if (existUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
       Users pendingUser = new Users();
       BeanUtils.copyProperties(updatedUserBO, pendingUser);
-
       int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
@@ -101,6 +112,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
       if (type == UserInfoModifyType.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户
          Users user = usersMapper.selectOneByExample(example);
          if (user != null){
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
@@ -108,6 +120,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       }
       if (type == UserInfoModifyType.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户
          Users user = usersMapper.selectOneByExample(example);
          if (user != null){
             // 判断是否已经存在这个视频号
@@ -123,25 +136,100 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return updateUserInfo(updatedUserBO);
    }
 
+   /**
+    * 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
+    */
+   @Transactional
    @Override
-   public PagedGridResult queryUserList(String nickname, String mobile, String date, Integer page, Integer pageSize) {
+   public Users updateUserInfoForAdmin(UpdatedUserBO updatedUserBO, Integer type) {
+      // 管理后台可以直接查询用户，不过滤 is_deleted
+      Users existUser = usersMapper.selectByPrimaryKey(updatedUserBO.getId());
+      if (existUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+
+      Example example = new Example(Users.class);
+      Example.Criteria criteria = example.createCriteria();
+
+      if (type == UserInfoModifyType.NICKNAME.type){
+         criteria.andEqualTo("nickname", updatedUserBO.getNickname());
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查）
+         Users user = usersMapper.selectOneByExample(example);
+         if (user != null && !user.getId().equals(updatedUserBO.getId())){
+            GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
+         }
+      }
+      if (type == UserInfoModifyType.VIDEONUM.type){
+         criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查）
+         Users user = usersMapper.selectOneByExample(example);
+         if (user != null && !user.getId().equals(updatedUserBO.getId())){
+            GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_VIDEONUM_EXIST_ERROR);
+         }
+         if (existUser.getCanVideoNumBeUpdated() == YesOrNo.NO.type){
+            GraceException.display(ResponseStatusEnum.USER_INFO_CANT_UPDATED_VIDEONUM_ERROR);
+         }
+         // 不再能修改视频号
+         updatedUserBO.setCanVideoNumBeUpdated(YesOrNo.NO.type);
+      }
+
+      Users pendingUser = new Users();
+      BeanUtils.copyProperties(updatedUserBO, pendingUser);
+      // 管理后台可以更新 status 和 isDeleted 字段
+      pendingUser.setUpdatedTime(new Date());
+      
+      int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
+      }
+      // 返回更新后的用户信息（不过滤 is_deleted）
+      return usersMapper.selectByPrimaryKey(updatedUserBO.getId());
+   }
+
+   /**
+    * 管理后台修改用户信息（不带type参数，用于修改头像、背景图等）
+    */
+   @Transactional
+   @Override
+   public Users updateUserInfoForAdmin(UpdatedUserBO updatedUserBO) {
+      // 管理后台可以直接查询用户，不过滤 is_deleted
+      Users existUser = usersMapper.selectByPrimaryKey(updatedUserBO.getId());
+      if (existUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+
+      Users pendingUser = new Users();
+      BeanUtils.copyProperties(updatedUserBO, pendingUser);
+      // 管理后台可以更新 status 和 isDeleted 字段
+      pendingUser.setUpdatedTime(new Date());
+      
+      int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
+      }
+      // 返回更新后的用户信息（不过滤 is_deleted）
+      return usersMapper.selectByPrimaryKey(updatedUserBO.getId());
+   }
+
+   /**
+    * 管理后台查询用户列表（不过滤已逻辑删除的用户）
+    */
+   @Override
+   public PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize) {
       // 开始分页
       PageHelper.startPage(page, pageSize);
-      
       // 构建查询条件
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-      
+      // 管理后台不过滤 is_deleted，可以查询所有用户
       // 昵称模糊搜索
       if (StringUtils.isNotBlank(nickname)) {
          criteria.andLike("nickname", "%" + nickname + "%");
       }
-      
       // 手机号模糊搜索
       if (StringUtils.isNotBlank(mobile)) {
          criteria.andLike("mobile", "%" + mobile + "%");
       }
-      
       // 注册日期搜索（按创建日期）
       if (StringUtils.isNotBlank(date)) {
          try {
@@ -170,13 +258,10 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             // 日期格式错误，忽略该条件
          }
       }
-      
       // 按创建时间倒序排列
       example.setOrderByClause("created_time DESC");
-      
       // 执行查询
       List<Users> list = usersMapper.selectByExample(example);
-      
       // 返回分页结果
       return setterPagedGrid(list, page);
    }
@@ -184,18 +269,20 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    @Transactional
    @Override
    public void deleteUser(String userId) {
-      // 检查用户是否存在
+      // 检查用户是否存在且未被逻辑删除
       Users user = getUser(userId);
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      
-      // 删除用户
-      int result = usersMapper.deleteByPrimaryKey(userId);
+      // 逻辑删除用户（设置 is_deleted = 1）
+      Users deleteUser = new Users();
+      deleteUser.setId(userId);
+      deleteUser.setIsDeleted(1);
+      deleteUser.setUpdatedTime(new Date());
+      int result = usersMapper.updateByPrimaryKeySelective(deleteUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
-      
       // 删除Redis中的相关缓存
       try {
          redis.delete(REDIS_USER_TOKEN + ":" + userId);

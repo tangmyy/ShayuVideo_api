@@ -27,8 +27,10 @@ public class UsersVO {
    private String description;
    private String bgImg;
    private Integer canVideoNumBeUpdated;
+   private Integer status;              // 用户状态 0-正常状态，1-封禁状态
    private Date createdTime;
    private Date updatedTime;
+   private Integer isDeleted;          // 逻辑删除 0-正常，1-逻辑删除
    private String userToken;           // 用户token，传递给前端
    private Integer myFollowsCounts;    // 我关注的
    private Integer myFansCounts;       // 我的粉丝

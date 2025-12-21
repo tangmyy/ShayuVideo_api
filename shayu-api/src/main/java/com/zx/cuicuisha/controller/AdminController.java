@@ -59,14 +59,8 @@ public class AdminController extends BaseInfoProperties {
          @RequestParam(required = false) String date,
          @RequestParam(required = false) Integer page,
          @RequestParam(required = false) Integer pageSize) {
-
-      // 设置默认值
-      if (page == null) {
-         page = COMMON_START_PAGE;
-      }
-      if (pageSize == null) {
-         pageSize = COMMON_PAGE_SIZE;
-      }
+      if (page == null) {page = COMMON_START_PAGE;}
+      if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
 
       // 将name参数同时用于昵称和手机号搜索
       String nickname = null;
@@ -80,15 +74,17 @@ public class AdminController extends BaseInfoProperties {
          }
       }
 
-      PagedGridResult result = userService.queryUserList(nickname, mobile, date, page, pageSize);
+      // 管理后台使用专用方法，可以查询所有用户（包括已逻辑删除的）
+      PagedGridResult result = userService.queryUserListForAdmin(nickname, mobile, date, page, pageSize);
       return ResponseDataStructureEnum.ok(result);
    }
 
-   @ApiOperation(value = "修改用户信息")
+   @ApiOperation(value = "修改用户信息（管理后台专用，可修改status和isDeleted字段）")
    @PostMapping("users/updateInfo")
    public ResponseDataStructureEnum updateUsersInfo(@RequestBody UpdatedUserBO updatedUserBO, @RequestParam Integer type) throws Exception{
       UserInfoModifyType.checkUserInfoTypeIsRight(type);
-      Users newUserInfo =  userService.updateUserInfo(updatedUserBO, type);
+      // 管理后台使用专用方法，可以修改已逻辑删除的用户和status、isDeleted字段
+      Users newUserInfo = userService.updateUserInfoForAdmin(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
    }
 
@@ -111,8 +107,19 @@ public class AdminController extends BaseInfoProperties {
       } else {
          updatedUserBO.setFace(imgUrl);
       }
-      Users users = userService.updateUserInfo(updatedUserBO);
+      // 管理后台使用专用方法，可以修改已逻辑删除的用户
+      Users users = userService.updateUserInfoForAdmin(updatedUserBO);
       return ResponseDataStructureEnum.ok(users);
+   }
+
+   @ApiOperation(value = "删除用户")
+   @PostMapping("users/delete")
+   public ResponseDataStructureEnum deleteUser(@RequestParam String userId) {
+      if (StringUtils.isBlank(userId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      userService.deleteUser(userId);
+      return ResponseDataStructureEnum.ok();
    }
 
    /**

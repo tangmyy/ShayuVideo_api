@@ -42,9 +42,14 @@ public class Users {
    @Column(name = "can_video_num_be_updated")
    private Integer canVideoNumBeUpdated;
 
+   private Integer status;
+
    @Column(name = "created_time")
    private Date createdTime;
 
    @Column(name = "updated_time")
    private Date updatedTime;
+
+   @Column(name = "is_deleted")
+   private Integer isDeleted;
 }
