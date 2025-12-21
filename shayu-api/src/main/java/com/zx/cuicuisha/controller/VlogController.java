@@ -14,6 +14,8 @@ import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 
@@ -21,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
 @Api(tags = "VlogController 短视频相关业务功能的接口")
 @RequestMapping("vlog")
 @RestController
+@RefreshScope
 public class VlogController extends BaseInfoProperties {
 
    @Autowired
@@ -122,6 +125,9 @@ public class VlogController extends BaseInfoProperties {
    }
 
 
+   @Value("${nacos.counts}")
+   private Integer nacosCounts;
+
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
       // 判断三个id不能为空
@@ -146,6 +152,18 @@ public class VlogController extends BaseInfoProperties {
       // 我点赞的视频，关联关系保存到数据库
       vlogService.userLikeVlog(userId, vlogId);
       vlogService.updateLikeVlog(userId, vlogerId, vlogId);
+
+      // 点赞完毕，获得当前在redis中的总数
+      // 比如获得总计数为 1k/1w/10w, 假定阈值（配置）为2000, 此时1k满足2000, 则触发入库
+      String countsStr = redis.get(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId);
+      log.info("======" + REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId + "======");
+      Integer counts = 0;
+      if (StringUtils.isNotBlank(countsStr)) {
+         counts = Integer.valueOf(countsStr);
+         if (counts >= nacosCounts) {
+            vlogService.flushCounts(vlogId, counts);
+         }
+      }
       return  ResponseDataStructureEnum.ok();
    }
 

@@ -9,7 +9,6 @@ import com.zx.cuicuisha.mapper.FansMapper;
 import com.zx.cuicuisha.mapper.FansMapperCustom;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
-import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
@@ -21,7 +20,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.n3r.idworker.Sid;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tk.mybatis.mapper.entity.Example;
 
@@ -30,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Repository
+@Service
 public class FansServiceImpl extends BaseInfoProperties implements FansService {
 
    @Autowired

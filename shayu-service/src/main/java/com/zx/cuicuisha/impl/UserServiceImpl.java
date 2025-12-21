@@ -26,7 +26,8 @@ public class UserServiceImpl implements UserService {
    private UsersMapper usersMapper;
    @Autowired
    private Sid sid;
-   private static final String USER_FACE1 = "https://c-ssl.duitang.com/uploads/blog/202211/15/20221115121911_a9ab2.png";
+   private static final String USER_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
+   private static final String USER_BGIMG = "http://106.54.6.213:9000/shayu/1765019119.jpg";
 
    @Override
    public Users queryMobileIsExist(String mobile) {
@@ -48,13 +49,14 @@ public class UserServiceImpl implements UserService {
       user.setMobile(mobile);
       user.setNickname("用户:" + DesensitizationUtil.commonDisplay(mobile));
       user.setVideoNum(DesensitizationUtil.commonDisplay(mobile));
-      user.setFace(USER_FACE1);
-      user.setBirthday(DateUtil.stringToDate("1900-01-01"));
+      user.setFace(USER_FACE);
+      user.setBirthday(DateUtil.stringToDate("2000-01-01"));
       user.setSex(Sex.secret.type);
       user.setCountry("中国");
       user.setProvince("");
       user.setCity("");
       user.setDistrict("");
+      user.setBgImg(USER_BGIMG);
       user.setDescription("这家伙很懒，什么都没留下~");
       user.setCanVideoNumBeUpdated(YesOrNo.YES.type);
       user.setCreatedTime(new Date());

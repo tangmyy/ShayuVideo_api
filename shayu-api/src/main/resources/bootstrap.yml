@@ -1,0 +1,8 @@
+spring:
+  application:
+    name: shayuvideo-nacos
+  cloud:
+    nacos:
+      config:
+        server-addr: 10.0.4.12:8848
+        file-extension: yaml

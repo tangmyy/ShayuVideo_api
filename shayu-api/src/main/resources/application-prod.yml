@@ -23,23 +23,38 @@ spring:
     port: 6379
     database: 0
     password: 2004
-  # mongodb 配置
+  # Mongodb 配置
   data:
     mongodb:
       uri: mongodb://root:2004@10.0.4.12:27017
       database: shayuvideo
-  # rabbitmq 配置
+  # Rabbitmq 配置
   rabbitmq:
     host: 10.0.4.12
     port: 5672
     username: tmyyy
     password: 2004
     virtual-host: shayuvideo
+  # Nacos 配置
+  application:
+    name: shayuvideo-nacos
+  cloud:
+    nacos:
+      discovery:
+        server-addr: 10.0.4.12:8848
+#counts: 100
+# 打开监控
+management:
+  endpoint:
+    web:
+      exposure:
+        include: '*'
+
 # MinIO 配置 顶格配置否则找不到 使用外网IP
 minio:
   endpoint: http://106.54.6.213:9000      # MinIO服务地址
   fileHost: http://106.54.6.213:9000      # 文件地址host
-  bucketName: shayu                      # 存储桶bucket名称
+  bucketName: shayu                       # 存储桶bucket名称
   accessKey: root                         # 用户名
   secretKey: 20042004                     # 密码
   imgSize: 1024                           # 图片大小限制，单位：m

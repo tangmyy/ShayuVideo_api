@@ -23,7 +23,7 @@ import org.n3r.idworker.Sid;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 @Slf4j
-@Repository
+@Service
 public class CommentServiceImpl extends BaseInfoProperties implements CommentService {
 
    @Autowired

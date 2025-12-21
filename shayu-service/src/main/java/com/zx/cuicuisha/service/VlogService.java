@@ -26,7 +26,7 @@ public interface VlogService {
    public void userLikeVlog(String userId, String vlogId);
    // 更新点赞视频时相关的缓存
    public void updateLikeVlog(String userId, String vlogerId, String vlogId);
-   // 根据主键查询视频信息
+   // 根据主键查询vlog信息
    public Vlog getVlog(String id);
    // 用户取消点赞/取消喜欢视频
    public void userUnLikeVlog(String userId, String vlogId);
@@ -45,12 +45,7 @@ public interface VlogService {
    // 查询朋友发布的短视频列表
    public PagedGridResult getMyFriendVlogList(String myId, Integer page, Integer pageSize);
 
-   // /**
-   //  * 根据主键查询vlog
-   //  */
-   // public Vlog getVlog(String id);
-   // /**
-   //  * 把counts输入数据库
-   //  */
-   // public void flushCounts(String vlogId, Integer counts);
+
+   // 把counts输入数据库
+   public void flushCounts(String vlogId, Integer counts);
 }
