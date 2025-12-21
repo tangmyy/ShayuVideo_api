@@ -16,6 +16,7 @@ public class IndexVlogVO {
    private String vlogerFace;
    private String vlogerName;
    private String content;
+   private String tag;
    private String url;
    private String cover;
    private Integer width;

@@ -33,6 +33,7 @@ public class VlogController extends BaseInfoProperties {
 
    @PostMapping("publish")
    public ResponseDataStructureEnum publish(@RequestBody VlogBO vlogBO) {
+      System.out.println("接收到的tag: " + vlogBO.getTag());
       vlogService.createVlog(vlogBO);
       return ResponseDataStructureEnum.ok();
    }

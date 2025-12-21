@@ -33,6 +33,9 @@ public class VlogBO {
    @Size(min = 4, message = "标题长度不能小于4个字符")
    private String title;
 
+   // 视频标签，多个标签用逗号分隔
+   private String tag;
+
    @NotNull(message = "视频宽度不能为空")
    @Min(value = 1, message = "视频宽度必须大于0")
    private Integer width;

@@ -30,6 +30,11 @@ public class Vlog {
     private String title;
 
     /**
+     * 视频标签，多个标签用逗号分隔
+     */
+    private String tag;
+
+    /**
      * 视频width
      */
     private Integer width;
@@ -153,6 +158,24 @@ public class Vlog {
      */
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    /**
+     * 获取视频标签，多个标签用逗号分隔
+     *
+     * @return tag - 视频标签，多个标签用逗号分隔
+     */
+    public String getTag() {
+        return tag;
+    }
+
+    /**
+     * 设置视频标签，多个标签用逗号分隔
+     *
+     * @param tag 视频标签，多个标签用逗号分隔
+     */
+    public void setTag(String tag) {
+        this.tag = tag;
     }
 
     /**
