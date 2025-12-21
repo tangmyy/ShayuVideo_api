@@ -112,14 +112,14 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(users);
    }
 
-   @ApiOperation(value = "删除用户")
-   @PostMapping("users/delete")
-   public ResponseDataStructureEnum deleteUser(@RequestParam String userId) {
+   @ApiOperation(value = "删除/恢复用户（切换逻辑删除状态）")
+   @PostMapping("users/deleteOrRestore")
+   public ResponseDataStructureEnum deleteOrRestoreUser(@RequestParam String userId) {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      userService.deleteUser(userId);
-      return ResponseDataStructureEnum.ok();
+      Users user = userService.deleteOrRestoreUser(userId);
+      return ResponseDataStructureEnum.ok(user);
    }
 
    /**

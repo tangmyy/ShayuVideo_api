@@ -266,34 +266,45 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return setterPagedGrid(list, page);
    }
 
+   /**
+    * 删除/恢复用户（切换逻辑删除状态）
+    * 如果用户是正常状态（is_deleted = 0），则逻辑删除（设置为 1）
+    * 如果用户是已逻辑删除状态（is_deleted = 1），则恢复（设置为 0）
+    */
    @Transactional
    @Override
-   public void deleteUser(String userId) {
-      // 检查用户是否存在且未被逻辑删除
-      Users user = getUser(userId);
+   public Users deleteOrRestoreUser(String userId) {
+      // 管理后台可以直接查询用户，不过滤 is_deleted
+      Users user = usersMapper.selectByPrimaryKey(userId);
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 逻辑删除用户（设置 is_deleted = 1）
-      Users deleteUser = new Users();
-      deleteUser.setId(userId);
-      deleteUser.setIsDeleted(1);
-      deleteUser.setUpdatedTime(new Date());
-      int result = usersMapper.updateByPrimaryKeySelective(deleteUser);
+      // 切换逻辑删除状态
+      Integer currentIsDeleted = user.getIsDeleted();
+      Integer newIsDeleted = (currentIsDeleted == null || currentIsDeleted == 0) ? 1 : 0;
+      Users updateUser = new Users();
+      updateUser.setId(userId);
+      updateUser.setIsDeleted(newIsDeleted);
+      updateUser.setUpdatedTime(new Date());
+      int result = usersMapper.updateByPrimaryKeySelective(updateUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
-      // 删除Redis中的相关缓存
-      try {
-         redis.delete(REDIS_USER_TOKEN + ":" + userId);
-         redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
-         redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
-         redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
-         log.info("删除用户缓存成功：userId={}", userId);
-      } catch (Exception e) {
-         log.error("删除用户缓存失败：userId={}", userId, e);
-         // 缓存删除失败不影响主流程，只记录日志
+      // 如果是删除操作，删除Redis中的相关缓存
+      if (newIsDeleted == 1) {
+         try {
+            redis.delete(REDIS_USER_TOKEN + ":" + userId);
+            redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+            redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
+            redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+            log.info("删除用户缓存成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("删除用户缓存失败：userId={}", userId, e);
+            // 缓存删除失败不影响主流程，只记录日志
+         }
       }
+      // 返回更新后的用户信息
+      return usersMapper.selectByPrimaryKey(userId);
    }
 
 }

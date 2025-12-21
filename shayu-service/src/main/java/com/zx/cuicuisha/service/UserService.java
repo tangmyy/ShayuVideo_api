@@ -59,9 +59,10 @@ public interface UserService {
    public PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize);
 
    /**
-    * 删除用户
+    * 删除/恢复用户（切换逻辑删除状态）
     * @param userId 用户ID
+    * @return 操作后的用户信息
     */
    @Transactional
-   public void deleteUser(String userId);
+   public Users deleteOrRestoreUser(String userId);
 }
