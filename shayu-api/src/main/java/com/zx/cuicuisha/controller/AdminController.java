@@ -3,6 +3,7 @@ package com.zx.cuicuisha.controller;
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
+import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
 import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
@@ -131,6 +132,16 @@ public class AdminController extends BaseInfoProperties {
       // 管理端不需要指定 userId，这里传空字符串
       PagedGridResult list = vlogService.getIndexVlogList("", search == null ? "" : search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
+   }
+
+   @ApiOperation(value = "修改视频信息")
+   @PostMapping("vlog/updateInfo")
+   public ResponseDataStructureEnum updateVlogInfo(@RequestBody VlogBO vlogBO) {
+      if (vlogBO == null || StringUtils.isBlank(vlogBO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      vlogService.updateVlog(vlogBO);
+      return ResponseDataStructureEnum.ok();
    }
 
    /**

@@ -10,6 +10,9 @@ public interface VlogService {
    // 新增vlog视频
    public void createVlog(VlogBO vlogBO);
 
+   // 更新vlog视频信息
+   public void updateVlog(VlogBO vlogBO);
+
    // 查询首页/搜索的vlog列表
    public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
 

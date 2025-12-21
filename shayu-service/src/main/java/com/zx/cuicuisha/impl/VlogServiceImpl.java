@@ -6,6 +6,8 @@ import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
+import com.zx.cuicuisha.exceptions.GraceException;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
@@ -67,6 +69,28 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlog.setUpdatedTime(new Date());
       vlogMapper.insert(vlog);
 
+   }
+
+   @Transactional
+   @Override
+   public void updateVlog(VlogBO vlogBO) {
+      if (StringUtils.isBlank(vlogBO.getId())) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 检查视频是否存在
+      Vlog existVlog = vlogMapper.selectByPrimaryKey(vlogBO.getId());
+      if (existVlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 更新视频信息
+      Vlog vlog = new Vlog();
+      BeanUtils.copyProperties(vlogBO, vlog);
+      vlog.setUpdatedTime(new Date());
+      // 不更新创建时间、点赞数、评论数等字段
+      vlog.setCreatedTime(null);
+      vlog.setLikeCounts(null);
+      vlog.setCommentsCounts(null);
+      vlogMapper.updateByPrimaryKeySelective(vlog);
    }
 
    private IndexVlogVO setterVO(IndexVlogVO vlogVO, String userId) {
