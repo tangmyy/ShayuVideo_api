@@ -9,10 +9,12 @@ import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.MyLikedVlog;
+import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
@@ -48,9 +50,9 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    @Autowired
    private MyLikedVlogMapper myLikedVlogMapper;
    @Autowired
-   private Sid sid;
+   private UsersMapper usersMapper;
    @Autowired
-   private MsgService msgService;
+   private Sid sid;
    @Autowired
    public RabbitTemplate rabbitTemplate;
 
@@ -58,6 +60,14 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    @Transactional
    @Override
    public void createVlog(VlogBO vlogBO) {
+      // 检查用户是否被封禁
+      Users user = usersMapper.selectByPrimaryKey(vlogBO.getVlogerId());
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      if (user.getStatus() != null && user.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
       String vid = sid.nextShort();
       Vlog vlog = new Vlog();
       BeanUtils.copyProperties(vlogBO, vlog);

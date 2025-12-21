@@ -331,19 +331,6 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
-      // 如果是封禁操作，删除Redis中的相关缓存
-      if (newStatus == 1) {
-         try {
-            redis.delete(REDIS_USER_TOKEN + ":" + userId);
-            redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
-            redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
-            redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
-            log.info("封禁用户缓存清理成功：userId={}", userId);
-         } catch (Exception e) {
-            log.error("封禁用户缓存清理失败：userId={}", userId, e);
-            // 缓存删除失败不影响主流程，只记录日志
-         }
-      }
       // 返回更新后的用户信息
       return usersMapper.selectByPrimaryKey(userId);
    }

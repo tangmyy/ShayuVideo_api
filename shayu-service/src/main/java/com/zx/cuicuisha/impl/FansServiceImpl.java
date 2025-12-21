@@ -5,10 +5,14 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
+import com.zx.cuicuisha.exceptions.GraceException;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.FansMapper;
 import com.zx.cuicuisha.mapper.FansMapperCustom;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
+import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
@@ -37,6 +41,8 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    private FansMapper fansMapper;
    @Autowired
    private FansMapperCustom fansMapperCustom;
+   @Autowired
+   private UsersMapper usersMapper;
    @Autowired
    private Sid sid;
    @Autowired
@@ -84,6 +90,22 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Transactional
    @Override
    public void doFollow(String myId, String vlogerId) {
+      // 检查关注者是否被封禁
+      Users fanUser = usersMapper.selectByPrimaryKey(myId);
+      if (fanUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      if (fanUser.getStatus() != null && fanUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
+      // 检查被关注者是否被封禁（被封禁的用户不能被关注）
+      Users vlogerUser = usersMapper.selectByPrimaryKey(vlogerId);
+      if (vlogerUser == null) {
+         GraceException.display(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
+      }
+      if (vlogerUser.getStatus() != null && vlogerUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
       String fanId = sid.nextShort();
       Fans fans = new Fans();
       fans.setId(fanId);

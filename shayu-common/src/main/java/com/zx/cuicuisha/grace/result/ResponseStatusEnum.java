@@ -18,7 +18,7 @@ public enum ResponseStatusEnum {
     MOBILE_ERROR(504,false,"短信发送失败，请稍后重试！"),
     SMS_NEED_WAIT_ERROR(505,false,"短信发送太快啦~请稍后再试！"),
     SMS_CODE_ERROR(506,false,"验证码过期或不匹配，请稍后再试！"),
-    USER_FROZEN(507,false,"用户已被冻结，请联系管理员！"),
+    USER_FROZEN(507,false,"用户已被封禁，请联系管理员！"),
     USER_UPDATE_ERROR(508,false,"用户信息更新失败，请联系管理员！"),
     USER_INACTIVE_ERROR(509,false,"请前往[账号设置]修改信息激活后再进行后续操作！"),
     USER_INFO_UPDATED_ERROR(5091,false,"用户信息修改失败！"),

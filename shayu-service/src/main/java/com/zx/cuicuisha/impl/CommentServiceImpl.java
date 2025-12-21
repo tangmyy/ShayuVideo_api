@@ -6,10 +6,14 @@ import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
+import com.zx.cuicuisha.exceptions.GraceException;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.CommentMapper;
 import com.zx.cuicuisha.mapper.CommentMapperCustom;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.service.MsgService;
@@ -40,6 +44,8 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
    @Autowired
    private CommentMapperCustom commentMapperCustom;
    @Autowired
+   private UsersMapper usersMapper;
+   @Autowired
    private Sid sid;
    @Autowired
    private VlogService vlogService;
@@ -50,6 +56,14 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Override
    public CommentVO createComment(CommentBO commentBO) {
+      // 检查用户是否被封禁
+      Users user = usersMapper.selectByPrimaryKey(commentBO.getCommentUserId());
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      if (user.getStatus() != null && user.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
       String commentId = sid.nextShort();
 
       Comment comment = new Comment();
