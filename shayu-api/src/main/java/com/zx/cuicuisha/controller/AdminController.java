@@ -161,8 +161,15 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok();
    }
 
-   // @ApiOperation(value = "删除/恢复视频（切换逻辑删除状态）")
-   // @PostMapping("vlog/deleteOrRestore")
+   @ApiOperation(value = "删除/恢复视频（切换逻辑删除状态）")
+   @PostMapping("vlog/deleteOrRestore")
+   public ResponseDataStructureEnum deleteOrRestoreVlog(@RequestParam String vlogId) {
+      if (StringUtils.isBlank(vlogId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      com.zx.cuicuisha.pojo.Vlog vlog = vlogService.deleteOrRestoreVlog(vlogId);
+      return ResponseDataStructureEnum.ok(vlog);
+   }
 
    /**
     * 管理端：评论列表
@@ -184,8 +191,15 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(commentService.queryAllComments(vlogId, userId, page, pageSize));
    }
 
-   // @ApiOperation(value = "删除/恢复评论（切换逻辑删除状态）")
-   // @PostMapping("comment/deleteOrRestore")
+   @ApiOperation(value = "删除/恢复评论（切换逻辑删除状态）")
+   @PostMapping("comment/deleteOrRestore")
+   public ResponseDataStructureEnum deleteOrRestoreComment(@RequestParam String commentId) {
+      if (StringUtils.isBlank(commentId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      com.zx.cuicuisha.pojo.Comment comment = commentService.deleteOrRestoreComment(commentId);
+      return ResponseDataStructureEnum.ok(comment);
+   }
 
    /**
     * 管理端：粉丝列表

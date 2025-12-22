@@ -51,4 +51,7 @@ public interface VlogService {
    // Admin - 更新vlog视频信息
    public void updateVlog(VlogBO vlogBO);
 
+   // Admin - 删除/恢复视频（切换逻辑删除状态）
+   public Vlog deleteOrRestoreVlog(String vlogId);
+
 }

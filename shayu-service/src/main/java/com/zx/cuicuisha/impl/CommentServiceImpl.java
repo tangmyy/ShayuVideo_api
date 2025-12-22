@@ -29,6 +29,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -187,4 +188,50 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       // 管理员查询可以返回已逻辑删除的评论，所以这里不过滤
       return comment;
    }
+
+   /**
+    * 删除/恢复评论（切换逻辑删除状态）
+    * 如果评论是正常状态（is_deleted = 0），则逻辑删除（设置为 1）
+    * 如果评论是已逻辑删除状态（is_deleted = 1），则恢复（设置为 0）
+    */
+   @Transactional
+   @Override
+   public Comment deleteOrRestoreComment(String commentId) {
+      // 管理员可以直接查询评论，不过滤 is_deleted
+      Comment comment = commentMapper.selectByPrimaryKey(commentId);
+      if (comment == null) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 切换逻辑删除状态
+      Integer currentIsDeleted = comment.getIsDeleted();
+      Integer newIsDeleted = (currentIsDeleted == null || currentIsDeleted == 0) ? 1 : 0;
+      Comment updateComment = new Comment();
+      updateComment.setId(commentId);
+      updateComment.setIsDeleted(newIsDeleted);
+      int result = commentMapper.updateByPrimaryKeySelective(updateComment);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 更新视频的评论数（Redis缓存）
+      String vlogId = comment.getVlogId();
+      if (StringUtils.isNotBlank(vlogId)) {
+         try {
+            if (newIsDeleted == 1) {
+               // 删除操作：评论数 -1
+               redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
+               log.info("删除评论，减少视频评论数：commentId={}, vlogId={}", commentId, vlogId);
+            } else {
+               // 恢复操作：评论数 +1
+               redis.increment(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
+               log.info("恢复评论，增加视频评论数：commentId={}, vlogId={}", commentId, vlogId);
+            }
+         } catch (Exception e) {
+            log.error("更新视频评论数缓存失败：commentId={}, vlogId={}", commentId, vlogId, e);
+            // 缓存更新失败不影响主流程，只记录日志
+         }
+      }
+      // 返回更新后的评论信息
+      return commentMapper.selectByPrimaryKey(commentId);
+   }
+
 }

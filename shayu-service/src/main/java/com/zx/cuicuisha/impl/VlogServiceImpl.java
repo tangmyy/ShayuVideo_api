@@ -330,4 +330,32 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlogMapper.updateByPrimaryKeySelective(vlog);
    }
 
+   /**
+    * 删除/恢复视频（切换逻辑删除状态）
+    * 如果视频是正常状态（is_deleted = 0），则逻辑删除（设置为 1）
+    * 如果视频是已逻辑删除状态（is_deleted = 1），则恢复（设置为 0）
+    */
+   @Transactional
+   @Override
+   public Vlog deleteOrRestoreVlog(String vlogId) {
+      // 管理员可以直接查询视频，不过滤 is_deleted
+      Vlog vlog = vlogMapper.selectByPrimaryKey(vlogId);
+      if (vlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 切换逻辑删除状态
+      Integer currentIsDeleted = vlog.getIsDeleted();
+      Integer newIsDeleted = (currentIsDeleted == null || currentIsDeleted == 0) ? 1 : 0;
+      Vlog updateVlog = new Vlog();
+      updateVlog.setId(vlogId);
+      updateVlog.setIsDeleted(newIsDeleted);
+      updateVlog.setUpdatedTime(new Date());
+      int result = vlogMapper.updateByPrimaryKeySelective(updateVlog);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 返回更新后的视频信息
+      return vlogMapper.selectByPrimaryKey(vlogId);
+   }
+
 }

@@ -21,4 +21,7 @@ public interface CommentService {
    // Admin - 查询所有评论（管理端使用，如果vlogId和userId都为空则查询所有，否则按条件查询）
    public PagedGridResult queryAllComments(String vlogId, String userId, Integer page, Integer pageSize);
 
+   // Admin - 删除/恢复评论（切换逻辑删除状态）
+   public Comment deleteOrRestoreComment(String commentId);
+
 }
