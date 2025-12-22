@@ -46,8 +46,6 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Autowired
    private Sid sid;
    @Autowired
-   private MsgService msgService;
-   @Autowired
    public RabbitTemplate rabbitTemplate;
 
    /**

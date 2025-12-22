@@ -38,7 +38,7 @@ public class FansController extends BaseInfoProperties {
       // 判断两个id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
       Users myInfo = userService.getUser(myId);
-      // fixme: 两个用户id的数据库查询后的判断，是分开好？还是合并判断好？
+      // fixme: 两个用户id的数据库查询后的判断，是分开好
       if (myInfo == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
