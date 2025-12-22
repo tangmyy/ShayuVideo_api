@@ -6,6 +6,7 @@ import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
 import com.zx.cuicuisha.enums.UserInfoModifyType;
+import com.zx.cuicuisha.enums.VlogSortType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
@@ -169,6 +170,38 @@ public class AdminController extends BaseInfoProperties {
       }
       com.zx.cuicuisha.pojo.Vlog vlog = vlogService.deleteOrRestoreVlog(vlogId);
       return ResponseDataStructureEnum.ok(vlog);
+   }
+
+   @ApiOperation(value = "设置推荐视频流排序规则（0-创建时间，1-点赞数，2-评论数）")
+   @PostMapping("vlog/setSortType")
+   public ResponseDataStructureEnum setVlogSortType(@RequestParam Integer sortType) {
+      if (sortType == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证排序类型是否有效（0、1、2）
+      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
+      if (vlogSortType == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 保存到Redis
+      redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
+      return ResponseDataStructureEnum.ok(vlogSortType);
+   }
+
+   @ApiOperation(value = "获取推荐视频流排序规则")
+   @GetMapping("vlog/getSortType")
+   public ResponseDataStructureEnum getVlogSortType() {
+      String sortTypeStr = redis.get(REDIS_VLOG_INDEX_SORT_TYPE);
+      Integer sortType = null;
+      if (StringUtils.isNotBlank(sortTypeStr)) {
+         try {
+            sortType = Integer.valueOf(sortTypeStr);
+         } catch (Exception e) {
+            // 使用默认值
+         }
+      }
+      VlogSortType vlogSortType = VlogSortType.getByTypeWithDefault(sortType);
+      return ResponseDataStructureEnum.ok(vlogSortType);
    }
 
    /**

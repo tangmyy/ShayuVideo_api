@@ -1,27 +1,61 @@
+# ===========================================
+# Maven
+# ===========================================
 target/
-!.mvn/wrapper/maven-wrapper.jar
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### IntelliJ IDEA ###
-.idea/modules.xml
-.idea/jarRepositories.xml
-.idea/compiler.xml
-.idea/libraries/
+# ===========================================
+# IntelliJ IDEA
+# ===========================================
+.idea/
 *.iws
 *.iml
 *.ipr
+out/
+.idea_modules/
+atlassian-ide-plugin.xml
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/dictionaries/
+.idea/shelf/
+.idea/.name
+.idea/compiler.xml
+.idea/jarRepositories.xml
+.idea/libraries/
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
+.idea/uiDesigner.xml
+.idea/dataSources.xml
+.idea/dataSources.local.xml
+.idea/dataSources/
+.idea/copilot.data.migration.*.xml
 
-### Eclipse ###
-.apt_generated
+# ===========================================
+# Eclipse
+# ===========================================
 .classpath
-.factorypath
 .project
-.settings
+.settings/
+bin/
+.apt_generated
+.factorypath
 .springBeans
-.sts4-cache
+.sts4-cache/
 
-### NetBeans ###
+# ===========================================
+# NetBeans
+# ===========================================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -31,8 +65,138 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
+# ===========================================
+# VS Code
+# ===========================================
 .vscode/
+*.code-workspace
 
-### Mac OS ###
+# ===========================================
+# 日志文件
+# ===========================================
+*.log
+*.log.*
+logs/
+log/
+*.out
+
+# ===========================================
+# 编译产物
+# ===========================================
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# ===========================================
+# 操作系统文件
+# ===========================================
+# Mac OS
 .DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.fseventsd
+.Spotlight-V100
+.TemporaryItems
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Windows
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+ehthumbs_vista.db
+*.stackdump
+[Dd]esktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msix
+*.msm
+*.msp
+*.lnk
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# ===========================================
+# 临时文件
+# ===========================================
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+*.bak
+*.backup
+*.orig
+*.rej
+*.patch
+
+# ===========================================
+# 配置文件（包含敏感信息）
+# ===========================================
+# 注意：如果配置文件包含敏感信息（如数据库密码、API密钥等），应该忽略
+# 但通常配置文件模板应该保留，敏感信息通过环境变量或配置中心管理
+# application-local.yml
+# application-secret.yml
+*.secret
+*.key
+*.pem
+*.p12
+*.jks
+*.keystore
+*.truststore
+
+# ===========================================
+# 数据库相关
+# ===========================================
+*.db
+*.sqlite
+*.sqlite3
+*.h2.db
+
+# ===========================================
+# 测试覆盖率报告
+# ===========================================
+.nyc_output/
+coverage/
+*.lcov
+.idea/coverage/
+
+# ===========================================
+# 打包文件
+# ===========================================
+*.zip
+*.tar
+*.tar.gz
+*.rar
+*.7z
+
+# ===========================================
+# 其他
+# ===========================================
+.env
+.env.local
+.env.*.local
+node_modules/
+.npm/
+.yarn/
+package-lock.json
+yarn.lock
