@@ -19,10 +19,10 @@ public interface MsgService {
    public void deleteMsg(String msgId, String toUserId);
 
 
-   // 查询所有消息（管理员专用，支持按用户ID筛选）
+   // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    public List<MessageMO> queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize);
 
-   // 删除消息（管理员专用，不需要权限校验）
+   // Admin - 删除消息（管理员专用，不需要权限校验）
    public void deleteMsgForAdmin(String msgId);
 
 }

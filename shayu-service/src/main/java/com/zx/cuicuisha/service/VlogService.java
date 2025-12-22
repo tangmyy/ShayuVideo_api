@@ -10,9 +10,6 @@ public interface VlogService {
    // 新增vlog视频
    public void createVlog(VlogBO vlogBO);
 
-   // 更新vlog视频信息
-   public void updateVlog(VlogBO vlogBO);
-
    // 查询首页/搜索的vlog列表
    public PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
 
@@ -48,7 +45,10 @@ public interface VlogService {
    // 查询朋友发布的短视频列表
    public PagedGridResult getMyFriendVlogList(String myId, Integer page, Integer pageSize);
 
-
    // 把counts输入数据库
    public void flushCounts(String vlogId, Integer counts);
+
+   // Admin - 更新vlog视频信息
+   public void updateVlog(VlogBO vlogBO);
+
 }
