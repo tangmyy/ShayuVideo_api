@@ -44,10 +44,13 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    }
 
    @Override
+   public void deleteMsg() {
+      // 删除消息
+   }
+
+   @Override
    public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
-
       Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
-
       List<MessageMO> list =  messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(toUserId, pageable);
       for (MessageMO msg : list) {
          // 如果类型是关注消息，则需要查询我之前有没有关注过他，用于在前端标记“互粉”“互关”

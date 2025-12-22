@@ -1,19 +1,23 @@
 package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
+import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.vo.CommentVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -33,8 +37,8 @@ public class CommentController extends BaseInfoProperties {
    private VlogService vlogService;
    @Autowired
    private MsgService msgService;
-   // @Autowired
-   // public RabbitTemplate rabbitTemplate;
+   @Autowired
+   public RabbitTemplate rabbitTemplate;
 
    @ApiOperation(value = "发表评论")
    @PostMapping("create")
@@ -78,29 +82,32 @@ public class CommentController extends BaseInfoProperties {
 
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String commentId, @RequestParam String userId) {
+      // 1. 更新Redis点赞数（核心业务）
       // TODO： 优化bigkey
       redis.incrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
       // redis.hset(REDIS_USER_LIKE_COMMENT, userId, "1");        hset = setHashValue
       // TODO：优化value="1" 为枚举类中的值 再进行传参
       redis.setHashValue(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId, "1");
-
-      // 系统消息：点赞评论
+      // 2. 准备消息内容 系统消息：点赞评论
       Comment comment = commentService.getComment(commentId);
       Vlog vlog = vlogService.getVlog(comment.getVlogId());
       Map msgContent = new HashMap();
       msgContent.put("vlogId", vlog.getId());
       msgContent.put("vlogCover", vlog.getCover());
       msgContent.put("commentId", commentId);
-      msgService.createMsg(userId, comment.getCommentUserId(), MessageEnum.LIKE_COMMENT.type, msgContent);
-      // // MQ异步解耦
-      // MessageMO messageMO = new MessageMO();
-      // messageMO.setFromUserId(userId);
-      // messageMO.setToUserId(comment.getCommentUserId());
-      // messageMO.setMsgContent(msgContent);
-      // rabbitTemplate.convertAndSend(
-      //       RabbitMQConfig.EXCHANGE_MSG,
-      //       "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,
-      //       JsonUtils.objectToJson(messageMO));
+      // MQ异步解耦
+      // msgService.createMsg(userId, comment.getCommentUserId(), MessageEnum.LIKE_COMMENT.type, msgContent);
+      // 3. 构建消息对象
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(userId);                    // 点赞者ID
+      messageMO.setToUserId(comment.getCommentUserId());  // 被点赞评论的作者ID
+      messageMO.setMsgContent(msgContent);                // 消息内容
+      // 4. 发送到MQ（异步，立即返回，不阻塞）
+      rabbitTemplate.convertAndSend(
+            RabbitMQConfig.EXCHANGE_MSG,                    // 交换机
+            "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,  // 路由键
+            JsonUtils.objectToJson(messageMO)               // 消息体（JSON字符串）
+      );
       return ResponseDataStructureEnum.ok();
    }
 

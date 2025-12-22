@@ -26,12 +26,8 @@ public class MsgController extends BaseInfoProperties {
    @GetMapping("list")
    public ResponseDataStructureEnum list(@RequestParam String userId, @RequestParam Integer page, @RequestParam Integer pageSize) {
       // mongodb 从0分页，区别于数据库
-      if (page == null) {
-         page = COMMON_START_PAGE_ZERO;
-      }
-      if (pageSize == null) {
-         pageSize = COMMON_PAGE_SIZE;
-      }
+      if (page == null) {page = COMMON_START_PAGE_ZERO;}
+      if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       List<MessageMO> list = msgService.queryList(userId, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
