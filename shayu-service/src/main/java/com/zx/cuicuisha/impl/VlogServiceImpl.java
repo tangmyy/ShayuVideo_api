@@ -135,6 +135,23 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
       return setterPagedGrid(list, page);
    }
+
+   /**
+    * 管理后台查询视频列表（不过滤已逻辑删除的视频）
+    */
+   @Override
+   public PagedGridResult getIndexVlogListForAdmin(String search, Integer page, Integer pageSize) {
+      // 开始分页
+      PageHelper.startPage(page, pageSize);
+      Map<String, Object> map = new HashMap<>();
+      if (StringUtils.isNotBlank(search)){
+         map.put("search", search);
+      }
+      // 使用管理员专用查询方法，不过滤 is_deleted
+      List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogListForAdmin(map);
+      // 管理员查询不需要设置关注、点赞等用户相关状态
+      return setterPagedGrid(list, page);
+   }
    // 获取用户是否点赞过该视频
    private boolean doILikeVlog(String myId, String vlogId){
       String doILike = redis.get(REDIS_USER_LIKE_VLOG + ":" + myId + ":" + vlogId);

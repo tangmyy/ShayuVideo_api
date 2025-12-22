@@ -146,8 +146,8 @@ public class AdminController extends BaseInfoProperties {
                                               @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
-      // 管理端不需要指定 userId，这里传空字符串
-      PagedGridResult list = vlogService.getIndexVlogList("", search == null ? "" : search, page, pageSize);
+      // 使用管理员专用查询方法，可以查询所有视频（包括已逻辑删除的）
+      PagedGridResult list = vlogService.getIndexVlogListForAdmin(search == null ? "" : search, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
 

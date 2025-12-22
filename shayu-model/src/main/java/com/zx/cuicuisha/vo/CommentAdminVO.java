@@ -28,5 +28,6 @@ public class CommentAdminVO {
    private String content;                 // 评论内容
    private Integer likeCounts;             // 点赞数
    private String replyedUserNickname;     // 被回复用户昵称（如果是回复评论）
+   private Integer isDeleted;              // 逻辑删除 0-正常，1-逻辑删除
    private Date createTime;                // 创建时间
 }

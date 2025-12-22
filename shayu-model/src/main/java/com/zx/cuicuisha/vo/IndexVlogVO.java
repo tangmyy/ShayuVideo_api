@@ -24,6 +24,7 @@ public class IndexVlogVO {
    private Integer likeCounts;
    private Integer commentsCounts;
    private Integer isPrivate;
+   private Integer isDeleted; // 逻辑删除 0-正常，1-逻辑删除
    private boolean isPlay = false;
    private boolean doIFollowVloger = false;
    private boolean doILikeThisVlog = false;

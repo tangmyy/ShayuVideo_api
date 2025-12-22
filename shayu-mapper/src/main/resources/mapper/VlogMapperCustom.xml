@@ -16,7 +16,8 @@
     v.height as height,
     v.like_counts as likeCounts,
     v.comments_counts as commentsCounts,
-    v.is_private as isPrivate
+    v.is_private as isPrivate,
+    v.is_deleted as isDeleted
     FROM
     vlog v
     LEFT JOIN
@@ -173,6 +174,42 @@
     ORDER BY
       v.created_time
             DESC
+  </select>
+
+  <!-- Admin - 查询视频列表（管理端使用，不过滤is_deleted，可以查询所有视频） -->
+  <select id="getIndexVlogListForAdmin" parameterType="map" resultType="com.zx.cuicuisha.vo.IndexVlogVO">
+    SELECT
+    v.id as vlogId,
+    v.vloger_id as vlogerId,
+    u.face as vlogerFace,
+    u.nickname as vlogerName,
+    v.title as content,
+    v.tag as tag,
+    v.url as url,
+    v.cover as cover,
+    v.width as width,
+    v.height as height,
+    v.like_counts as likeCounts,
+    v.comments_counts as commentsCounts,
+    v.is_private as isPrivate,
+    v.is_deleted as isDeleted
+    FROM
+    vlog v
+    LEFT JOIN
+    users u
+    ON
+    v.vloger_id = u.id
+    WHERE
+    1=1
+    <!-- 管理端不过滤 is_deleted，可以查询所有视频（包括已逻辑删除的） -->
+    <!-- 但需要过滤已逻辑删除的用户发布的视频 -->
+    AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+    <if test="paramMap.search != null and paramMap.search != ''">
+      AND v.title like '%${paramMap.search}%'
+    </if>
+    ORDER BY
+    v.created_time
+    DESC
   </select>
 
 

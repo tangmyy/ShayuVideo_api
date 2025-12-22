@@ -59,6 +59,7 @@
             c.content as content,
             c.like_counts as likeCounts,
             fu.nickname as replyedUserNickname,
+            c.is_deleted as isDeleted,
             c.create_time as createTime
         FROM
             `comment` as c
