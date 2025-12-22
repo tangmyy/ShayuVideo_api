@@ -90,32 +90,30 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return user;
    }
 
-   @Transactional
-   @Override
-   public Users updateUserInfo(UpdatedUserBO updatedUserBO) {
-      // 检查用户是否存在且未被逻辑删除
-      Users existUser = getUser(updatedUserBO.getId());
-      if (existUser == null) {
-         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      Users pendingUser = new Users();
-      BeanUtils.copyProperties(updatedUserBO, pendingUser);
-      int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
-      if (result != 1) {
-         GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
-      }
-      return getUser(updatedUserBO.getId());
-   }
-
+   /**
+    * 用户信息修改
+    * @param updatedUserBO UpdatedUserBO信息
+    * @param type = 修改用户信息类型 枚举
+    * @return updatedUserBO
+    */
    @Transactional
    @Override
    public Users updateUserInfo(UpdatedUserBO updatedUserBO, Integer type) {
+      // 检查用户是否存在且未被逻辑删除
+      Users checkUser = getUser(updatedUserBO.getId());
+      if (checkUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 检查用户是否被封禁
+      if (checkUser.getStatus() != null && checkUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
+
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-
       if (type == UserInfoModifyType.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
-         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查） !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
          if (user != null){
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
@@ -123,7 +121,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       }
       if (type == UserInfoModifyType.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
-         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);
          if (user != null){
             // 判断是否已经存在这个视频号
@@ -140,6 +138,33 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
+    * 用户 头像/背景图 修改
+    * @param updatedUserBO UpdatedUserBO信息
+    * @return updatedUserBO.getId
+    */
+   @Transactional
+   @Override
+   public Users updateUserInfo(UpdatedUserBO updatedUserBO) {
+      // 检查用户是否存在且未被逻辑删除
+      Users checkUser = getUser(updatedUserBO.getId());
+      if (checkUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 检查用户是否被封禁
+      if (checkUser.getStatus() != null && checkUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
+
+      Users pendingUser = new Users();
+      BeanUtils.copyProperties(updatedUserBO, pendingUser);
+      int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
+      }
+      return getUser(updatedUserBO.getId());
+   }
+
+   /**
     * 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
     */
    @Transactional
@@ -153,10 +178,9 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-
       if (type == UserInfoModifyType.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
-         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查）
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查）  !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
          if (user != null && !user.getId().equals(updatedUserBO.getId())){
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
@@ -164,7 +188,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       }
       if (type == UserInfoModifyType.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
-         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查）
+         criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);
          if (user != null && !user.getId().equals(updatedUserBO.getId())){
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_VIDEONUM_EXIST_ERROR);
@@ -175,12 +199,10 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
          // 不再能修改视频号
          updatedUserBO.setCanVideoNumBeUpdated(YesOrNo.NO.type);
       }
-
       Users pendingUser = new Users();
       BeanUtils.copyProperties(updatedUserBO, pendingUser);
       // 管理后台可以更新 status 和 isDeleted 字段
       pendingUser.setUpdatedTime(new Date());
-      
       int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);
@@ -205,7 +227,6 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       BeanUtils.copyProperties(updatedUserBO, pendingUser);
       // 管理后台可以更新 status 和 isDeleted 字段
       pendingUser.setUpdatedTime(new Date());
-      
       int result = usersMapper.updateByPrimaryKeySelective(pendingUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.USER_UPDATE_ERROR);

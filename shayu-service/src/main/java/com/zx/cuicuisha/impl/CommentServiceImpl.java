@@ -65,8 +65,8 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       if (user.getStatus() != null && user.getStatus() == 1) {
          GraceException.display(ResponseStatusEnum.USER_FROZEN);
       }
+      // 构造 CommentBO 信息
       String commentId = sid.nextShort();
-
       Comment comment = new Comment();
       comment.setId(commentId);
       comment.setVlogId(commentBO.getVlogId());

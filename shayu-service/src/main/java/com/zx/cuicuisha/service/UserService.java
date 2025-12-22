@@ -24,16 +24,16 @@ public interface UserService {
    public Users getUser(String userId);
 
    /**
-    * 用户信息修改-1 - 用户 头像 背景图 修改
-    */
-   @Transactional
-   public  Users updateUserInfo(UpdatedUserBO updatedUserBO);
-
-   /**
-    * 用户信息修改-2
+    * 用户信息修改 -2
     */
    @Transactional
    public  Users updateUserInfo(UpdatedUserBO updatedUserBO, Integer type);
+
+   /**
+    * 用户 头像 背景图 修改 -1
+    */
+   @Transactional
+   public  Users updateUserInfo(UpdatedUserBO updatedUserBO);
 
    /**
     * 管理后台修改用户信息（允许修改已逻辑删除的用户和status字段）
