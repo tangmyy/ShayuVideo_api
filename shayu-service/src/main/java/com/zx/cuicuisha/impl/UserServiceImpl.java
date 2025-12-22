@@ -7,6 +7,7 @@ import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.UsersMapper;
+import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.utils.DesensitizationUtil;
 import org.n3r.idworker.Sid;
 import com.zx.cuicuisha.pojo.Users;
@@ -32,6 +33,8 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
    @Autowired
    private UsersMapper usersMapper;
+   @Autowired
+   private MessageRepository messageRepository;
    @Autowired
    private Sid sid;
    private static final String USER_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
@@ -290,7 +293,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
-      // 如果是删除操作，删除Redis中的相关缓存
+      // 如果是删除操作，删除Redis中的相关缓存和MongoDB中的消息
       if (newIsDeleted == 1) {
          try {
             redis.delete(REDIS_USER_TOKEN + ":" + userId);
@@ -302,8 +305,16 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             log.error("删除用户缓存失败：userId={}", userId, e);
             // 缓存删除失败不影响主流程，只记录日志
          }
+         // 删除MongoDB中该用户收到的所有消息
+         try {
+            messageRepository.deleteAllByToUserId(userId);
+            log.info("删除用户消息成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("删除用户消息失败：userId={}", userId, e);
+            // 消息删除失败不影响主流程，只记录日志
+         }
       }
-      // 返回更新后的用户信息
+
       return usersMapper.selectByPrimaryKey(userId);
    }
 

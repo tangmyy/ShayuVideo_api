@@ -204,20 +204,33 @@ public class AdminController extends BaseInfoProperties {
    /**
     * 管理端：消息列表
     * /admin/msg/list
-    * @param userId 接收消息的用户id
+    * @param userId 接收消息的用户id（可选，如果为空则查询所有消息，否则查询指定用户的消息）
     * @param page   页码（从0开始，默认0）
     * @param pageSize 每页数量（默认10）
-    * @return 当前用户的消息列表
+    * @return 消息列表
     */
+   @ApiOperation(value = "查询消息列表（支持查询所有或按用户ID筛选）")
    @GetMapping("msg/list")
-   public ResponseDataStructureEnum msgList(@RequestParam String userId,
+   public ResponseDataStructureEnum msgList(@RequestParam(required = false) String userId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
       // mongodb 从0分页，区别于数据库
       if (page == null) {page = COMMON_START_PAGE_ZERO;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
-      List<MessageMO> list = msgService.queryList(userId, page, pageSize);
+      // 使用管理员专用方法，支持查询所有消息或按用户ID筛选
+      List<MessageMO> list = msgService.queryAllMessagesForAdmin(userId, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
+   }
+
+
+   @ApiOperation(value = "删除消息")
+   @PostMapping("msg/delete")
+   public ResponseDataStructureEnum deleteMsg(@RequestParam String msgId) {
+      if (StringUtils.isBlank(msgId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      msgService.deleteMsgForAdmin(msgId);
+      return ResponseDataStructureEnum.ok();
    }
 
 }

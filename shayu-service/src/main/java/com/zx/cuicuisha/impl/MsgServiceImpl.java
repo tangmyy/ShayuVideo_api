@@ -2,11 +2,14 @@ package com.zx.cuicuisha.impl;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.exceptions.GraceException;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.UserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -19,6 +22,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 @Service
 public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
 
@@ -44,11 +48,6 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    }
 
    @Override
-   public void deleteMsg() {
-      // 删除消息
-   }
-
-   @Override
    public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
       Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
       List<MessageMO> list =  messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(toUserId, pageable);
@@ -69,6 +68,79 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
          }
       }
       return list;
+   }
+
+   @Override
+   public void deleteMsg(String msgId, String toUserId) {
+      // 参数校验
+      if (StringUtils.isBlank(msgId)) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(toUserId)) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 查询消息是否存在，并验证消息是否属于该用户
+      MessageMO messageMO = messageRepository.findById(msgId).orElse(null);
+      if (messageMO == null) {
+         log.warn("消息不存在：msgId={}", msgId);
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 验证消息是否属于该用户（只能删除自己接收的消息）
+      if (!messageMO.getToUserId().equals(toUserId)) {
+         log.warn("无权删除该消息：msgId={}, toUserId={}, messageToUserId={}",
+               msgId, toUserId, messageMO.getToUserId());
+         GraceException.display(ResponseStatusEnum.NO_AUTH);
+      }
+      // 删除消息
+      messageRepository.deleteById(msgId);
+      log.info("消息删除成功：msgId={}, toUserId={}", msgId, toUserId);
+   }
+
+   // admin 管理员端专用方法
+   @Override
+   public List<MessageMO> queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize) {
+      Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
+      List<MessageMO> list;
+      // 如果userId为空，查询所有消息；否则查询指定用户的消息
+      if (StringUtils.isBlank(userId)) {
+         list = messageRepository.findAllByOrderByCreateTimeDesc(pageable);
+      } else {
+         list = messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(userId, pageable);
+      }
+      // 处理关注消息的互粉关系（与queryList相同的逻辑）
+      for (MessageMO msg : list) {
+         if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {
+            Map map = msg.getMsgContent();
+            if (map == null) {
+               map = new HashMap();
+            }
+            String relationship = redis.get(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + msg.getToUserId() + ":" + msg.getFromUserId());
+            if (StringUtils.isNotBlank(relationship) && relationship.equalsIgnoreCase("1")) {
+               map.put("isFriend", true);
+            } else {
+               map.put("isFriend", false);
+            }
+            msg.setMsgContent(map);
+         }
+      }
+      return list;
+   }
+
+   @Override
+   public void deleteMsgForAdmin(String msgId) {
+      // 参数校验
+      if (StringUtils.isBlank(msgId)) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 查询消息是否存在
+      MessageMO messageMO = messageRepository.findById(msgId).orElse(null);
+      if (messageMO == null) {
+         log.warn("消息不存在：msgId={}", msgId);
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 管理员删除消息，不需要权限校验
+      messageRepository.deleteById(msgId);
+      log.info("管理员删除消息成功：msgId={}", msgId);
    }
 }
 
