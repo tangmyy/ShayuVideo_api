@@ -63,6 +63,12 @@ public class Vlog {
     private Integer isPrivate;
 
     /**
+     * 逻辑删除 0-正常，1-逻辑删除
+     */
+    @Column(name = "is_deleted")
+    private Integer isDeleted;
+
+    /**
      * 创建时间 创建时间
      */
     @Column(name = "created_time")
@@ -266,6 +272,25 @@ public class Vlog {
      */
     public void setIsPrivate(Integer isPrivate) {
         this.isPrivate = isPrivate;
+    }
+
+
+    /**
+     * 获取逻辑删除 0-正常，1-逻辑删除
+     *
+     * @return is_deleted - 逻辑删除 0-正常，1-逻辑删除
+     */
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
+
+    /**
+     * 设置逻辑删除 0-正常，1-逻辑删除
+     *
+     * @param isDeleted 逻辑删除 0-正常，1-逻辑删除
+     */
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
     }
 
     /**

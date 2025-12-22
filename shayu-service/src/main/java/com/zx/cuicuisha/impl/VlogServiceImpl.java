@@ -75,6 +75,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlog.setLikeCounts(0);
       vlog.setCommentsCounts(0);
       vlog.setIsPrivate(YesOrNo.NO.type);
+      vlog.setIsDeleted(0); // 默认未逻辑删除
       vlog.setCreatedTime(new Date());
       vlog.setUpdatedTime(new Date());
       vlogMapper.insert(vlog);
@@ -87,11 +88,12 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       if (StringUtils.isBlank(vlogBO.getId())) {
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 检查视频是否存在
+      // 检查视频是否存在（管理员可以查询已逻辑删除的视频）
       Vlog existVlog = vlogMapper.selectByPrimaryKey(vlogBO.getId());
       if (existVlog == null) {
          GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
       }
+      // 管理员可以修改任何视频，包括已逻辑删除的视频（可以恢复）
       // 更新视频信息
       Vlog vlog = new Vlog();
       BeanUtils.copyProperties(vlogBO, vlog);
@@ -100,6 +102,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlog.setCreatedTime(null);
       vlog.setLikeCounts(null);
       vlog.setCommentsCounts(null);
+      // 允许更新isDeleted字段（管理员操作）
       vlogMapper.updateByPrimaryKeySelective(vlog);
    }
 
@@ -176,6 +179,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       Example.Criteria criteria = example.createCriteria();
       criteria.andEqualTo("id", vlogId);
       criteria.andEqualTo("vlogerId", userId);
+      criteria.andEqualTo("isDeleted", 0); // 只能修改未逻辑删除的视频
       Vlog pendingVlog = new Vlog();
       pendingVlog.setIsPrivate(yesOrNo);
       vlogMapper.updateByExampleSelective(pendingVlog, example);
@@ -187,6 +191,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       Example.Criteria criteria = example.createCriteria();
       criteria.andEqualTo("vlogerId", userId);
       criteria.andEqualTo("isPrivate", yesOrNo);
+      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的视频
       PageHelper.startPage(page, pageSize);
       List<Vlog> list = vlogMapper.selectByExample(example);
       return setterPagedGrid(list, page);
@@ -196,6 +201,11 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    @Transactional
    @Override
    public void userLikeVlog(String userId, String vlogId) {
+      // 检查视频是否存在且未被逻辑删除
+      Vlog vlog = this.getVlog(vlogId);
+      if (vlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
       String lVid = sid.nextShort();
       MyLikedVlog likedVlog = new MyLikedVlog();
       likedVlog.setId(lVid);
@@ -203,7 +213,6 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       likedVlog.setUserId(userId);
       myLikedVlogMapper.insert(likedVlog);
       // 系统消息：点赞短视频
-      Vlog vlog = this.getVlog(vlogId);
       Map msgContent = new HashMap();
       msgContent.put("vlogId", vlogId);
       msgContent.put("vlogCover", vlog.getCover());
@@ -217,7 +226,12 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    }
    @Override
    public Vlog getVlog(String id) {
-      return vlogMapper.selectByPrimaryKey(id);
+      Vlog vlog = vlogMapper.selectByPrimaryKey(id);
+      // 检查视频是否存在且未被逻辑删除
+      if (vlog == null || (vlog.getIsDeleted() != null && vlog.getIsDeleted() == 1)) {
+         return null;
+      }
+      return vlog;
    }
    // 更新点赞视频时相关的缓存
    public void updateLikeVlog(String userId, String vlogerId, String vlogId) {

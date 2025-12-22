@@ -47,4 +47,7 @@ public class VlogBO {
    // 这两个字段不校验
    private Integer likeCounts;
    private Integer commentsCounts;
+
+   // 逻辑删除 0-正常，1-逻辑删除（管理员修改时使用）
+   private Integer isDeleted;
 }

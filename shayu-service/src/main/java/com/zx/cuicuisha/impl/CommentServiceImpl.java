@@ -74,6 +74,7 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       comment.setFatherCommentId(commentBO.getFatherCommentId());
       comment.setContent(commentBO.getContent());
       comment.setLikeCounts(0);
+      comment.setIsDeleted(0); // 默认未逻辑删除
       comment.setCreateTime(new Date());
       // 插入数据
       commentMapper.insert(comment);
@@ -82,9 +83,12 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       // 留言后的最新评论需要返回给前端进行展示
       CommentVO commentVO = new CommentVO();
       BeanUtils.copyProperties(comment, commentVO);
-
       // 系统消息：评论/回复
+      // 检查视频是否存在且未被逻辑删除
       Vlog vlog = vlogService.getVlog(commentBO.getVlogId());
+      if (vlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
       Map msgContent = new HashMap();
       msgContent.put("vlogId", vlog.getId());
       msgContent.put("vlogCover", vlog.getCover());
@@ -155,17 +159,32 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Override
    public void deleteComment(String commentUserId, String commentId, String vlogId) {
+      // 检查评论是否存在且未被逻辑删除
+      Comment existComment = commentMapper.selectByPrimaryKey(commentId);
+      if (existComment == null) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 验证评论是否属于该用户
+      if (!existComment.getCommentUserId().equals(commentUserId)) {
+         GraceException.display(ResponseStatusEnum.NO_AUTH);
+      }
+      // 检查是否已被逻辑删除
+      if (existComment.getIsDeleted() != null && existComment.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 逻辑删除评论
       Comment pendingDelete = new Comment();
       pendingDelete.setId(commentId);
-      pendingDelete.setCommentUserId(commentUserId);
-      // 从数据库删除
-      commentMapper.delete(pendingDelete);
+      pendingDelete.setIsDeleted(1);
+      commentMapper.updateByPrimaryKeySelective(pendingDelete);
       // redis中累减
       redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
    }
 
    @Override
    public Comment getComment(String id) {
-      return commentMapper.selectByPrimaryKey(id);
+      Comment comment = commentMapper.selectByPrimaryKey(id);
+      // 管理员查询可以返回已逻辑删除的评论，所以这里不过滤
+      return comment;
    }
 }

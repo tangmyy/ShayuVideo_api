@@ -38,6 +38,7 @@
                 fc.comment_user_id = fu.id
         WHERE
             c.vlog_id = #{paramMap.vlogId}
+            AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
         ORDER BY
             c.like_counts DESC,
             c.create_time DESC

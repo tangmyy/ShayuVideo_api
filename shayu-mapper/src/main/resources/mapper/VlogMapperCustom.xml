@@ -25,6 +25,7 @@
     v.vloger_id = u.id
     WHERE
     v.is_private = 0
+    AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
     AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
     <if test="paramMap.search != null and paramMap.search != ''">
       AND v.title like '%${paramMap.search}%'
@@ -58,6 +59,7 @@
         v.vloger_id = u.id
     WHERE
       v.id = #{paramMap.vlogId}
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
   </select>
 
@@ -92,6 +94,7 @@
       u.id = #{paramMap.userId}
       AND
       v.is_private = 0
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (vloger.is_deleted = 0 OR vloger.is_deleted IS NULL)
     ORDER BY
       v.created_time
@@ -125,6 +128,7 @@
         f.vloger_id = u.id
     WHERE
       v.is_private = 0
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
       AND
       f.fan_id = #{paramMap.myId}
@@ -160,6 +164,7 @@
         f.fan_id = u.id
     WHERE
       v.is_private = 0
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
       AND
       f.vloger_id = #{paramMap.myId}
