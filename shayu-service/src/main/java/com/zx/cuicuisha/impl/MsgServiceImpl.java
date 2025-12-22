@@ -9,6 +9,7 @@ import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.UserService;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -98,14 +99,19 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
 
    // admin 管理员端专用方法
    @Override
-   public List<MessageMO> queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize) {
-      Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
+   public PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize) {
+      // MongoDB分页从0开始，需要将页码从1转换为0
+      int mongoPage = page - 1;
+      Pageable pageable = PageRequest.of(mongoPage, pageSize, Sort.Direction.DESC, "createTime");
       List<MessageMO> list;
+      long totalRecords;
       // 如果userId为空，查询所有消息；否则查询指定用户的消息
       if (StringUtils.isBlank(userId)) {
          list = messageRepository.findAllByOrderByCreateTimeDesc(pageable);
+         totalRecords = messageRepository.count();
       } else {
          list = messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(userId, pageable);
+         totalRecords = messageRepository.countByToUserId(userId);
       }
       // 处理关注消息的互粉关系（与queryList相同的逻辑）
       for (MessageMO msg : list) {
@@ -123,7 +129,15 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
             msg.setMsgContent(map);
          }
       }
-      return list;
+      // 手动构建PagedGridResult（MongoDB不支持PageHelper）
+      PagedGridResult gridResult = new PagedGridResult();
+      gridResult.setRows(list);
+      gridResult.setPage(page);
+      gridResult.setRecords(totalRecords);
+      // 计算总页数
+      long totalPages = (totalRecords + pageSize - 1) / pageSize;
+      gridResult.setTotal(totalPages);
+      return gridResult;
    }
 
    @Override

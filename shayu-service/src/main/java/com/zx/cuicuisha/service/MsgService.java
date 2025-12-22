@@ -2,6 +2,7 @@ package com.zx.cuicuisha.service;
 
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.utils.PagedGridResult;
 
 import javax.validation.constraints.Max;
 import java.util.List;
@@ -20,7 +21,7 @@ public interface MsgService {
 
 
    // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
-   public List<MessageMO> queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize);
+   public PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize);
 
    // Admin - 删除消息（管理员专用，不需要权限校验）
    public void deleteMsgForAdmin(String msgId);

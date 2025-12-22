@@ -18,6 +18,9 @@ public interface MessageRepository extends MongoRepository<MessageMO, String> {
    // Admin - 查询所有消息（按创建时间倒序）
    List<MessageMO> findAllByOrderByCreateTimeDesc(Pageable pageable);
 
+   // Admin - 根据接收者ID查询消息总数
+   long countByToUserId(String toUserId);
+
    // Admin - 根据接收者ID删除所有消息
    void deleteAllByToUserId(String toUserId);
 
