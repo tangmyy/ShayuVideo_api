@@ -142,10 +142,12 @@ public class AdminController extends BaseInfoProperties {
       // 查询数据库, 判断用户是否存在
       Users user = userService.queryMobileIsExist(mobile);
       if (user == null) {
-         // 如果用户不存在, 则注册一个新用户
+         log.info("手机号 {} 不存在，开始创建新用户", mobile);
          user = userService.createUser(mobile);
+         log.info("用户注册成功，用户ID: {}", user.getId());
       }
       // 返回用户信息
+      log.info("手机号 {} 已存在，返回现有用户信息，用户ID: {}", mobile, user.getId());
       UsersVO usersVO = new UsersVO();
       BeanUtils.copyProperties(user, usersVO);
       return ResponseDataStructureEnum.ok(usersVO);
