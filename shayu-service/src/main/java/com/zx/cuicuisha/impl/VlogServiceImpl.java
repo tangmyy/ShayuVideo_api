@@ -36,6 +36,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Slf4j
 @Service
@@ -373,6 +374,44 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
       // 返回更新后的视频信息
       return vlogMapper.selectByPrimaryKey(vlogId);
+   }
+
+   /**
+    * 获取所有视频点赞的总数
+    * 通过遍历Redis中所有匹配的key，累加点赞数量
+    * @return 所有视频点赞的总数
+    */
+   @Override
+   public Integer getTotalLikeCount() {
+      try {
+         // 获取所有匹配的Redis key
+         String pattern = REDIS_VLOG_BE_LIKED_COUNTS + ":*";
+         Set<String> keys = redis.keys(pattern);
+         
+         if (keys == null || keys.isEmpty()) {
+            log.info("未找到任何视频点赞的Redis key");
+            return 0;
+         }
+         // 累加所有key的值
+         int totalCount = 0;
+         for (String key : keys) {
+            String countStr = redis.get(key);
+            if (StringUtils.isNotBlank(countStr)) {
+               try {
+                  int count = Integer.parseInt(countStr);
+                  totalCount += count;
+               } catch (NumberFormatException e) {
+                  log.warn("Redis key {} 的值 {} 不是有效的数字，跳过", key, countStr);
+               }
+            }
+         }
+         log.info("统计所有视频点赞总数完成，共找到 {} 个视频，总点赞数：{}", keys.size(), totalCount);
+         return totalCount;
+      } catch (Exception e) {
+         log.error("获取所有视频点赞总数时发生错误", e);
+         // 发生异常时返回0，避免影响接口调用
+         return 0;
+      }
    }
 
 }

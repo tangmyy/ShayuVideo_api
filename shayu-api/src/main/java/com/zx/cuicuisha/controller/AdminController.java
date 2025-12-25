@@ -254,13 +254,6 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(comment);
    }
 
-   @ApiOperation(value = "获取所有视频评论总量")
-   @GetMapping("comment/counts")
-   public ResponseDataStructureEnum countsCommentNum() {
-      Integer totalCount = commentService.getTotalCommentCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
    /**
     * 管理端：粉丝列表
     * /admin/fans/list
@@ -313,6 +306,25 @@ public class AdminController extends BaseInfoProperties {
    }
 
 
+   /**
+    * 管理端：数据统计
+    * /admin/counts/
+    * @return 数据总数量
+    */
+
+   @ApiOperation(value = "获取所有视频评论总量")
+   @GetMapping("counts/comment")
+   public ResponseDataStructureEnum countsCommentNum() {
+      Integer totalCount = commentService.getTotalCommentCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "获取所有视频点赞总量")
+   @GetMapping("counts/likes")
+   public ResponseDataStructureEnum countsLikeNum() {
+      Integer totalCount = vlogService.getTotalLikeCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
 
 
 }
