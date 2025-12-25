@@ -9,20 +9,20 @@ import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.enums.VlogSortType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
-import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.List;
 import java.util.Objects;
 
 
@@ -131,6 +131,24 @@ public class AdminController extends BaseInfoProperties {
       }
       Users user = userService.banOrRestoreUser(userId);
       return ResponseDataStructureEnum.ok(user);
+   }
+
+   @ApiOperation(value = "新增用户")
+   @PostMapping("users/adduser")
+   public ResponseDataStructureEnum adduser(@RequestParam String mobile) {
+      if (StringUtils.isBlank(mobile)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 查询数据库, 判断用户是否存在
+      Users user = userService.queryMobileIsExist(mobile);
+      if (user == null) {
+         // 如果用户不存在, 则注册一个新用户
+         user = userService.createUser(mobile);
+      }
+      // 返回用户信息
+      UsersVO usersVO = new UsersVO();
+      BeanUtils.copyProperties(user, usersVO);
+      return ResponseDataStructureEnum.ok(usersVO);
    }
 
    /**
@@ -294,5 +312,8 @@ public class AdminController extends BaseInfoProperties {
       msgService.deleteMsgForAdmin(msgId);
       return ResponseDataStructureEnum.ok();
    }
+
+
+
 
 }
