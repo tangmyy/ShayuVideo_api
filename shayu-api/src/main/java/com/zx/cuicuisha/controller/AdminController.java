@@ -326,5 +326,19 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
+   @ApiOperation(value = "获取所有视频数量")
+   @GetMapping("counts/vlogs")
+   public ResponseDataStructureEnum countsVlogNum() {
+      Integer totalCount = vlogService.getTotalVlogCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "获取所有用户数量")
+   @GetMapping("counts/users")
+   public ResponseDataStructureEnum countsUserNum() {
+      Integer totalCount = userService.getTotalUserCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
 
 }

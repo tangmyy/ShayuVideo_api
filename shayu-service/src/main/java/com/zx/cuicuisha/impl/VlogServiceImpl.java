@@ -414,4 +414,27 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       }
    }
 
+   /**
+    * 获取所有视频的数量
+    * 从数据库中统计所有视频（不包括已逻辑删除的）
+    * @return 所有视频的数量
+    */
+   @Override
+   public Integer getTotalVlogCount() {
+      try {
+         // 使用Example查询，过滤掉已逻辑删除的视频
+         Example example = new Example(Vlog.class);
+         Example.Criteria criteria = example.createCriteria();
+         // 只统计未逻辑删除的视频（is_deleted = 0）
+         criteria.andEqualTo("isDeleted", 0);
+         int count = vlogMapper.selectCountByExample(example);
+         log.info("统计所有视频数量完成，总视频数：{}", count);
+         return count;
+      } catch (Exception e) {
+         log.error("获取所有视频数量时发生错误", e);
+         // 发生异常时返回0，避免影响接口调用
+         return 0;
+      }
+   }
+
 }

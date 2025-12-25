@@ -367,4 +367,27 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return usersMapper.selectByPrimaryKey(userId);
    }
 
+   /**
+    * 获取所有用户的数量
+    * 从数据库中统计所有用户（不包括已逻辑删除的）
+    * @return 所有用户的数量
+    */
+   @Override
+   public Integer getTotalUserCount() {
+      try {
+         // 使用Example查询，过滤掉已逻辑删除的用户
+         Example example = new Example(Users.class);
+         Example.Criteria criteria = example.createCriteria();
+         // 只统计未逻辑删除的用户（is_deleted = 0）
+         criteria.andEqualTo("isDeleted", 0);
+         int count = usersMapper.selectCountByExample(example);
+         log.info("统计所有用户数量完成，总用户数：{}", count);
+         return count;
+      } catch (Exception e) {
+         log.error("获取所有用户数量时发生错误", e);
+         // 发生异常时返回0，避免影响接口调用
+         return 0;
+      }
+   }
+
 }
