@@ -75,7 +75,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlog.setLikeCounts(0);
       vlog.setCommentsCounts(0);
       vlog.setIsPrivate(YesOrNo.NO.type);
-      vlog.setIsDeleted(0); // 默认未逻辑删除
+      vlog.setIsDeleted(1);               // 默认未审核
       vlog.setCreatedTime(new Date());
       vlog.setUpdatedTime(new Date());
       vlogMapper.insert(vlog);
