@@ -24,4 +24,7 @@ public interface CommentService {
    // Admin - 删除/恢复评论（切换逻辑删除状态）
    public Comment deleteOrRestoreComment(String commentId);
 
+   // Admin - 获取所有视频评论的总数
+   public Integer getTotalCommentCount();
+
 }

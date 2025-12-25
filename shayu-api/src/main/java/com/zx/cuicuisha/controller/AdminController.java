@@ -254,14 +254,11 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(comment);
    }
 
-   @ApiOperation(value = "获取评论总量")
+   @ApiOperation(value = "获取所有视频评论总量")
    @GetMapping("comment/counts")
-   public ResponseDataStructureEnum countsCommentNum(@RequestParam String vlogId) {
-      String countsStr = redis.get(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId);
-      if (StringUtils.isBlank(countsStr)) {
-         countsStr = "0";
-      }
-      return ResponseDataStructureEnum.ok(Integer.valueOf(countsStr));
+   public ResponseDataStructureEnum countsCommentNum() {
+      Integer totalCount = commentService.getTotalCommentCount();
+      return ResponseDataStructureEnum.ok(totalCount);
    }
 
    /**
