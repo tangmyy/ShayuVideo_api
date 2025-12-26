@@ -69,6 +69,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
     @Autowired
     private RabbitTemplate rabbitTemplate;
 
+    // 举报视频
     @Override
     @Transactional
     public Report reportVlog(ReportBO reportBO) {
@@ -108,18 +109,19 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
 
         reportMapper.insert(report);
         // 检查是否达到自动下架阈值（3次）
-        Integer reportCount = reportMapperCustom.countReportsByTarget(REPORT_TYPE_VLOG, reportBO.getTargetId());
-        if (reportCount >= AUTO_DELETE_THRESHOLD) {
-            log.info("视频 {} 被举报次数达到阈值 {}，自动下架", reportBO.getTargetId(), AUTO_DELETE_THRESHOLD);
-            // 自动下架视频（逻辑删除）
-            Vlog updateVlog = new Vlog();
-            updateVlog.setId(reportBO.getTargetId());
-            updateVlog.setIsDeleted(1);
-            vlogMapper.updateByPrimaryKeySelective(updateVlog);
-        }
+        // Integer reportCount = reportMapperCustom.countReportsByTarget(REPORT_TYPE_VLOG, reportBO.getTargetId());
+        // if (reportCount >= AUTO_DELETE_THRESHOLD) {
+        //     log.info("视频 {} 被举报次数达到阈值 {}，自动下架", reportBO.getTargetId(), AUTO_DELETE_THRESHOLD);
+        //     // 自动下架视频（逻辑删除）
+        //     Vlog updateVlog = new Vlog();
+        //     updateVlog.setId(reportBO.getTargetId());
+        //     updateVlog.setIsDeleted(1);
+        //     vlogMapper.updateByPrimaryKeySelective(updateVlog);
+        // }
         return report;
     }
 
+    // 举报评论
     @Override
     @Transactional
     public Report reportComment(ReportBO reportBO) {
@@ -159,20 +161,20 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
 
         reportMapper.insert(report);
         // 检查是否达到自动下架阈值（3次）
-        Integer reportCount = reportMapperCustom.countReportsByTarget(REPORT_TYPE_COMMENT, reportBO.getTargetId());
-        if (reportCount >= AUTO_DELETE_THRESHOLD) {
-            log.info("评论 {} 被举报次数达到阈值 {}，自动删除", reportBO.getTargetId(), AUTO_DELETE_THRESHOLD);
-            // 自动删除评论（逻辑删除）
-            Comment updateComment = new Comment();
-            updateComment.setId(reportBO.getTargetId());
-            updateComment.setIsDeleted(1);
-            commentMapper.updateByPrimaryKeySelective(updateComment);
-            // 更新视频评论数
-            String vlogId = comment.getVlogId();
-            if (StringUtils.isNotBlank(vlogId)) {
-                redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
-            }
-        }
+        // Integer reportCount = reportMapperCustom.countReportsByTarget(REPORT_TYPE_COMMENT, reportBO.getTargetId());
+        // if (reportCount >= AUTO_DELETE_THRESHOLD) {
+        //     log.info("评论 {} 被举报次数达到阈值 {}，自动删除", reportBO.getTargetId(), AUTO_DELETE_THRESHOLD);
+        //     // 自动删除评论（逻辑删除）
+        //     Comment updateComment = new Comment();
+        //     updateComment.setId(reportBO.getTargetId());
+        //     updateComment.setIsDeleted(1);
+        //     commentMapper.updateByPrimaryKeySelective(updateComment);
+        //     // 更新视频评论数
+        //     String vlogId = comment.getVlogId();
+        //     if (StringUtils.isNotBlank(vlogId)) {
+        //         redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
+        //     }
+        // }
         return report;
     }
 
@@ -222,12 +224,21 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         // 如果选择通知举报人，发送消息
         if (notifyReporter != null && notifyReporter) {
             try {
-                Users handler = usersMapper.selectByPrimaryKey(handlerId);
                 Map<String, Object> msgContent = new HashMap<>();
+                // 从已查询的 report 对象获取举报类型
+                Integer reportType = report.getReportType();  // 1-视频，2-评论
+                // 使用方法参数的 status（新的处理状态），而不是 report.getStatus()（旧状态）
+                Integer reportStatus = status;  // 1-已处理，2-已驳回
+                // 转换为可读的字符串
+                String reportTypeStr = reportType == REPORT_TYPE_VLOG ? "视频" : "评论";
+                String reportStatusStr = reportStatus == REPORT_STATUS_HANDLED ? "已处理" : "已驳回";
+                // 如果handleResult为空，设置默认值
+                String finalHandleResult = StringUtils.isBlank(handleResult) ? "已收到反馈！" : handleResult;
+                String msg = reportTypeStr + "举报" + reportStatusStr + "\n处理结果：" + finalHandleResult;
+
                 msgContent.put("reportId", reportId);
-                msgContent.put("handleResult", handleResult);
-                // msgContent.put("handlerName", handler != null ? handler.getNickname() : "管理员");
-                // 根据举报类型设置不同的消息内容
+                msgContent.put("handleResult", msg);
+                // 如果是举报视频
                 if (report.getReportType() == REPORT_TYPE_VLOG) {
                     Vlog vlog = vlogService.getVlog(report.getTargetId());
                     if (vlog != null) {
@@ -235,6 +246,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                         msgContent.put("vlogCover", vlog.getCover());
                         msgContent.put("vlogTitle", vlog.getTitle());
                     }
+                // 如果是举报评论
                 } else if (report.getReportType() == REPORT_TYPE_COMMENT) {
                     Comment comment = commentService.getComment(report.getTargetId());
                     if (comment != null) {
@@ -244,6 +256,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                         if (vlog != null) {
                             msgContent.put("vlogId", vlog.getId());
                             msgContent.put("vlogCover", vlog.getCover());
+                            msgContent.put("vlogTitle", vlog.getTitle());
                         }
                     }
                 }

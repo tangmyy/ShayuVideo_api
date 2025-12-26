@@ -26,7 +26,7 @@ import java.util.Map;
 @Slf4j
 @Service
 public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
-   
+
    @Autowired
    private MessageRepository messageRepository;
    @Autowired
