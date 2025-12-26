@@ -77,8 +77,13 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         if (vlog == null) {
             GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
         }
+        // 检查视频是否已被删除
         if (vlog.getIsDeleted() != null && vlog.getIsDeleted() == 1) {
-            GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+            GraceException.display(ResponseStatusEnum.VLOG_DELETED_ERROR);
+        }
+        // 检查是否举报自己的内容
+        if (vlog.getVlogerId() != null && vlog.getVlogerId().equals(reportBO.getReporterId())) {
+            GraceException.display(ResponseStatusEnum.REPORT_SELF_CONTENT_ERROR);
         }
         // 检查是否已举报过
         String existingReportId = reportMapperCustom.checkReportExists(
@@ -121,10 +126,15 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         // 验证评论是否存在
         Comment comment = commentService.getComment(reportBO.getTargetId());
         if (comment == null) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.COMMENT_NOT_EXIST_ERROR);
         }
+        // 检查评论是否已被删除
         if (comment.getIsDeleted() != null && comment.getIsDeleted() == 1) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.COMMENT_DELETED_ERROR);
+        }
+        // 检查是否举报自己的内容
+        if (comment.getCommentUserId() != null && comment.getCommentUserId().equals(reportBO.getReporterId())) {
+            GraceException.display(ResponseStatusEnum.REPORT_SELF_CONTENT_ERROR);
         }
         // 检查是否已举报过
         String existingReportId = reportMapperCustom.checkReportExists(
