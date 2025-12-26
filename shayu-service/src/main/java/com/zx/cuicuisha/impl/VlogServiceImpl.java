@@ -5,6 +5,7 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.VlogSortType;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -130,6 +131,23 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       if (StringUtils.isNoneBlank(search)){
          map.put("search", search);
       }
+      // 从Redis读取排序类型（0-创建时间，1-点赞数，2-评论数）
+      String sortTypeStr = redis.get(REDIS_VLOG_INDEX_SORT_TYPE);
+      Integer sortType = null;
+      if (StringUtils.isNotBlank(sortTypeStr)) {
+         try {
+            sortType = Integer.valueOf(sortTypeStr);
+         } catch (Exception e) {
+            log.warn("Redis中的排序类型格式错误：{}", sortTypeStr);
+         }
+      }
+      // 根据排序类型设置sortField（使用枚举优化）
+      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
+      if (vlogSortType != null && vlogSortType != VlogSortType.CREATED_TIME) {
+         // 如果不是创建时间排序，则设置sortField
+         map.put("sortField", vlogSortType.field);
+      }
+      // sortType == 0 或 null 时，不设置sortField，使用默认的创建时间排序
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogList(map);
       for (IndexVlogVO vlogVO : list) {
          setterVO(vlogVO, userId);
@@ -148,6 +166,23 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       if (StringUtils.isNotBlank(search)){
          map.put("search", search);
       }
+      // 从Redis读取排序类型（0-创建时间，1-点赞数，2-评论数）
+      String sortTypeStr = redis.get(REDIS_VLOG_INDEX_SORT_TYPE);
+      Integer sortType = null;
+      if (StringUtils.isNotBlank(sortTypeStr)) {
+         try {
+            sortType = Integer.valueOf(sortTypeStr);
+         } catch (Exception e) {
+            log.warn("Redis中的排序类型格式错误：{}", sortTypeStr);
+         }
+      }
+      // 根据排序类型设置sortField（使用枚举优化）
+      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
+      if (vlogSortType != null && vlogSortType != VlogSortType.CREATED_TIME) {
+         // 如果不是创建时间排序，则设置sortField
+         map.put("sortField", vlogSortType.field);
+      }
+      // sortType == 0 或 null 时，不设置sortField，使用默认的创建时间排序
       // 使用管理员专用查询方法，不过滤 is_deleted
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogListForAdmin(map);
       // 管理员查询不需要设置关注、点赞等用户相关状态

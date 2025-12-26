@@ -216,8 +216,17 @@
       AND v.title like '%${paramMap.search}%'
     </if>
     ORDER BY
-    v.created_time
-    DESC
+    <choose>
+      <when test="paramMap.sortField != null and paramMap.sortField == 'like_counts'">
+        v.like_counts DESC, v.created_time DESC
+      </when>
+      <when test="paramMap.sortField != null and paramMap.sortField == 'comments_counts'">
+        v.comments_counts DESC, v.created_time DESC
+      </when>
+      <otherwise>
+        v.created_time DESC
+      </otherwise>
+    </choose>
   </select>
 
 </mapper>
