@@ -66,13 +66,16 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
          messageMO.setMsgContent(msgContent);
       }
       messageMO.setCreateTime(new Date());
-      messageRepository.save(messageMO);
+      MessageMO savedMsg = messageRepository.save(messageMO);
+      log.info("系统消息创建成功：msgId={}, fromUserId={}, toUserId={}, msgType={}", 
+               savedMsg.getId(), fromUserId, toUserId, type);
    }
 
    @Override
    public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
       Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
       List<MessageMO> list =  messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(toUserId, pageable);
+      log.info("查询消息列表：toUserId={}, page={}, pageSize={}, 查询到{}条消息", toUserId, page, pageSize, list.size());
       for (MessageMO msg : list) {
          // 如果类型是关注消息，则需要查询我之前有没有关注过他，用于在前端标记“互粉”“互关”
          if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {

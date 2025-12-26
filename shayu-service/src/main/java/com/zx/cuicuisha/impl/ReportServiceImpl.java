@@ -226,7 +226,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 Map<String, Object> msgContent = new HashMap<>();
                 msgContent.put("reportId", reportId);
                 msgContent.put("handleResult", handleResult);
-                msgContent.put("handlerName", handler != null ? handler.getNickname() : "管理员");
+                // msgContent.put("handlerName", handler != null ? handler.getNickname() : "管理员");
                 // 根据举报类型设置不同的消息内容
                 if (report.getReportType() == REPORT_TYPE_VLOG) {
                     Vlog vlog = vlogService.getVlog(report.getTargetId());
@@ -252,7 +252,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 messageMO.setFromUserId(handlerId);
                 messageMO.setToUserId(report.getReporterId());
                 messageMO.setMsgContent(msgContent);
-                rabbitTemplate.convertAndSend( RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
                 );
                 log.info("举报处理通知已发送到MQ：reportId={}, reporterId={}", reportId, report.getReporterId());
             } catch (Exception e) {
