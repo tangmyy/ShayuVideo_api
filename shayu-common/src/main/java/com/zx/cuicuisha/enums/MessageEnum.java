@@ -11,7 +11,8 @@ public enum MessageEnum {
     LIKE_VLOG(2, "点赞视频", "likeVideo"),
     COMMENT_VLOG(3, "评论视频", "comment"),
     REPLY_YOU(4, "回复评论", "replay"),
-    LIKE_COMMENT(5, "点赞评论", "likeComment");
+    LIKE_COMMENT(5, "点赞评论", "likeComment"),
+    REPORT_HANDLED(6, "举报处理", "reportHandled");
 
     public final Integer type;
     public final String value;

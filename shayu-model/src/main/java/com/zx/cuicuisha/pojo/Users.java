@@ -1,9 +1,15 @@
 package com.zx.cuicuisha.pojo;
 
-import lombok.*;
+
+
 import javax.persistence.Column;
 import javax.persistence.Id;
 import java.util.Date;
+
+import lombok.Data;
+import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @AllArgsConstructor

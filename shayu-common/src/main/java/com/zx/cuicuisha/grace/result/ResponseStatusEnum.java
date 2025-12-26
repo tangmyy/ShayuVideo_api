@@ -36,6 +36,7 @@ public enum ResponseStatusEnum {
     VLOGER_NOT_EXIST_ERROR(517,false,"被关注的用户不存在！"),
     FANS_FOLLOW_YOURSELF_ERROR(517,false,"用户不能关注自己！"),
     VLOG_NOT_EXIST_ERROR(518, false,"视频不存在"),
+    REPORT_ALREADY_EXISTS_ERROR(519, false, "您已经举报过该内容，请勿重复举报！"),
 
 
     // 自定义系统级别异常 54x

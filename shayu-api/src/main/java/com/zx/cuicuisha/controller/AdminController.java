@@ -9,6 +9,7 @@ import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.enums.VlogSortType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
+import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
 import com.zx.cuicuisha.utils.MinIOUtils;
@@ -44,6 +45,8 @@ public class AdminController extends BaseInfoProperties {
    private FansService fansService;
    @Autowired
    private MsgService msgService;
+   @Autowired
+   private ReportService reportService;
 
    /**
     * 查询用户列表（支持分页和搜索）
@@ -338,6 +341,61 @@ public class AdminController extends BaseInfoProperties {
    public ResponseDataStructureEnum countsUserNum() {
       Integer totalCount = userService.getTotalUserCount();
       return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   /**
+    * 管理端：举报列表
+    * /admin/report/list
+    * @param reportType 举报类型（可选，1-视频，2-评论）
+    * @param status 处理状态（可选，0-待处理，1-已处理，2-已驳回）
+    * @param targetId 被举报对象ID（可选）
+    * @param page 页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @ApiOperation(value = "查询举报列表（支持按类型、状态、对象ID筛选）")
+   @GetMapping("report/list")
+   public ResponseDataStructureEnum reportList(
+         @RequestParam(required = false) Integer reportType,
+         @RequestParam(required = false) Integer status,
+         @RequestParam(required = false) String targetId,
+         @RequestParam(required = false) Integer page,
+         @RequestParam(required = false) Integer pageSize) {
+      if (page == null) {
+         page = COMMON_START_PAGE;
+      }
+      if (pageSize == null) {
+         pageSize = COMMON_PAGE_SIZE;
+      }
+      PagedGridResult result = reportService.queryReports(reportType, status, targetId, page, pageSize);
+      return ResponseDataStructureEnum.ok(result);
+   }
+
+   @ApiOperation(value = "处理举报")
+   @PostMapping("report/handle")
+   public ResponseDataStructureEnum handleReport(
+         @RequestParam String reportId,
+         @RequestParam String handlerId,
+         @RequestParam Integer status,
+         @RequestParam(required = false) String handleResult,
+         @RequestParam(required = false, defaultValue = "false") Boolean notifyReporter) {
+      if (StringUtils.isBlank(reportId) || StringUtils.isBlank(handlerId) || status == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Report report = reportService.handleReport(reportId, handlerId, status, handleResult, notifyReporter);
+      return ResponseDataStructureEnum.ok(report);
+   }
+
+   @ApiOperation(value = "统计指定对象的举报次数")
+   @GetMapping("report/count")
+   public ResponseDataStructureEnum countReports(
+         @RequestParam Integer reportType,
+         @RequestParam String targetId) {
+      if (reportType == null || StringUtils.isBlank(targetId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Integer count = reportService.countReportsByTarget(reportType, targetId);
+      return ResponseDataStructureEnum.ok(count);
    }
 
 

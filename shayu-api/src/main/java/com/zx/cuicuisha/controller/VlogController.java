@@ -19,6 +19,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 
+// @RefreshScope  启用了外部配置中心，并且希望修改配置后能实时生效时使用
 @Slf4j
 @Api(tags = "VlogController 短视频相关业务功能的接口")
 @RequestMapping("vlog")

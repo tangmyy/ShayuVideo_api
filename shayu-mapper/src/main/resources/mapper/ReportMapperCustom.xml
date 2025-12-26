@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zx.cuicuisha.mapper.ReportMapperCustom" >
+
+    <select id="getReportList" parameterType="map" resultType="com.zx.cuicuisha.vo.ReportAdminVO">
+        SELECT
+            r.id as id,
+            r.reporter_id as reporterId,
+            reporter.nickname as reporterNickname,
+            reporter.face as reporterFace,
+            r.report_type as reportType,
+            r.target_id as targetId,
+            CASE 
+                WHEN r.report_type = 1 THEN v.title
+                ELSE NULL
+            END as targetTitle,
+            CASE 
+                WHEN r.report_type = 2 THEN c.content
+                ELSE NULL
+            END as targetContent,
+            CASE 
+                WHEN r.report_type = 1 THEN v.vloger_id
+                WHEN r.report_type = 2 THEN c.comment_user_id
+                ELSE NULL
+            END as targetUserId,
+            CASE 
+                WHEN r.report_type = 1 THEN vloger.nickname
+                WHEN r.report_type = 2 THEN commenter.nickname
+                ELSE NULL
+            END as targetUserNickname,
+            CASE 
+                WHEN r.report_type = 1 THEN vloger.face
+                WHEN r.report_type = 2 THEN commenter.face
+                ELSE NULL
+            END as targetUserFace,
+            r.reason as reason,
+            r.description as description,
+            r.status as status,
+            r.handler_id as handlerId,
+            handler.nickname as handlerNickname,
+            r.handle_time as handleTime,
+            r.handle_result as handleResult,
+            r.create_time as createTime,
+            r.updated_time as updatedTime,
+            r.is_deleted as isDeleted
+        FROM
+            `report` as r
+            LEFT JOIN users as reporter ON r.reporter_id = reporter.id
+            LEFT JOIN users as handler ON r.handler_id = handler.id
+            LEFT JOIN vlog as v ON r.report_type = 1 AND r.target_id = v.id
+            LEFT JOIN users as vloger ON r.report_type = 1 AND v.vloger_id = vloger.id
+            LEFT JOIN comment as c ON r.report_type = 2 AND r.target_id = c.id
+            LEFT JOIN users as commenter ON r.report_type = 2 AND c.comment_user_id = commenter.id
+        <where>
+            <if test="paramMap.reportType != null and paramMap.reportType != ''">
+                AND r.report_type = #{paramMap.reportType}
+            </if>
+            <if test="paramMap.status != null and paramMap.status != ''">
+                AND r.status = #{paramMap.status}
+            </if>
+            <if test="paramMap.targetId != null and paramMap.targetId != ''">
+                AND r.target_id = #{paramMap.targetId}
+            </if>
+            <if test="paramMap.reporterId != null and paramMap.reporterId != ''">
+                AND r.reporter_id = #{paramMap.reporterId}
+            </if>
+            AND (r.is_deleted = 0 OR r.is_deleted IS NULL)
+        </where>
+        ORDER BY
+            r.create_time DESC
+    </select>
+
+    <select id="countReportsByTarget" resultType="java.lang.Integer">
+        SELECT COUNT(*)
+        FROM `report`
+        WHERE report_type = #{reportType}
+          AND target_id = #{targetId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+    </select>
+
+    <select id="checkReportExists" resultType="java.lang.String">
+        SELECT id
+        FROM `report`
+        WHERE reporter_id = #{reporterId}
+          AND report_type = #{reportType}
+          AND target_id = #{targetId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+        LIMIT 1
+    </select>
+
+</mapper>
+
