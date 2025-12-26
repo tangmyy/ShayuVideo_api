@@ -374,6 +374,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       return setterPagedGrid(list, page);
    }
 
+   // 把counts输入数据库
    @Transactional
    @Override
    public void flushCounts(String vlogId, Integer counts) {

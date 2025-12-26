@@ -252,10 +252,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 messageMO.setFromUserId(handlerId);
                 messageMO.setToUserId(report.getReporterId());
                 messageMO.setMsgContent(msgContent);
-                rabbitTemplate.convertAndSend(
-                        RabbitMQConfig.EXCHANGE_MSG,
-                        "sys.msg." + MessageEnum.REPORT_HANDLED.enValue,
-                        JsonUtils.objectToJson(messageMO)
+                rabbitTemplate.convertAndSend( RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
                 );
                 log.info("举报处理通知已发送到MQ：reportId={}, reporterId={}", reportId, report.getReporterId());
             } catch (Exception e) {

@@ -26,19 +26,40 @@ import java.util.Map;
 @Slf4j
 @Service
 public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
-
+   
    @Autowired
    private MessageRepository messageRepository;
    @Autowired
    private UserService userService;
 
+   private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/1765019302.jpg";
+
    @Override
    public void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
       Users fromUser = userService.getUser(fromUserId);
+      if (fromUser == null) {
+         log.error("创建消息失败：发送者用户不存在，fromUserId={}", fromUserId);
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(fromUserId);
       messageMO.setFromNickname(fromUser.getNickname());
       messageMO.setFromFace(fromUser.getFace());
+      messageMO.setToUserId(toUserId);
+      messageMO.setMsgType(type);
+      if (msgContent != null) {
+         messageMO.setMsgContent(msgContent);
+      }
+      messageMO.setCreateTime(new Date());
+      messageRepository.save(messageMO);
+   }
+
+   @Override
+   public void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(fromUserId);
+      messageMO.setFromNickname("系统消息");
+      messageMO.setFromFace(ADMIN_DEFAULT_FACE);
       messageMO.setToUserId(toUserId);
       messageMO.setMsgType(type);
       if (msgContent != null) {

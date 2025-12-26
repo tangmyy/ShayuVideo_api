@@ -52,13 +52,13 @@ public class RabbitMQConsumer {
       } else {
          msgContent = messageMO.getMsgContent();
       }
-      // 5. 调用消息服务创建消息
-      msgService.createMsg(
-            messageMO.getFromUserId(),
-            messageMO.getToUserId(),
-            messageEnum.type,
-            msgContent
-      );
+      // 5. 根据消息类型调用不同的方法创建消息
+      // REPORT_HANDLED 类型使用管理员消息方法，其他类型使用普通消息方法
+      if (messageEnum == MessageEnum.REPORT_HANDLED) {
+         msgService.createAdminMsg(messageMO.getFromUserId(), messageMO.getToUserId(), messageEnum.type, msgContent);
+      } else {
+         msgService.createMsg(messageMO.getFromUserId(), messageMO.getToUserId(), messageEnum.type, msgContent);
+      }
    }
 
 }
