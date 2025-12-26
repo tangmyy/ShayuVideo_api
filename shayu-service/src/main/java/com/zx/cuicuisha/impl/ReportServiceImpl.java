@@ -176,6 +176,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return report;
     }
 
+    // 查询举报列表
     @Override
     public PagedGridResult queryReports(Integer reportType, Integer status, String targetId, Integer page, Integer pageSize) {
         Map<String, Object> map = new HashMap<>();
@@ -193,6 +194,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return setterPagedGrid(list, page);
     }
 
+    // 处理举报
     @Override
     @Transactional
     public Report handleReport(String reportId, String handlerId, Integer status, String handleResult, Boolean notifyReporter) {
@@ -265,6 +267,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return reportMapper.selectByPrimaryKey(reportId);
     }
 
+    // 统计指定对象的举报次数
     @Override
     public Integer countReportsByTarget(Integer reportType, String targetId) {
         return reportMapperCustom.countReportsByTarget(reportType, targetId);

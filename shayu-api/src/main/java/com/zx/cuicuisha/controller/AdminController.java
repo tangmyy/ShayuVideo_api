@@ -9,9 +9,12 @@ import com.zx.cuicuisha.enums.UserInfoModifyType;
 import com.zx.cuicuisha.enums.VlogSortType;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
+import com.zx.cuicuisha.bo.AdminLoginBO;
+import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
+import com.zx.cuicuisha.vo.AdminVO;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.UsersVO;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import javax.validation.Valid;
 import java.util.Objects;
 
 
@@ -47,6 +51,8 @@ public class AdminController extends BaseInfoProperties {
    private MsgService msgService;
    @Autowired
    private ReportService reportService;
+   @Autowired
+   private AdminService adminService;
 
    /**
     * 查询用户列表（支持分页和搜索）
@@ -396,6 +402,45 @@ public class AdminController extends BaseInfoProperties {
       }
       Integer count = reportService.countReportsByTarget(reportType, targetId);
       return ResponseDataStructureEnum.ok(count);
+   }
+
+   /**
+    * 管理员登录
+    * @param adminLoginBO 登录信息（用户名和密码）
+    * @return 管理员信息（包含token）
+    */
+   @ApiOperation(value = "管理员登录")
+   @PostMapping("login")
+   public ResponseDataStructureEnum login(@Valid @RequestBody AdminLoginBO adminLoginBO) {
+      AdminUsers admin = adminService.adminLogin(adminLoginBO);
+      // 转换为VO对象
+      AdminVO adminVO = new AdminVO();
+      adminVO.setId(admin.getId());
+      adminVO.setUsername(admin.getUsername());
+      adminVO.setEmail(admin.getEmail());
+      adminVO.setRealName(admin.getRealName());
+      adminVO.setAvatar(admin.getAvatar());
+      // 从Redis获取token
+      String adminToken = redis.get(REDIS_ADMIN_TOKEN + ":" + admin.getId());
+      adminVO.setAdminToken(adminToken);
+      return ResponseDataStructureEnum.ok(adminVO);
+   }
+
+   /**
+    * 管理员登出
+    * @param adminId 管理员ID
+    * @return 操作结果
+    */
+   @ApiOperation(value = "管理员登出")
+   @PostMapping("logout")
+   public ResponseDataStructureEnum logout(@RequestParam Long adminId) {
+      if (adminId == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 清除管理员会话信息
+      redis.delete(REDIS_ADMIN_TOKEN + ":" + adminId);
+      log.info("管理员登出：adminId={}", adminId);
+      return ResponseDataStructureEnum.ok();
    }
 
 
