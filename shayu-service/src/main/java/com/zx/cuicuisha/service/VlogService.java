@@ -10,6 +10,9 @@ public interface VlogService {
    // 新增vlog视频
    void createVlog(VlogBO vlogBO);
 
+   // 用户更新自己的vlog视频信息（只能更新标题、标签、封面）
+   void updateMyVlog(String userId, VlogBO vlogBO);
+
    // 查询首页/搜索的vlog列表
    PagedGridResult getIndexVlogList(String userId, String search, Integer page, Integer pageSize);
 
@@ -50,7 +53,6 @@ public interface VlogService {
 
    // Admin - 更新vlog视频信息
    void updateVlog(VlogBO vlogBO);
-
    // Admin - 删除/恢复视频（切换逻辑删除状态）
    Vlog deleteOrRestoreVlog(String vlogId);
 

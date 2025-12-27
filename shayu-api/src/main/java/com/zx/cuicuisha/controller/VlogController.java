@@ -38,6 +38,23 @@ public class VlogController extends BaseInfoProperties {
       vlogService.createVlog(vlogBO);
       return ResponseDataStructureEnum.ok();
    }
+
+   /**
+    * 用户更新自己的视频信息（只能更新标题、标签、封面）
+    * @param headerUserId 从请求头获取的用户ID
+    * @param vlogBO 视频信息，必须包含id、title、tag、cover字段
+    * @return
+    */
+   @PutMapping("update")
+   public ResponseDataStructureEnum update(@RequestHeader(value = "headerUserId", required = false) String headerUserId, @RequestBody VlogBO vlogBO) {
+      if (StringUtils.isBlank(headerUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.UN_LOGIN);
+      }
+      System.out.println("更新视频，接收到的tag: " + vlogBO.getTag());
+      vlogService.updateMyVlog(headerUserId, vlogBO);
+      return ResponseDataStructureEnum.ok();
+   }
+
    /**
     * 推荐视频流
     * @return

@@ -86,6 +86,38 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    @Transactional
    @Override
+   public void updateMyVlog(String userId, VlogBO vlogBO) {
+      if (StringUtils.isBlank(vlogBO.getId())) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(userId)) {
+         GraceException.display(ResponseStatusEnum.UN_LOGIN);
+      }
+      // 检查视频是否存在
+      Vlog existVlog = vlogMapper.selectByPrimaryKey(vlogBO.getId());
+      if (existVlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 检查视频是否已被逻辑删除
+      if (existVlog.getIsDeleted() != null && existVlog.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 验证用户是否是视频的所有者
+      if (!userId.equals(existVlog.getVlogerId())) {
+         GraceException.display(ResponseStatusEnum.NO_AUTH);
+      }
+      // 用户只能更新标题、标签、封面，不能更新其他字段
+      Vlog vlog = new Vlog();
+      vlog.setId(vlogBO.getId());
+      vlog.setTitle(vlogBO.getTitle());
+      vlog.setTag(vlogBO.getTag());
+      vlog.setCover(vlogBO.getCover());
+      vlog.setUpdatedTime(new Date());
+      vlogMapper.updateByPrimaryKeySelective(vlog);
+   }
+
+   @Transactional
+   @Override
    public void updateVlog(VlogBO vlogBO) {
       if (StringUtils.isBlank(vlogBO.getId())) {
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);

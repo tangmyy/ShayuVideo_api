@@ -303,7 +303,6 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(result);
    }
 
-
    @ApiOperation(value = "删除消息")
    @PostMapping("msg/delete")
    public ResponseDataStructureEnum deleteMsg(@RequestParam String msgId) {
@@ -313,49 +312,6 @@ public class AdminController extends BaseInfoProperties {
       msgService.deleteMsgForAdmin(msgId);
       return ResponseDataStructureEnum.ok();
    }
-
-
-   /**
-    * 管理端：数据统计
-    * /admin/counts/
-    * @return 数据总数量
-    */
-
-   @ApiOperation(value = "统计所有视频评论总量")
-   @GetMapping("counts/comment")
-   public ResponseDataStructureEnum countsCommentNum() {
-      Integer totalCount = commentService.getTotalCommentCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
-   @ApiOperation(value = "统计所有视频点赞总量")
-   @GetMapping("counts/likes")
-   public ResponseDataStructureEnum countsLikeNum() {
-      Integer totalCount = vlogService.getTotalLikeCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
-   @ApiOperation(value = "统计所有视频数量")
-   @GetMapping("counts/vlogs")
-   public ResponseDataStructureEnum countsVlogNum() {
-      Integer totalCount = vlogService.getTotalVlogCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
-   @ApiOperation(value = "统计所有用户数量")
-   @GetMapping("counts/users")
-   public ResponseDataStructureEnum countsUserNum() {
-      Integer totalCount = userService.getTotalUserCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
-   @ApiOperation(value = "统计所有举报数量")
-   @GetMapping("counts/report")
-   public ResponseDataStructureEnum countsReportNum() {
-      Integer totalCount = reportService.getTotalReportCount();
-      return ResponseDataStructureEnum.ok(totalCount);
-   }
-
 
    /**
     * 管理端：举报列表
@@ -412,6 +368,47 @@ public class AdminController extends BaseInfoProperties {
       }
       Integer count = reportService.countReportsByTarget(reportType, targetId);
       return ResponseDataStructureEnum.ok(count);
+   }
+
+   /**
+    * 管理端：数据统计
+    * /admin/counts/
+    * @return 数据总数量
+    */
+
+   @ApiOperation(value = "统计所有视频评论总量")
+   @GetMapping("counts/comment")
+   public ResponseDataStructureEnum countsCommentNum() {
+      Integer totalCount = commentService.getTotalCommentCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有视频点赞总量")
+   @GetMapping("counts/likes")
+   public ResponseDataStructureEnum countsLikeNum() {
+      Integer totalCount = vlogService.getTotalLikeCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有视频数量")
+   @GetMapping("counts/vlogs")
+   public ResponseDataStructureEnum countsVlogNum() {
+      Integer totalCount = vlogService.getTotalVlogCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有用户数量")
+   @GetMapping("counts/users")
+   public ResponseDataStructureEnum countsUserNum() {
+      Integer totalCount = userService.getTotalUserCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有举报数量")
+   @GetMapping("counts/report")
+   public ResponseDataStructureEnum countsReportNum() {
+      Integer totalCount = reportService.getTotalReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
    }
 
    /**
