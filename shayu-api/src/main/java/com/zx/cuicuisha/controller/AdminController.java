@@ -2,6 +2,7 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
@@ -14,7 +15,7 @@ import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
-import com.zx.cuicuisha.vo.AdminVO;
+import com.zx.cuicuisha.vo.AdminUsersVO;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.UsersVO;
@@ -293,9 +294,7 @@ public class AdminController extends BaseInfoProperties {
     */
    @ApiOperation(value = "查询消息列表（支持查询所有或按用户ID筛选）")
    @GetMapping("msg/list")
-   public ResponseDataStructureEnum msgList(@RequestParam(required = false) String userId,
-                                              @RequestParam(required = false) Integer page,
-                                              @RequestParam(required = false) Integer pageSize) {
+   public ResponseDataStructureEnum msgList(@RequestParam(required = false) String userId, @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       // 使用管理员专用方法，支持查询所有消息或按用户ID筛选
@@ -311,6 +310,30 @@ public class AdminController extends BaseInfoProperties {
       }
       msgService.deleteMsgForAdmin(msgId);
       return ResponseDataStructureEnum.ok();
+   }
+
+   /**
+    * 管理端：编辑消息
+    * /admin/msg/update
+    * 支持灵活更新消息的各个字段，所有字段都是可选的（除了id）
+    * 
+    * 更新策略：
+    * 1. 只更新传入的非空字段
+    * 2. msgContent支持两种模式：
+    *    - 完全替换（mergeContent=false或未传）：直接替换原有内容
+    *    - 合并更新（mergeContent=true）：将新内容合并到原有内容中
+    * 
+    * @param messageUpdateMO 消息更新对象
+    * @return 更新后的消息对象
+    */
+   @ApiOperation(value = "编辑消息（支持灵活更新，所有字段可选）")
+   @PostMapping("msg/update")
+   public ResponseDataStructureEnum updateMsg(@RequestBody MessageUpdateMO messageUpdateMO) {
+      if (messageUpdateMO == null || StringUtils.isBlank(messageUpdateMO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      com.zx.cuicuisha.mo.MessageMO updatedMessage = msgService.updateMsgForAdmin(messageUpdateMO);
+      return ResponseDataStructureEnum.ok(updatedMessage);
    }
 
    /**
@@ -421,16 +444,16 @@ public class AdminController extends BaseInfoProperties {
    public ResponseDataStructureEnum login(@Valid @RequestBody AdminLoginBO adminLoginBO) {
       AdminUsers admin = adminService.adminLogin(adminLoginBO);
       // 转换为VO对象
-      AdminVO adminVO = new AdminVO();
-      adminVO.setId(admin.getId());
-      adminVO.setUsername(admin.getUsername());
-      adminVO.setEmail(admin.getEmail());
-      adminVO.setRealName(admin.getRealName());
-      adminVO.setAvatar(admin.getAvatar());
+      AdminUsersVO adminUsersVO = new AdminUsersVO();
+      adminUsersVO.setId(admin.getId());
+      adminUsersVO.setUsername(admin.getUsername());
+      adminUsersVO.setEmail(admin.getEmail());
+      adminUsersVO.setRealName(admin.getRealName());
+      adminUsersVO.setAvatar(admin.getAvatar());
       // 从Redis获取token
       String adminToken = redis.get(REDIS_ADMIN_TOKEN + ":" + admin.getId());
-      adminVO.setAdminToken(adminToken);
-      return ResponseDataStructureEnum.ok(adminVO);
+      adminUsersVO.setAdminToken(adminToken);
+      return ResponseDataStructureEnum.ok(adminUsersVO);
    }
 
    /**

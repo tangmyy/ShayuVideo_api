@@ -1,10 +1,9 @@
 package com.zx.cuicuisha.service;
 
-import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.utils.PagedGridResult;
 
-import javax.validation.constraints.Max;
 import java.util.List;
 import java.util.Map;
 
@@ -27,5 +26,8 @@ public interface MsgService {
 
    // Admin - 删除消息（管理员专用，不需要权限校验）
    void deleteMsgForAdmin(String msgId);
+
+   // Admin - 更新消息（管理员专用，支持灵活更新）
+   MessageMO updateMsgForAdmin(MessageUpdateMO messageUpdateMO);
 
 }
