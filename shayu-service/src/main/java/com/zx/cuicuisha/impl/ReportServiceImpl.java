@@ -32,6 +32,7 @@ import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import tk.mybatis.mapper.entity.Example;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -346,12 +347,6 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return reportMapper.selectByPrimaryKey(reportId);
     }
 
-    // 统计指定对象的举报次数
-    @Override
-    public Integer countReportsByTarget(Integer reportType, String targetId) {
-        return reportMapperCustom.countReportsByTarget(reportType, targetId);
-    }
-
     // 重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）
     @Override
     @Transactional
@@ -397,6 +392,31 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         }
         
         return reportMapper.selectByPrimaryKey(reportId);
+    }
+
+    // 统计指定对象的举报次数
+    @Override
+    public Integer countReportsByTarget(Integer reportType, String targetId) {
+        return reportMapperCustom.countReportsByTarget(reportType, targetId);
+    }
+
+    // 统计所有举报的数量
+    @Override
+    public Integer getTotalReportCount() {
+        try {
+            // 使用Example查询，过滤掉已逻辑删除的举报
+            Example example = new Example(Report.class);
+            Example.Criteria criteria = example.createCriteria();
+            // 只统计未逻辑删除的举报（is_deleted = 0）
+            criteria.andEqualTo("isDeleted", 0);
+            int count = reportMapper.selectCountByExample(example);
+            log.info("统计所有举报数量完成，总举报数：{}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("获取所有举报数量时发生错误", e);
+            // 发生异常时返回0，避免影响接口调用
+            return 0;
+        }
     }
 }
 

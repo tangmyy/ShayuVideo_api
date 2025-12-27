@@ -42,14 +42,6 @@ public interface ReportService {
     Report handleReport(String reportId, String handlerId, Integer status, String handleResult, Boolean notifyReporter);
 
     /**
-     * 统计指定对象的举报次数
-     * @param reportType 举报类型：1-视频，2-评论
-     * @param targetId 被举报对象ID
-     * @return 举报次数
-     */
-    Integer countReportsByTarget(Integer reportType, String targetId);
-
-    /**
      * 修改已处理的举报记录（同时更新SQL和MongoDB消息）
      * @param reportId 举报ID
      * @param handlerId 处理人ID（管理员）
@@ -65,5 +57,19 @@ public interface ReportService {
      * @return 重置后的举报记录
      */
     Report resetReport(String reportId);
+
+    /**
+     * 统计指定对象的举报次数
+     * @param reportType 举报类型：1-视频，2-评论
+     * @param targetId 被举报对象ID
+     * @return 举报次数
+     */
+    Integer countReportsByTarget(Integer reportType, String targetId);
+
+    /**
+     * 统计所有举报的数量（不包括已逻辑删除的）
+     * @return 所有举报的数量
+     */
+    Integer getTotalReportCount();
 }
 

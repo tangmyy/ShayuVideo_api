@@ -321,43 +321,41 @@ public class AdminController extends BaseInfoProperties {
     * @return 数据总数量
     */
 
-   @ApiOperation(value = "获取所有视频评论总量")
+   @ApiOperation(value = "统计所有视频评论总量")
    @GetMapping("counts/comment")
    public ResponseDataStructureEnum countsCommentNum() {
       Integer totalCount = commentService.getTotalCommentCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
-   @ApiOperation(value = "获取所有视频点赞总量")
+   @ApiOperation(value = "统计所有视频点赞总量")
    @GetMapping("counts/likes")
    public ResponseDataStructureEnum countsLikeNum() {
       Integer totalCount = vlogService.getTotalLikeCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
-   @ApiOperation(value = "获取所有视频数量")
+   @ApiOperation(value = "统计所有视频数量")
    @GetMapping("counts/vlogs")
    public ResponseDataStructureEnum countsVlogNum() {
       Integer totalCount = vlogService.getTotalVlogCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
-   @ApiOperation(value = "获取所有用户数量")
+   @ApiOperation(value = "统计所有用户数量")
    @GetMapping("counts/users")
    public ResponseDataStructureEnum countsUserNum() {
       Integer totalCount = userService.getTotalUserCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
-   @ApiOperation(value = "统计指定对象的举报次数")
+   @ApiOperation(value = "统计所有举报数量")
    @GetMapping("counts/report")
-   public ResponseDataStructureEnum countReports(@RequestParam Integer reportType, @RequestParam String targetId) {
-      if (reportType == null || StringUtils.isBlank(targetId)) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      Integer count = reportService.countReportsByTarget(reportType, targetId);
-      return ResponseDataStructureEnum.ok(count);
+   public ResponseDataStructureEnum countsReportNum() {
+      Integer totalCount = reportService.getTotalReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
    }
+
 
    /**
     * 管理端：举报列表
@@ -392,7 +390,6 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(report);
    }
 
-
    @ApiOperation(value = "修改已处理的举报记录（同时更新SQL和MongoDB消息）")
    @PutMapping("report/update")
    public ResponseDataStructureEnum updateReport(@RequestParam String reportId, @RequestParam String handlerId, @RequestParam Integer status, @RequestParam(required = false) String handleResult) {
@@ -405,6 +402,16 @@ public class AdminController extends BaseInfoProperties {
    public ResponseDataStructureEnum resetReport(@RequestParam String reportId) {
       Report report = reportService.resetReport(reportId);
       return ResponseDataStructureEnum.ok(report);
+   }
+
+   @ApiOperation(value = "获取指定对象的举报次数")
+   @GetMapping("report/counts")
+   public ResponseDataStructureEnum countReports(@RequestParam Integer reportType, @RequestParam String targetId) {
+      if (reportType == null || StringUtils.isBlank(targetId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Integer count = reportService.countReportsByTarget(reportType, targetId);
+      return ResponseDataStructureEnum.ok(count);
    }
 
    /**
