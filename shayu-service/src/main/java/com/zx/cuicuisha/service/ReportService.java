@@ -48,5 +48,15 @@ public interface ReportService {
      * @return 举报次数
      */
     Integer countReportsByTarget(Integer reportType, String targetId);
+
+    /**
+     * 修改已处理的举报记录（同时更新SQL和MongoDB消息）
+     * @param reportId 举报ID
+     * @param handlerId 处理人ID（管理员）
+     * @param status 处理状态：1-已处理，2-已驳回
+     * @param handleResult 处理结果说明
+     * @return 修改后的举报记录
+     */
+    Report updateReport(String reportId, String handlerId, Integer status, String handleResult);
 }
 

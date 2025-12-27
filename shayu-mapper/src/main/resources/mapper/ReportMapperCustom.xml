@@ -37,7 +37,7 @@
             r.description as description,
             r.status as status,
             r.handler_id as handlerId,
-            handler.nickname as handlerNickname,
+            COALESCE(handler.real_name, handler.username) as handlerNickname,
             r.handle_time as handleTime,
             r.handle_result as handleResult,
             r.create_time as createTime,
@@ -46,7 +46,7 @@
         FROM
             `report` as r
             LEFT JOIN users as reporter ON r.reporter_id = reporter.id
-            LEFT JOIN users as handler ON r.handler_id = handler.id
+            LEFT JOIN admin_users as handler ON r.handler_id = CAST(handler.id AS CHAR)
             LEFT JOIN vlog as v ON r.report_type = 1 AND r.target_id = v.id
             LEFT JOIN users as vloger ON r.report_type = 1 AND v.vloger_id = vloger.id
             LEFT JOIN comment as c ON r.report_type = 2 AND r.target_id = c.id

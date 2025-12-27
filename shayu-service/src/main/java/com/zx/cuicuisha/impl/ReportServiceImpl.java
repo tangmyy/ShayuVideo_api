@@ -13,6 +13,7 @@ import com.zx.cuicuisha.mapper.ReportMapperCustom;
 import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
@@ -68,6 +69,8 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
     private MsgService msgService;
     @Autowired
     private RabbitTemplate rabbitTemplate;
+    @Autowired
+    private MessageRepository messageRepository;
 
     // 举报视频
     @Override
@@ -272,6 +275,73 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 log.error("发送举报处理通知失败：reportId={}", reportId, e);
                 // 通知失败不影响主流程，只记录日志
             }
+        }
+        return reportMapper.selectByPrimaryKey(reportId);
+    }
+
+    // 修改已处理的举报记录（同时更新SQL和MongoDB消息）
+    @Override
+    @Transactional
+    public Report updateReport(String reportId, String handlerId, Integer status, String handleResult) {
+        // 1. 验证举报是否存在
+        Report report = reportMapper.selectByPrimaryKey(reportId);
+        if (report == null) {
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+        }
+        if (report.getIsDeleted() != null && report.getIsDeleted() == 1) {
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+        }
+        // 2. 验证状态值（只能修改已处理的记录，状态必须是1或2）
+        if (status == null || (status != REPORT_STATUS_HANDLED && status != REPORT_STATUS_REJECTED)) {
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+        }
+        // 3. 验证记录是否已被处理过（不能修改待处理的记录）
+        if (report.getStatus() == null || report.getStatus() == REPORT_STATUS_PENDING) {
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+        }
+        // 4. 更新SQL中的举报记录
+        Report updateReport = new Report();
+        updateReport.setId(reportId);
+        updateReport.setStatus(status);
+        updateReport.setHandlerId(handlerId);
+        updateReport.setHandleTime(new Date());
+        updateReport.setHandleResult(handleResult);
+        updateReport.setUpdatedTime(new Date());
+        reportMapper.updateByPrimaryKeySelective(updateReport);
+        // 5. 更新MongoDB中的消息记录
+        try {
+            // 查询所有消息，查找对应的举报处理消息
+            // 注意：如果消息量大，可以考虑使用MongoTemplate进行更高效的查询
+            List<MessageMO> allMessages = messageRepository.findAll();
+            boolean found = false;
+            for (MessageMO message : allMessages) {
+                // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
+                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                    Map<String, Object> msgContent = message.getMsgContent();
+                    if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
+                        // 找到对应的消息，更新处理结果
+                        // 重新构建消息内容
+                        Integer reportType = report.getReportType();
+                        String reportTypeStr = reportType == REPORT_TYPE_VLOG ? "视频" : "评论";
+                        String reportStatusStr = status == REPORT_STATUS_HANDLED ? "已处理" : "已驳回";
+                        String finalHandleResult = StringUtils.isBlank(handleResult) ? "已收到反馈！" : handleResult;
+                        String msg = reportTypeStr + "举报" + reportStatusStr + "\n处理结果：" + finalHandleResult;
+                        // 更新msgContent中的handleResult
+                        msgContent.put("handleResult", msg);
+                        message.setMsgContent(msgContent);
+                        messageRepository.save(message);
+                        log.info("更新MongoDB消息成功：msgId={}, reportId={}", message.getId(), reportId);
+                        found = true;
+                        break; // 找到后退出循环
+                    }
+                }
+            }
+            if (!found) {
+                log.warn("未找到对应的MongoDB消息记录：reportId={}", reportId);
+            }
+        } catch (Exception e) {
+            log.error("更新MongoDB消息失败：reportId={}", reportId, e);
+            // MongoDB更新失败不影响SQL更新，只记录日志
         }
         return reportMapper.selectByPrimaryKey(reportId);
     }

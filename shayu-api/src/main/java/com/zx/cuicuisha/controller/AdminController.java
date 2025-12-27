@@ -349,6 +349,16 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
+   @ApiOperation(value = "统计指定对象的举报次数")
+   @GetMapping("counts/report")
+   public ResponseDataStructureEnum countReports(@RequestParam Integer reportType, @RequestParam String targetId) {
+      if (reportType == null || StringUtils.isBlank(targetId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Integer count = reportService.countReportsByTarget(reportType, targetId);
+      return ResponseDataStructureEnum.ok(count);
+   }
+
    /**
     * 管理端：举报列表
     * /admin/report/list
@@ -362,17 +372,10 @@ public class AdminController extends BaseInfoProperties {
    @ApiOperation(value = "查询举报列表（支持按类型、状态、对象ID筛选）")
    @GetMapping("report/list")
    public ResponseDataStructureEnum reportList(
-         @RequestParam(required = false) Integer reportType,
-         @RequestParam(required = false) Integer status,
-         @RequestParam(required = false) String targetId,
-         @RequestParam(required = false) Integer page,
-         @RequestParam(required = false) Integer pageSize) {
-      if (page == null) {
-         page = COMMON_START_PAGE;
-      }
-      if (pageSize == null) {
-         pageSize = COMMON_PAGE_SIZE;
-      }
+         @RequestParam(required = false) Integer reportType, @RequestParam(required = false) Integer status, @RequestParam(required = false) String targetId,
+         @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
+      if (page == null) { page = COMMON_START_PAGE; }
+      if (pageSize == null) { pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult result = reportService.queryReports(reportType, status, targetId, page, pageSize);
       return ResponseDataStructureEnum.ok(result);
    }
@@ -380,11 +383,8 @@ public class AdminController extends BaseInfoProperties {
    @ApiOperation(value = "处理举报")
    @PostMapping("report/handle")
    public ResponseDataStructureEnum handleReport(
-         @RequestParam String reportId,
-         @RequestParam String handlerId,
-         @RequestParam Integer status,
-         @RequestParam(required = false) String handleResult,
-         @RequestParam(required = false, defaultValue = "false") Boolean notifyReporter) {
+         @RequestParam String reportId, @RequestParam String handlerId, @RequestParam Integer status,
+         @RequestParam(required = false) String handleResult, @RequestParam(required = false, defaultValue = "false") Boolean notifyReporter) {
       if (StringUtils.isBlank(reportId) || StringUtils.isBlank(handlerId) || status == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
@@ -392,16 +392,12 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(report);
    }
 
-   @ApiOperation(value = "统计指定对象的举报次数")
-   @GetMapping("report/count")
-   public ResponseDataStructureEnum countReports(
-         @RequestParam Integer reportType,
-         @RequestParam String targetId) {
-      if (reportType == null || StringUtils.isBlank(targetId)) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      Integer count = reportService.countReportsByTarget(reportType, targetId);
-      return ResponseDataStructureEnum.ok(count);
+
+   @ApiOperation(value = "修改已处理的举报记录（同时更新SQL和MongoDB消息）")
+   @PutMapping("report/update")
+   public ResponseDataStructureEnum updateReport(@RequestParam String reportId, @RequestParam String handlerId, @RequestParam Integer status, @RequestParam(required = false) String handleResult) {
+      Report report = reportService.updateReport(reportId, handlerId, status, handleResult);
+      return ResponseDataStructureEnum.ok(report);
    }
 
    /**
