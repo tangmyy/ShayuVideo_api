@@ -400,6 +400,13 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(report);
    }
 
+   @ApiOperation(value = "重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）")
+   @PutMapping("report/reset")
+   public ResponseDataStructureEnum resetReport(@RequestParam String reportId) {
+      Report report = reportService.resetReport(reportId);
+      return ResponseDataStructureEnum.ok(report);
+   }
+
    /**
     * 管理员登录
     * @param adminLoginBO 登录信息（用户名和密码）

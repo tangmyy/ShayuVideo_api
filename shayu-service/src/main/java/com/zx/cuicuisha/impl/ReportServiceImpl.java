@@ -286,18 +286,18 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         // 1. 验证举报是否存在
         Report report = reportMapper.selectByPrimaryKey(reportId);
         if (report == null) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.REPORT_NOT_EXIST_ERROR);
         }
         if (report.getIsDeleted() != null && report.getIsDeleted() == 1) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.REPORT_DELETED_ERROR);
         }
         // 2. 验证状态值（只能修改已处理的记录，状态必须是1或2）
         if (status == null || (status != REPORT_STATUS_HANDLED && status != REPORT_STATUS_REJECTED)) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.REPORT_STATUS_INVALID_ERROR);
         }
         // 3. 验证记录是否已被处理过（不能修改待处理的记录）
         if (report.getStatus() == null || report.getStatus() == REPORT_STATUS_PENDING) {
-            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            GraceException.display(ResponseStatusEnum.REPORT_NOT_HANDLED_ERROR);
         }
         // 4. 更新SQL中的举报记录
         Report updateReport = new Report();
@@ -350,6 +350,55 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
     @Override
     public Integer countReportsByTarget(Integer reportType, String targetId) {
         return reportMapperCustom.countReportsByTarget(reportType, targetId);
+    }
+
+    // 重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）
+    @Override
+    @Transactional
+    public Report resetReport(String reportId) {
+        // 1. 验证举报是否存在
+        Report report = reportMapper.selectByPrimaryKey(reportId);
+        if (report == null) {
+            GraceException.display(ResponseStatusEnum.REPORT_NOT_EXIST_ERROR);
+        }
+        if (report.getIsDeleted() != null && report.getIsDeleted() == 1) {
+            GraceException.display(ResponseStatusEnum.REPORT_DELETED_ERROR);
+        }
+        // 2. 更新SQL中的举报记录：状态归零，清空处理信息
+        Report updateReport = new Report();
+        updateReport.setId(reportId);
+        updateReport.setStatus(REPORT_STATUS_PENDING);  // 状态归零（待处理）
+        updateReport.setHandlerId(null);                // 清空处理人ID
+        updateReport.setHandleTime(null);                // 清空处理时间
+        updateReport.setHandleResult(null);             // 清空处理结果
+        updateReport.setUpdatedTime(new Date());
+        reportMapper.updateByPrimaryKeySelective(updateReport);
+        // 3. 删除MongoDB中对应的消息文档
+        try {
+            List<MessageMO> allMessages = messageRepository.findAll();
+            boolean found = false;
+            for (MessageMO message : allMessages) {
+                // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
+                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                    Map<String, Object> msgContent = message.getMsgContent();
+                    if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
+                        // 找到对应的消息，删除
+                        messageRepository.deleteById(message.getId());
+                        log.info("删除MongoDB消息成功：msgId={}, reportId={}", message.getId(), reportId);
+                        found = true;
+                        break; // 找到后退出循环
+                    }
+                }
+            }
+            if (!found) {
+                log.warn("未找到对应的MongoDB消息记录：reportId={}", reportId);
+            }
+        } catch (Exception e) {
+            log.error("删除MongoDB消息失败：reportId={}", reportId, e);
+            // MongoDB删除失败不影响SQL更新，只记录日志
+        }
+        
+        return reportMapper.selectByPrimaryKey(reportId);
     }
 }
 

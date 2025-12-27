@@ -43,6 +43,7 @@ public enum ResponseStatusEnum {
     REPORT_SELF_CONTENT_ERROR(521, false, "不能举报自己发布的内容！"),
 
 
+
     // 自定义系统级别异常 54x
     SYSTEM_INDEX_OUT_OF_BOUNDS(541, false, "系统错误，数组越界！"),
     SYSTEM_ARITHMETIC_BY_ZERO(542, false, "系统错误，无法除零！"),
@@ -66,6 +67,10 @@ public enum ResponseStatusEnum {
     ADMIN_FACE_NULL_ERROR(568, false, "人脸信息不能为空！"),
     ADMIN_FACE_LOGIN_ERROR(569, false, "人脸识别失败，请重试！"),
     CATEGORY_EXIST_ERROR(570, false, "文章分类已存在，请换一个分类名！"),
+    REPORT_NOT_EXIST_ERROR(571, false, "举报记录不存在！"),
+    REPORT_DELETED_ERROR(572, false, "举报记录已被删除！"),
+    REPORT_STATUS_INVALID_ERROR(573, false, "举报状态参数错误，状态必须是1（已处理）或2（已驳回）！"),
+    REPORT_NOT_HANDLED_ERROR(574, false, "只能修改已处理的举报记录，当前记录尚未处理！"),
 
     // 媒体中心 相关错误 58x
     ARTICLE_COVER_NOT_EXIST_ERROR(580, false, "文章封面不存在，请选择一个！"),

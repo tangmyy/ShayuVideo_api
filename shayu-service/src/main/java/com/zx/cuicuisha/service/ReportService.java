@@ -58,5 +58,12 @@ public interface ReportService {
      * @return 修改后的举报记录
      */
     Report updateReport(String reportId, String handlerId, Integer status, String handleResult);
+
+    /**
+     * 重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）
+     * @param reportId 举报ID
+     * @return 重置后的举报记录
+     */
+    Report resetReport(String reportId);
 }
 
