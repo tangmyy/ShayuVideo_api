@@ -20,6 +20,7 @@ public class BaseInfoProperties {
    public static final String MOBILE_SMSCODE = "mobile:smscode";
    public static final String REDIS_USER_TOKEN = "redis_user_token";
    public static final String REDIS_USER_INFO = "redis_user_info";
+   public static final String REDIS_ADMIN_TOKEN = "redis_admin_token";
 
    // 我的关注总数
    public static final String REDIS_MY_FOLLOWS_COUNTS = "redis_my_follows_counts";
@@ -42,6 +43,9 @@ public class BaseInfoProperties {
    public static final String REDIS_VLOG_COMMENT_LIKED_COUNTS = "redis_vlog_comment_liked_counts";
    // 用户点赞评论
    public static final String REDIS_USER_LIKE_COMMENT = "redis_user_like_comment";
+
+   // 视频推荐流排序配置（0-创建时间，1-点赞数，2-评论数）
+   public static final String REDIS_VLOG_INDEX_SORT_TYPE = "redis_vlog_index_sort_type";
 
    public PagedGridResult setterPagedGrid(List<?> list, Integer page) {
       PageInfo<?> pageList = new PageInfo<>(list);

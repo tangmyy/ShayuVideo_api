@@ -19,6 +19,7 @@ import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 
+// @RefreshScope  启用了外部配置中心，并且希望修改配置后能实时生效时使用
 @Slf4j
 @Api(tags = "VlogController 短视频相关业务功能的接口")
 @RequestMapping("vlog")
@@ -33,9 +34,27 @@ public class VlogController extends BaseInfoProperties {
 
    @PostMapping("publish")
    public ResponseDataStructureEnum publish(@RequestBody VlogBO vlogBO) {
+      System.out.println("接收到的tag: " + vlogBO.getTag());
       vlogService.createVlog(vlogBO);
       return ResponseDataStructureEnum.ok();
    }
+
+   /**
+    * 用户更新自己的视频信息（只能更新标题、标签、封面）
+    * @param headerUserId 从请求头获取的用户ID
+    * @param vlogBO 视频信息，必须包含id、title、tag、cover字段
+    * @return
+    */
+   @PutMapping("update")
+   public ResponseDataStructureEnum update(@RequestHeader(value = "headerUserId", required = false) String headerUserId, @RequestBody VlogBO vlogBO) {
+      if (StringUtils.isBlank(headerUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.UN_LOGIN);
+      }
+      System.out.println("更新视频，接收到的tag: " + vlogBO.getTag());
+      vlogService.updateMyVlog(headerUserId, vlogBO);
+      return ResponseDataStructureEnum.ok();
+   }
+
    /**
     * 推荐视频流
     * @return
@@ -139,6 +158,10 @@ public class VlogController extends BaseInfoProperties {
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
+      // 检查用户是否被封禁
+      if (user.getStatus() != null && user.getStatus() == 1) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
+      }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
       if (vloger == null) {
@@ -178,6 +201,10 @@ public class VlogController extends BaseInfoProperties {
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
+      // 检查用户是否被封禁
+      if (user.getStatus() != null && user.getStatus() == 1) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
+      }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
       if (vloger == null) {
@@ -198,4 +225,5 @@ public class VlogController extends BaseInfoProperties {
    public ResponseDataStructureEnum totalLikedCounts(@RequestParam String vlogId) {
       return ResponseDataStructureEnum.ok(vlogService.getVlogBeLikedCounts(vlogId));
    }
+
 }

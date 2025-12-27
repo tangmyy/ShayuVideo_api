@@ -20,4 +20,7 @@ public interface VlogMapperCustom {
    public List<IndexVlogVO> getMyFollowVlogList(@Param("paramMap")Map<String, Object> map);
 
    public List<IndexVlogVO> getMyFriendVlogList(@Param("paramMap")Map<String, Object> map);
+
+   // Admin - 查询视频列表（管理端使用，不过滤is_deleted）
+   public List<IndexVlogVO> getIndexVlogListForAdmin(@Param("paramMap")Map<String, Object> map);
 }

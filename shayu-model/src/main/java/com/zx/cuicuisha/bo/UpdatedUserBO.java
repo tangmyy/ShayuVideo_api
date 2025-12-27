@@ -25,4 +25,6 @@ public class UpdatedUserBO {
    private String description;
    private String bgImg;
    private Integer canVideoNumBeUpdated;
+   private Integer status;              // 用户状态 0-正常状态，1-封禁状态
+   private Integer isDeleted;           // 逻辑删除 0-正常，1-逻辑删除
 }

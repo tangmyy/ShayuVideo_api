@@ -17,9 +17,11 @@ public class RabbitMQConfig {
     * 5. 队列和交换机的绑定
     */
 
+   // 1. 定义交换机名称
    public static final String EXCHANGE_MSG = "exchange_msg";
+   // 2. 定义队列名称
    public static final String QUEUE_SYS_MSG = "queue_sys_msg";
-
+   // 3. 创建Topic类型的交换机（支持路由匹配）
    @Bean(EXCHANGE_MSG)
    public Exchange exchange() {
        return ExchangeBuilder                // 构建交换机
@@ -27,12 +29,12 @@ public class RabbitMQConfig {
          .durable(true)            // 设置持久化，重启mq后依然存在
          .build();
    }
-
+   // 4. 创建消息队列
    @Bean(QUEUE_SYS_MSG)
    public Queue queue() {
-       return new Queue(QUEUE_SYS_MSG);
+      return new Queue(QUEUE_SYS_MSG);
    }
-
+   // 5. 绑定队列到交换机，设置路由规则
    @Bean
    public Binding binding(@Qualifier(EXCHANGE_MSG) Exchange exchange, @Qualifier(QUEUE_SYS_MSG) Queue queue) {
        return BindingBuilder

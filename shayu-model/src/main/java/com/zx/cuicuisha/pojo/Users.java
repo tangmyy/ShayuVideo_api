@@ -1,9 +1,15 @@
 package com.zx.cuicuisha.pojo;
 
-import lombok.*;
+
+
 import javax.persistence.Column;
 import javax.persistence.Id;
 import java.util.Date;
+
+import lombok.Data;
+import lombok.ToString;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @AllArgsConstructor
@@ -42,9 +48,14 @@ public class Users {
    @Column(name = "can_video_num_be_updated")
    private Integer canVideoNumBeUpdated;
 
+   private Integer status;
+
    @Column(name = "created_time")
    private Date createdTime;
 
    @Column(name = "updated_time")
    private Date updatedTime;
+
+   @Column(name = "is_deleted")
+   private Integer isDeleted;
 }

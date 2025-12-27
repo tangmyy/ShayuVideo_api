@@ -1,6 +1,5 @@
 server:
 # 修改  profiles: active: dev 以调整对应环境端口号
-#  port: 8088
   tomcat:
     uri-encoding: UTF-8
     max-swallow-size: -1 #tomcat 默认大小2M, 超过2M的文件不会被捕获, 需要调整此处大小为100MB 或者-1即可

@@ -67,7 +67,7 @@ public class PassportController extends BaseInfoProperties {
    //    return ResponseDataStructureEnum.errorMap(map);
    // }
    @PostMapping("login")
-   public Object login(@Valid @RequestBody RedisLoginBO redisLoginBO, HttpServletRequest request) throws Exception {
+   public Object login(@Valid @RequestBody RedisLoginBO redisLoginBO) throws Exception {
 
       String mobile = redisLoginBO.getMobile();
       String code = redisLoginBO.getSmsCode();
@@ -81,7 +81,8 @@ public class PassportController extends BaseInfoProperties {
       if (user == null) {
          // 2.1 如果用户不存在, 则注册一个新用户
          user = userService.createUser(mobile);
-      } // TODO: 如果需要涉及到账号封禁 可以在 else 处理
+      }
+      // TODO: 如果需要涉及到账号封禁 可以在 else 处理
       // 3. 如果不为空, 保存用户信息和会话信息到Redis中 (分布式会话)
       String uToken = UUID.randomUUID().toString();
       redis.set(REDIS_USER_TOKEN + ":" + user.getId(), uToken);
@@ -96,7 +97,7 @@ public class PassportController extends BaseInfoProperties {
    }
 
    @PostMapping("logout")
-   public Object logout(@RequestParam String userId, HttpServletRequest request) throws Exception {
+   public Object logout(@RequestParam String userId) throws Exception {
       // 清除用户会话信息即可, 前端也需要清除本地app中的用户信息和token信息
       redis.delete(REDIS_USER_TOKEN + ":" + userId);
       return ResponseDataStructureEnum.ok();

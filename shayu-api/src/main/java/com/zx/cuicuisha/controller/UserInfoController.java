@@ -11,6 +11,7 @@ import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.MinIOUtils;
+import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
@@ -99,6 +100,5 @@ public class UserInfoController extends BaseInfoProperties {
       Users users = userService.updateUserInfo(updatedUserBO);
       return ResponseDataStructureEnum.ok(users);
    }
-
 
 }

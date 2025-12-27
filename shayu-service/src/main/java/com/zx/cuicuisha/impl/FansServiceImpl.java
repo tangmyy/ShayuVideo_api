@@ -5,14 +5,19 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
+import com.zx.cuicuisha.exceptions.GraceException;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.FansMapper;
 import com.zx.cuicuisha.mapper.FansMapperCustom;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
+import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.FansAdminVO;
 import com.zx.cuicuisha.vo.FansVO;
 import com.zx.cuicuisha.vo.VlogerVO;
 import lombok.extern.slf4j.Slf4j;
@@ -37,9 +42,9 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Autowired
    private FansMapperCustom fansMapperCustom;
    @Autowired
-   private Sid sid;
+   private UsersMapper usersMapper;
    @Autowired
-   private MsgService msgService;
+   private Sid sid;
    @Autowired
    public RabbitTemplate rabbitTemplate;
 
@@ -83,6 +88,22 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Transactional
    @Override
    public void doFollow(String myId, String vlogerId) {
+      // 检查关注者是否被封禁
+      Users fanUser = usersMapper.selectByPrimaryKey(myId);
+      if (fanUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      if (fanUser.getStatus() != null && fanUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
+      // 检查被关注者是否被封禁（被封禁的用户不能被关注）
+      Users vlogerUser = usersMapper.selectByPrimaryKey(vlogerId);
+      if (vlogerUser == null) {
+         GraceException.display(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
+      }
+      if (vlogerUser.getStatus() != null && vlogerUser.getStatus() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      }
       String fanId = sid.nextShort();
       Fans fans = new Fans();
       fans.setId(fanId);
@@ -186,6 +207,24 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
             fanslist.setFriend(true);
          }
       }
+      return setterPagedGrid(list, page);
+   }
+
+   /**
+    * 查询所有粉丝关系（管理端使用）
+    * @param myId 用户ID，如果为空则查询所有粉丝关系，否则查询指定用户的粉丝
+    * @param page 页码
+    * @param pageSize 每页数量
+    * @return 分页结果
+    */
+   @Override
+   public PagedGridResult queryAllFansRelations(String myId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      if (StringUtils.isNotBlank(myId)) {
+         map.put("myId", myId);
+      }
+      PageHelper.startPage(page, pageSize);
+      List<FansAdminVO> list = fansMapperCustom.queryAllFansRelations(map);
       return setterPagedGrid(list, page);
    }
 }
