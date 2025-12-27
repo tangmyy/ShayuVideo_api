@@ -35,5 +35,12 @@ public interface ReportMapperCustom {
     public String checkReportExists(@Param("reporterId") String reporterId, 
                                     @Param("reportType") Integer reportType, 
                                     @Param("targetId") String targetId);
+
+    /**
+     * 重置举报记录的处理信息（将状态归零，清空处理信息）
+     * @param reportId 举报ID
+     * @return 更新的记录数
+     */
+    public int resetReportStatus(@Param("reportId") String reportId);
 }
 

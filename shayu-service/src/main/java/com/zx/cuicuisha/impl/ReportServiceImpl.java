@@ -365,14 +365,12 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             GraceException.display(ResponseStatusEnum.REPORT_DELETED_ERROR);
         }
         // 2. 更新SQL中的举报记录：状态归零，清空处理信息
-        Report updateReport = new Report();
-        updateReport.setId(reportId);
-        updateReport.setStatus(REPORT_STATUS_PENDING);  // 状态归零（待处理）
-        updateReport.setHandlerId(null);                // 清空处理人ID
-        updateReport.setHandleTime(null);                // 清空处理时间
-        updateReport.setHandleResult(null);             // 清空处理结果
-        updateReport.setUpdatedTime(new Date());
-        reportMapper.updateByPrimaryKeySelective(updateReport);
+        // 使用自定义方法显式设置字段为NULL（updateByPrimaryKeySelective会忽略null值）
+        int updateCount = reportMapperCustom.resetReportStatus(reportId);
+        if (updateCount != 1) {
+            log.error("重置举报记录失败：reportId={}, updateCount={}", reportId, updateCount);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+        }
         // 3. 删除MongoDB中对应的消息文档
         try {
             List<MessageMO> allMessages = messageRepository.findAll();

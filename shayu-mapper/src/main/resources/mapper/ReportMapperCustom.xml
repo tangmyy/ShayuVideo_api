@@ -88,5 +88,15 @@
         LIMIT 1
     </select>
 
+    <update id="resetReportStatus" parameterType="java.lang.String">
+        UPDATE `report`
+        SET status = 0,
+            handler_id = NULL,
+            handle_time = NULL,
+            handle_result = NULL,
+            updated_time = NOW()
+        WHERE id = #{reportId}
+    </update>
+
 </mapper>
 
