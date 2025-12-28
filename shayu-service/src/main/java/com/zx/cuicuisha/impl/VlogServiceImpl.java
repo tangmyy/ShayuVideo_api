@@ -248,6 +248,9 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    public IndexVlogVO getVlogDetailById(String userId, String vlogId) {
       Map<String, Object> map = new HashMap<>();
       map.put("vlogId", vlogId);
+      if (StringUtils.isNotBlank(userId)) {
+         map.put("userId", userId);
+      }
       List<IndexVlogVO> list = vlogMapperCustom.getVlogDetailById(map);
       if (list != null && !list.isEmpty()){
          IndexVlogVO vlogVO = list.get(0);
@@ -271,13 +274,14 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    @Override
    public PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo) {
-      Example example = new Example(Vlog.class);
-      Example.Criteria criteria = example.createCriteria();
-      criteria.andEqualTo("vlogerId", userId);
-      criteria.andEqualTo("isPrivate", yesOrNo);
-      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的视频
       PageHelper.startPage(page, pageSize);
-      List<Vlog> list = vlogMapper.selectByExample(example);
+      Map<String, Object> map = new HashMap<>();
+      map.put("vlogerId", userId);
+      map.put("isPrivate", yesOrNo);
+      List<IndexVlogVO> list = vlogMapperCustom.queryMyVlogList(map);
+      for (IndexVlogVO vlogVO : list) {
+         setterVO(vlogVO, userId);
+      }
       return setterPagedGrid(list, page);
    }
 

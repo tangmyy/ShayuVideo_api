@@ -24,10 +24,23 @@
     users u
     ON
     v.vloger_id = u.id
+    LEFT JOIN
+    (
+      SELECT va1.vlog_id, va1.audit_status
+      FROM vlog_audit va1
+      INNER JOIN (
+        SELECT vlog_id, MAX(id) as max_id
+        FROM vlog_audit
+        GROUP BY vlog_id
+      ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+    ) latest_audit
+    ON v.id = latest_audit.vlog_id
     WHERE
     v.is_private = 0
     AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
     AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+    AND latest_audit.vlog_id IS NOT NULL
+    AND latest_audit.audit_status = 1
     <if test="paramMap.search != null and paramMap.search != ''">
       AND v.title like '%${paramMap.search}%'
     </if>
@@ -66,10 +79,27 @@
       users u
       ON
         v.vloger_id = u.id
+        LEFT JOIN
+      (
+        SELECT va1.vlog_id, va1.audit_status
+        FROM vlog_audit va1
+        INNER JOIN (
+          SELECT vlog_id, MAX(id) as max_id
+          FROM vlog_audit
+          GROUP BY vlog_id
+        ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+      ) latest_audit
+      ON v.id = latest_audit.vlog_id
     WHERE
       v.id = #{paramMap.vlogId}
       AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+      AND (
+        latest_audit.audit_status = 1
+        <if test="paramMap.userId != null and paramMap.userId != ''">
+          OR v.vloger_id = #{paramMap.userId}
+        </if>
+      )
   </select>
 
   <select id="getMyLikedVlogList" parameterType="map" resultType="com.zx.cuicuisha.vo.IndexVlogVO">
@@ -99,12 +129,25 @@
       users vloger
       ON
         v.vloger_id = vloger.id
+        LEFT JOIN
+      (
+        SELECT va1.vlog_id, va1.audit_status
+        FROM vlog_audit va1
+        INNER JOIN (
+          SELECT vlog_id, MAX(id) as max_id
+          FROM vlog_audit
+          GROUP BY vlog_id
+        ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+      ) latest_audit
+      ON v.id = latest_audit.vlog_id
     WHERE
       u.id = #{paramMap.userId}
       AND
       v.is_private = 0
       AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (vloger.is_deleted = 0 OR vloger.is_deleted IS NULL)
+      AND latest_audit.vlog_id IS NOT NULL
+      AND latest_audit.audit_status = 1
     ORDER BY
       v.created_time
             DESC
@@ -135,12 +178,25 @@
       users u
       ON
         f.vloger_id = u.id
+        LEFT JOIN
+      (
+        SELECT va1.vlog_id, va1.audit_status
+        FROM vlog_audit va1
+        INNER JOIN (
+          SELECT vlog_id, MAX(id) as max_id
+          FROM vlog_audit
+          GROUP BY vlog_id
+        ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+      ) latest_audit
+      ON v.id = latest_audit.vlog_id
     WHERE
       v.is_private = 0
       AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
       AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
       AND
       f.fan_id = #{paramMap.myId}
+      AND latest_audit.vlog_id IS NOT NULL
+      AND latest_audit.audit_status = 1
     ORDER BY
       v.created_time
             DESC
@@ -171,6 +227,17 @@
       users u
       ON
         f.fan_id = u.id
+        LEFT JOIN
+      (
+        SELECT va1.vlog_id, va1.audit_status
+        FROM vlog_audit va1
+        INNER JOIN (
+          SELECT vlog_id, MAX(id) as max_id
+          FROM vlog_audit
+          GROUP BY vlog_id
+        ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+      ) latest_audit
+      ON v.id = latest_audit.vlog_id
     WHERE
       v.is_private = 0
       AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
@@ -179,9 +246,60 @@
       f.vloger_id = #{paramMap.myId}
       AND
       f.is_fan_friend_of_mine = 1
+      AND latest_audit.vlog_id IS NOT NULL
+      AND latest_audit.audit_status = 1
     ORDER BY
       v.created_time
             DESC
+  </select>
+
+  <!-- 查询用户的视频列表（公开/私密） -->
+  <select id="queryMyVlogList" parameterType="map" resultType="com.zx.cuicuisha.vo.IndexVlogVO">
+    SELECT
+      v.id as vlogId,
+      v.vloger_id as vlogerId,
+      u.face as vlogerFace,
+      u.nickname as vlogerName,
+      v.title as content,
+      v.tag as tag,
+      v.url as url,
+      v.cover as cover,
+      v.width as width,
+      v.height as height,
+      v.like_counts as likeCounts,
+      v.comments_counts as commentsCounts,
+      v.is_private as isPrivate,
+      v.is_deleted as isDeleted
+    FROM
+      vlog v
+        LEFT JOIN
+      users u
+      ON
+        v.vloger_id = u.id
+        LEFT JOIN
+      (
+        SELECT va1.vlog_id, va1.audit_status
+        FROM vlog_audit va1
+        INNER JOIN (
+          SELECT vlog_id, MAX(id) as max_id
+          FROM vlog_audit
+          GROUP BY vlog_id
+        ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+      ) latest_audit
+      ON v.id = latest_audit.vlog_id
+    WHERE
+      v.vloger_id = #{paramMap.vlogerId}
+      AND v.is_private = #{paramMap.isPrivate}
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+      <if test="paramMap.isPrivate == 0">
+      <!-- 公开视频：只显示审核通过的视频 -->
+        AND latest_audit.vlog_id IS NOT NULL
+        AND latest_audit.audit_status = 1
+      </if>
+      <!-- 私密视频：不过滤审核状态，显示所有私密视频 -->
+    ORDER BY
+      v.created_time DESC
   </select>
 
   <!-- Admin - 查询视频列表（管理端使用，不过滤is_deleted，可以查询所有视频） -->

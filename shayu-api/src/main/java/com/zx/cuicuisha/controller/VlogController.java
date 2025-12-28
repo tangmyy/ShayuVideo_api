@@ -74,7 +74,9 @@ public class VlogController extends BaseInfoProperties {
     * @return
     */
    @GetMapping("followList")
-   public ResponseDataStructureEnum followList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+   public ResponseDataStructureEnum followList(@RequestParam String myId,
+                                               @RequestParam Integer page,
+                                               @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult gridResult = vlogService.getMyFollowVlogList(myId, page, pageSize);
@@ -85,13 +87,16 @@ public class VlogController extends BaseInfoProperties {
     * @return
     */
    @GetMapping("friendList")
-   public ResponseDataStructureEnum friendList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+   public ResponseDataStructureEnum friendList(@RequestParam String myId,
+                                               @RequestParam Integer page,
+                                               @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult gridResult = vlogService.getMyFriendVlogList(myId, page, pageSize);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
 
+   // 视频详情页面
    @GetMapping("detail")
    public ResponseDataStructureEnum detail(@RequestParam(defaultValue = "") String userId, @RequestParam String vlogId){
       return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(userId, vlogId));
