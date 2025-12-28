@@ -4,6 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
+import com.zx.cuicuisha.bo.CommentUpdateBO;
 import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
@@ -270,6 +271,42 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
          // 发生异常时返回0，避免影响接口调用
          return 0;
       }
+   }
+
+   /**
+    * 管理员更新评论内容
+    * @param commentUpdateBO 评论更新对象，包含评论ID和新的评论内容
+    * @return 更新后的评论对象
+    */
+   @Transactional
+   @Override
+   public Comment updateCommentForAdmin(CommentUpdateBO commentUpdateBO) {
+      // 参数校验
+      if (commentUpdateBO == null || StringUtils.isBlank(commentUpdateBO.getId())) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(commentUpdateBO.getContent())) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 查询原评论
+      Comment existComment = commentMapper.selectByPrimaryKey(commentUpdateBO.getId());
+      if (existComment == null) {
+         log.warn("评论不存在：commentId={}", commentUpdateBO.getId());
+         GraceException.display(ResponseStatusEnum.COMMENT_NOT_EXIST_ERROR);
+      }
+      // 更新评论内容
+      Comment updateComment = new Comment();
+      updateComment.setId(commentUpdateBO.getId());
+      updateComment.setContent(commentUpdateBO.getContent());
+      int result = commentMapper.updateByPrimaryKeySelective(updateComment);
+      if (result != 1) {
+         log.error("更新评论失败：commentId={}", commentUpdateBO.getId());
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 返回更新后的评论信息
+      Comment updatedComment = commentMapper.selectByPrimaryKey(commentUpdateBO.getId());
+      log.info("管理员更新评论成功：commentId={}, newContent={}", commentUpdateBO.getId(), commentUpdateBO.getContent());
+      return updatedComment;
    }
 
 }

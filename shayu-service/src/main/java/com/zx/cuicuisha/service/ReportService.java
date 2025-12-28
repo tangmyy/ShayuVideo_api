@@ -71,5 +71,17 @@ public interface ReportService {
      * @return 所有举报的数量
      */
     Integer getTotalReportCount();
+
+    /**
+     * 统计所有视频举报的数量（不包括已逻辑删除的）
+     * @return 视频举报的数量
+     */
+    Integer getTotalVlogReportCount();
+
+    /**
+     * 统计所有评论举报的数量（不包括已逻辑删除的）
+     * @return 评论举报的数量
+     */
+    Integer getTotalCommentReportCount();
 }
 

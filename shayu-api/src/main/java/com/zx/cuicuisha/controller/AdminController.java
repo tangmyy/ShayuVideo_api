@@ -2,6 +2,8 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.bo.CommentUpdateBO;
+import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.bo.VlogBO;
@@ -12,6 +14,7 @@ import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.bo.AdminLoginBO;
 import com.zx.cuicuisha.pojo.AdminUsers;
+import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
@@ -182,7 +185,7 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(list);
    }
 
-   @ApiOperation(value = "修改视频信息")
+   @ApiOperation(value = "编辑视频信息")
    @PostMapping("vlog/updateInfo")
    public ResponseDataStructureEnum updateVlogInfo(@RequestBody VlogBO vlogBO) {
       if (vlogBO == null || StringUtils.isBlank(vlogBO.getId())) {
@@ -264,6 +267,19 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(comment);
    }
 
+   @ApiOperation(value = "编辑评论（管理员专用，可修改评论内容）")
+   @PostMapping("comment/update")
+   public ResponseDataStructureEnum updateComment(@RequestBody CommentUpdateBO commentUpdateBO) {
+      if (commentUpdateBO == null || StringUtils.isBlank(commentUpdateBO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(commentUpdateBO.getContent())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Comment updatedComment = commentService.updateCommentForAdmin(commentUpdateBO);
+      return ResponseDataStructureEnum.ok(updatedComment);
+   }
+
    /**
     * 管理端：粉丝列表
     * /admin/fans/list
@@ -316,13 +332,11 @@ public class AdminController extends BaseInfoProperties {
     * 管理端：编辑消息
     * /admin/msg/update
     * 支持灵活更新消息的各个字段，所有字段都是可选的（除了id）
-    * 
     * 更新策略：
     * 1. 只更新传入的非空字段
     * 2. msgContent支持两种模式：
     *    - 完全替换（mergeContent=false或未传）：直接替换原有内容
     *    - 合并更新（mergeContent=true）：将新内容合并到原有内容中
-    * 
     * @param messageUpdateMO 消息更新对象
     * @return 更新后的消息对象
     */
@@ -332,7 +346,7 @@ public class AdminController extends BaseInfoProperties {
       if (messageUpdateMO == null || StringUtils.isBlank(messageUpdateMO.getId())) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      com.zx.cuicuisha.mo.MessageMO updatedMessage = msgService.updateMsgForAdmin(messageUpdateMO);
+      MessageMO updatedMessage = msgService.updateMsgForAdmin(messageUpdateMO);
       return ResponseDataStructureEnum.ok(updatedMessage);
    }
 
@@ -431,6 +445,20 @@ public class AdminController extends BaseInfoProperties {
    @GetMapping("counts/report")
    public ResponseDataStructureEnum countsReportNum() {
       Integer totalCount = reportService.getTotalReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有视频举报数量")
+   @GetMapping("counts/report/vlog")
+   public ResponseDataStructureEnum countsVlogReportNum() {
+      Integer totalCount = reportService.getTotalVlogReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有评论举报数量")
+   @GetMapping("counts/report/comment")
+   public ResponseDataStructureEnum countsCommentReportNum() {
+      Integer totalCount = reportService.getTotalCommentReportCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 

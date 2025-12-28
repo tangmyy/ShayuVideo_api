@@ -418,5 +418,43 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             return 0;
         }
     }
+
+    // 统计所有视频举报的数量
+    @Override
+    public Integer getTotalVlogReportCount() {
+        try {
+            // 使用Example查询，过滤掉已逻辑删除的举报，且只统计视频举报
+            Example example = new Example(Report.class);
+            Example.Criteria criteria = example.createCriteria();
+            criteria.andEqualTo("isDeleted", 0);
+            criteria.andEqualTo("reportType", REPORT_TYPE_VLOG);
+            int count = reportMapper.selectCountByExample(example);
+            log.info("统计所有视频举报数量完成，视频举报数：{}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("获取所有视频举报数量时发生错误", e);
+            // 发生异常时返回0，避免影响接口调用
+            return 0;
+        }
+    }
+
+    // 统计所有评论举报的数量
+    @Override
+    public Integer getTotalCommentReportCount() {
+        try {
+            // 使用Example查询，过滤掉已逻辑删除的举报，且只统计评论举报
+            Example example = new Example(Report.class);
+            Example.Criteria criteria = example.createCriteria();
+            criteria.andEqualTo("isDeleted", 0);
+            criteria.andEqualTo("reportType", REPORT_TYPE_COMMENT);
+            int count = reportMapper.selectCountByExample(example);
+            log.info("统计所有评论举报数量完成，评论举报数：{}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("获取所有评论举报数量时发生错误", e);
+            // 发生异常时返回0，避免影响接口调用
+            return 0;
+        }
+    }
 }
 
