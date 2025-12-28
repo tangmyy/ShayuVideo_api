@@ -272,6 +272,36 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlogMapper.updateByExampleSelective(pendingVlog, example);
    }
 
+   @Transactional
+   @Override
+   public void deleteMyVlog(String userId, String vlogId) {
+      if (StringUtils.isBlank(vlogId)) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(userId)) {
+         GraceException.display(ResponseStatusEnum.UN_LOGIN);
+      }
+      // 检查视频是否存在
+      Vlog existVlog = vlogMapper.selectByPrimaryKey(vlogId);
+      if (existVlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 检查视频是否已被逻辑删除
+      if (existVlog.getIsDeleted() != null && existVlog.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 验证用户是否是视频的所有者
+      if (!userId.equals(existVlog.getVlogerId())) {
+         GraceException.display(ResponseStatusEnum.NO_AUTH);
+      }
+      // 逻辑删除视频
+      Vlog vlog = new Vlog();
+      vlog.setId(vlogId);
+      vlog.setIsDeleted(1);
+      vlog.setUpdatedTime(new Date());
+      vlogMapper.updateByPrimaryKeySelective(vlog);
+   }
+
    @Override
    public PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo) {
       PageHelper.startPage(page, pageSize);

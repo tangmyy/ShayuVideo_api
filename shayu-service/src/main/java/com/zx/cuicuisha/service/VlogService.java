@@ -22,6 +22,9 @@ public interface VlogService {
    // 用户把视频改为公开/私密的视频
    void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo);
 
+   // 用户删除自己的视频（逻辑删除）
+   void deleteMyVlog(String userId, String vlogId);
+
    // 查询用的公开/私密的视频列表
    PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo);
 
@@ -36,7 +39,7 @@ public interface VlogService {
    // 更新取消点赞视频时相关的缓存
    void updateUnLikeVlog(String userId, String vlogerId, String vlogId);
 
-   // 获得用户点赞视频的总数
+   // 获取该视频获赞总数
    Integer getVlogBeLikedCounts(String vlogId);
 
    // 查询用户点赞过的短视频

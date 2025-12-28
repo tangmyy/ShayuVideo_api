@@ -11,6 +11,7 @@ import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ public class VlogController extends BaseInfoProperties {
    @Autowired
    private VlogService vlogService;
 
+   @ApiOperation(value = "用户上传视频")
    @PostMapping("publish")
    public ResponseDataStructureEnum publish(@RequestBody VlogBO vlogBO) {
       System.out.println("接收到的tag: " + vlogBO.getTag());
@@ -152,6 +154,7 @@ public class VlogController extends BaseInfoProperties {
    @Value("${nacos.counts}")
    private Integer nacosCounts;
 
+   @ApiOperation(value = "用户点赞视频")
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
       // 判断三个id不能为空
@@ -195,6 +198,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   @ApiOperation(value = "用户取消点赞视频")
    @PostMapping("unlike")
    public ResponseDataStructureEnum unlike(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
       // 判断三个id不能为空
@@ -226,9 +230,24 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   @ApiOperation(value = "获取该视频获赞总数")
    @PostMapping("totalLikedCounts")
    public ResponseDataStructureEnum totalLikedCounts(@RequestParam String vlogId) {
       return ResponseDataStructureEnum.ok(vlogService.getVlogBeLikedCounts(vlogId));
+   }
+
+   @ApiOperation(value = "删除视频")
+   @PostMapping("delete")
+   public ResponseDataStructureEnum delete(@RequestHeader(value = "headerUserId", required = false) String headerUserId,
+                                           @RequestParam String vlogId) {
+      if (StringUtils.isBlank(headerUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.UN_LOGIN);
+      }
+      if (StringUtils.isBlank(vlogId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      vlogService.deleteMyVlog(headerUserId, vlogId);
+      return ResponseDataStructureEnum.ok();
    }
 
 }
