@@ -318,13 +318,25 @@
     v.like_counts as likeCounts,
     v.comments_counts as commentsCounts,
     v.is_private as isPrivate,
-    v.is_deleted as isDeleted
+    v.is_deleted as isDeleted,
+    latest_audit.audit_status as auditStatus
     FROM
     vlog v
     LEFT JOIN
     users u
     ON
     v.vloger_id = u.id
+    LEFT JOIN
+    (
+      SELECT va1.vlog_id, va1.audit_status
+      FROM vlog_audit va1
+      INNER JOIN (
+        SELECT vlog_id, MAX(id) as max_id
+        FROM vlog_audit
+        GROUP BY vlog_id
+      ) va2 ON va1.vlog_id = va2.vlog_id AND va1.id = va2.max_id
+    ) latest_audit
+    ON v.id = latest_audit.vlog_id
     WHERE
     1=1
     <!-- 管理端不过滤 is_deleted，可以查询所有视频（包括已逻辑删除的） -->

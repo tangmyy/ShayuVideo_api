@@ -25,6 +25,7 @@ public class IndexVlogVO {
    private Integer commentsCounts;
    private Integer isPrivate;
    private Integer isDeleted; // 逻辑删除 0-正常，1-逻辑删除
+   private Integer auditStatus; // 审核状态 0-待审核 1-通过 2-拒绝（管理端使用）
    private boolean isPlay = false;
    private boolean doIFollowVloger = false;
    private boolean doILikeThisVlog = false;

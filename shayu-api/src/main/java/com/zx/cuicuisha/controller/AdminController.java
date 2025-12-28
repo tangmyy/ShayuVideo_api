@@ -205,20 +205,35 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(vlog);
    }
 
-   @ApiOperation(value = "设置推荐视频流排序规则（0-创建时间，1-点赞数，2-评论数）")
-   @PostMapping("vlog/setSortType")
-   public ResponseDataStructureEnum setVlogSortType(@RequestParam Integer sortType) {
-      if (sortType == null) {
+   /**
+    * 审核接口-封禁/解封视频
+    * @param vlogId 视频ID
+    * @param auditStatus 审核状态 0-待审核 1-通过 2-拒绝（封禁）
+    * @param adminId 管理员ID
+    * @param auditRemark 审核备注（可选）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "审核视频（封禁/解封视频）")
+   @PostMapping("vlog/audit")
+   public ResponseDataStructureEnum auditVlog(@RequestParam String vlogId,
+                                               @RequestParam Integer auditStatus,
+                                               @RequestParam Long adminId,
+                                               @RequestParam(required = false) String auditRemark) {
+      if (StringUtils.isBlank(vlogId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 验证排序类型是否有效（0、1、2）
-      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
-      if (vlogSortTypeEnum == null) {
+      if (auditStatus == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 保存到Redis
-      redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
-      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
+      if (adminId == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证审核状态值（0-待审核，1-通过，2-拒绝）
+      if (auditStatus < 0 || auditStatus > 2) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      vlogService.auditVlog(vlogId, auditStatus, adminId, auditRemark);
+      return ResponseDataStructureEnum.ok();
    }
 
    @ApiOperation(value = "获取推荐视频流排序规则")
@@ -234,6 +249,22 @@ public class AdminController extends BaseInfoProperties {
          }
       }
       VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByTypeWithDefault(sortType);
+      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
+   }
+
+   @ApiOperation(value = "设置推荐视频流排序规则（0-创建时间，1-点赞数，2-评论数）")
+   @PostMapping("vlog/setSortType")
+   public ResponseDataStructureEnum setVlogSortType(@RequestParam Integer sortType) {
+      if (sortType == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证排序类型是否有效（0、1、2）
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
+      if (vlogSortTypeEnum == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 保存到Redis
+      redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
       return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
    }
 

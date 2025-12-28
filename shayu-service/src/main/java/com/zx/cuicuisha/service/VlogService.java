@@ -59,6 +59,9 @@ public interface VlogService {
    // Admin - 删除/恢复视频（切换逻辑删除状态）
    Vlog deleteOrRestoreVlog(String vlogId);
 
+   // Admin - 审核视频（封禁/解封视频）
+   void auditVlog(String vlogId, Integer auditStatus, Long adminId, String auditRemark);
+
    // Admin - 查询视频列表（管理端使用，不过滤is_deleted，可以查询所有视频）
    PagedGridResult getIndexVlogListForAdmin(String search, Integer page, Integer pageSize);
 

@@ -11,12 +11,16 @@ import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
 import com.zx.cuicuisha.mapper.UsersMapper;
+import com.zx.cuicuisha.mapper.VlogAuditMapper;
 import com.zx.cuicuisha.mapper.VlogMapper;
 import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.MyLikedVlog;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
+import com.zx.cuicuisha.pojo.VlogAudit;
+import com.zx.cuicuisha.service.AdminService;
 import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
@@ -52,6 +56,10 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    private MyLikedVlogMapper myLikedVlogMapper;
    @Autowired
    private UsersMapper usersMapper;
+   @Autowired
+   private VlogAuditMapper vlogAuditMapper;
+   @Autowired
+   private AdminService adminService;
    @Autowired
    private Sid sid;
    @Autowired
@@ -512,6 +520,59 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          log.error("获取所有视频点赞总数时发生错误", e);
          // 发生异常时返回0，避免影响接口调用
          return 0;
+      }
+   }
+
+   /**
+    * Admin - 审核视频（封禁/解封视频）
+    * @param vlogId 视频ID
+    * @param auditStatus 审核状态 0-待审核 1-通过 2-拒绝（封禁）
+    * @param adminId 管理员ID
+    * @param auditRemark 审核备注
+    */
+   @Transactional
+   @Override
+   public void auditVlog(String vlogId, Integer auditStatus, Long adminId, String auditRemark) {
+      if (StringUtils.isBlank(vlogId)) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (auditStatus == null) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (adminId == null) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证审核状态值（0-待审核，1-通过，2-拒绝）
+      if (auditStatus < 0 || auditStatus > 2) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 检查视频是否存在
+      Vlog vlog = vlogMapper.selectByPrimaryKey(vlogId);
+      if (vlog == null) {
+         GraceException.display(ResponseStatusEnum.VLOG_NOT_EXIST_ERROR);
+      }
+      // 获取管理员信息
+      AdminUsers admin = adminService.getAdminById(adminId);
+      if (admin == null) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 创建审核记录
+      VlogAudit vlogAudit = new VlogAudit();
+      vlogAudit.setVlogId(vlogId);
+      vlogAudit.setAuditStatus(auditStatus);
+      vlogAudit.setAuditorId(String.valueOf(adminId));
+      vlogAudit.setAuditorName(admin.getRealName() != null ? admin.getRealName() : admin.getUsername());
+      vlogAudit.setAuditRemark(auditRemark);
+      vlogAudit.setAuditTime(new Date());
+      vlogAudit.setCreateTime(new Date());
+      vlogAuditMapper.insert(vlogAudit);
+      // 如果审核状态是2（封禁），将视频设置为私密
+      if (auditStatus == 2) {
+         Vlog updateVlog = new Vlog();
+         updateVlog.setId(vlogId);
+         updateVlog.setIsPrivate(YesOrNo.YES.type);
+         updateVlog.setUpdatedTime(new Date());
+         vlogMapper.updateByPrimaryKeySelective(updateVlog);
       }
    }
 
