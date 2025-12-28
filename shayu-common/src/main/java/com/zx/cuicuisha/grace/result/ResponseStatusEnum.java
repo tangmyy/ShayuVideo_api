@@ -37,6 +37,7 @@ public enum ResponseStatusEnum {
     FANS_FOLLOW_YOURSELF_ERROR(517,false,"用户不能关注自己！"),
     VLOG_NOT_EXIST_ERROR(518, false,"视频不存在"),
     VLOG_DELETED_ERROR(5181, false, "视频已被删除，无法举报！"),
+    VLOG_BANNED_CANNOT_MODIFY_PRIVACY(5182, false, "视频已被封禁，无法修改公开/私密状态！"),
     COMMENT_NOT_EXIST_ERROR(520, false, "评论不存在！"),
     COMMENT_DELETED_ERROR(5201, false, "评论已被删除，无法举报！"),
     REPORT_ALREADY_EXISTS_ERROR(519, false, "您已经举报过该内容，请勿重复举报！"),
