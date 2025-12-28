@@ -256,26 +256,26 @@
   <!-- 查询用户的视频列表（公开/私密） -->
   <select id="queryMyVlogList" parameterType="map" resultType="com.zx.cuicuisha.vo.IndexVlogVO">
     SELECT
-      v.id as vlogId,
-      v.vloger_id as vlogerId,
-      u.face as vlogerFace,
-      u.nickname as vlogerName,
-      v.title as content,
-      v.tag as tag,
-      v.url as url,
-      v.cover as cover,
-      v.width as width,
-      v.height as height,
-      v.like_counts as likeCounts,
-      v.comments_counts as commentsCounts,
-      v.is_private as isPrivate,
-      v.is_deleted as isDeleted
+    v.id as vlogId,
+    v.vloger_id as vlogerId,
+    u.face as vlogerFace,
+    u.nickname as vlogerName,
+    v.title as content,
+    v.tag as tag,
+    v.url as url,
+    v.cover as cover,
+    v.width as width,
+    v.height as height,
+    v.like_counts as likeCounts,
+    v.comments_counts as commentsCounts,
+    v.is_private as isPrivate,
+    v.is_deleted as isDeleted
     FROM
-      vlog v
-        LEFT JOIN
-      users u
-      ON
-        v.vloger_id = u.id
+    vlog v
+    LEFT JOIN
+    users u
+    ON
+    v.vloger_id = u.id
         LEFT JOIN
       (
         SELECT va1.vlog_id, va1.audit_status

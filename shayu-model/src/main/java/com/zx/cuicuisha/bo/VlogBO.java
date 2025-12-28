@@ -48,6 +48,9 @@ public class VlogBO {
    private Integer likeCounts;
    private Integer commentsCounts;
 
+   // 是否私密，用户可以设置私密，如此可以不公开给比人看 0-公开 1-私密（管理员修改时使用）
+   private Integer isPrivate;
+
    // 逻辑删除 0-正常，1-逻辑删除（管理员修改时使用）
    private Integer isDeleted;
 }
