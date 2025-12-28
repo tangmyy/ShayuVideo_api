@@ -1,9 +1,8 @@
 package com.zx.cuicuisha.impl;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
-import com.zx.cuicuisha.bo.AdminLoginBO;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
-import com.zx.cuicuisha.enums.MessageEnum;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
@@ -102,7 +101,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       log.info("查询消息列表：toUserId={}, page={}, pageSize={}, 查询到{}条消息", toUserId, page, pageSize, list.size());
       for (MessageMO msg : list) {
          // 如果类型是关注消息，则需要查询我之前有没有关注过他，用于在前端标记“互粉”“互关”
-         if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {
+         if (msg.getMsgType() != null && msg.getMsgType() == MessageTypeEnum.FOLLOW_YOU.type) {
             Map map = msg.getMsgContent();
             if (map == null) {
                map = new HashMap();
@@ -163,7 +162,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       }
       // 处理关注消息的互粉关系（与queryList相同的逻辑）
       for (MessageMO msg : list) {
-         if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {
+         if (msg.getMsgType() != null && msg.getMsgType() == MessageTypeEnum.FOLLOW_YOU.type) {
             Map map = msg.getMsgContent();
             if (map == null) {
                map = new HashMap();

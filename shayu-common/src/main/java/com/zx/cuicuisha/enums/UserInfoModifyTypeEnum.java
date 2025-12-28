@@ -6,7 +6,7 @@ import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 /**
  * @Desc: 修改用户信息类型 枚举
  */
-public enum UserInfoModifyType {
+public enum UserInfoModifyTypeEnum {
     NICKNAME(1, "昵称"),
     VIDEONUM(2, "视频号"),
     SEX(3, "性别"),
@@ -17,18 +17,18 @@ public enum UserInfoModifyType {
     public final Integer type;
     public final String value;
 
-    UserInfoModifyType(Integer type, String value) {
+    UserInfoModifyTypeEnum(Integer type, String value) {
         this.type = type;
         this.value = value;
     }
 
     public static void checkUserInfoTypeIsRight(Integer type) {
-        if (type != UserInfoModifyType.NICKNAME.type &&
-                type != UserInfoModifyType.VIDEONUM.type &&
-                type != UserInfoModifyType.SEX.type &&
-                type != UserInfoModifyType.BIRTHDAY.type &&
-                type != UserInfoModifyType.LOCATION.type &&
-                type != UserInfoModifyType.DESC.type) {
+        if (type != UserInfoModifyTypeEnum.NICKNAME.type &&
+                type != UserInfoModifyTypeEnum.VIDEONUM.type &&
+                type != UserInfoModifyTypeEnum.SEX.type &&
+                type != UserInfoModifyTypeEnum.BIRTHDAY.type &&
+                type != UserInfoModifyTypeEnum.LOCATION.type &&
+                type != UserInfoModifyTypeEnum.DESC.type) {
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_ERROR);
         }
     }

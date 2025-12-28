@@ -3,7 +3,7 @@ package com.zx.cuicuisha.controller;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Comment;
@@ -96,7 +96,7 @@ public class CommentController extends BaseInfoProperties {
       msgContent.put("vlogCover", vlog.getCover());
       msgContent.put("commentId", commentId);
       // MQ异步解耦
-      // msgService.createMsg(userId, comment.getCommentUserId(), MessageEnum.LIKE_COMMENT.type, msgContent);
+      // msgService.createMsg(userId, comment.getCommentUserId(), MessageTypeEnum.LIKE_COMMENT.type, msgContent);
       // 3. 构建消息对象
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(userId);                    // 点赞者ID
@@ -105,7 +105,7 @@ public class CommentController extends BaseInfoProperties {
       // 4. 发送到MQ（异步，立即返回，不阻塞）
       rabbitTemplate.convertAndSend(
             RabbitMQConfig.EXCHANGE_MSG,                    // 交换机
-            "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,  // 路由键
+            "sys.msg." + MessageTypeEnum.LIKE_COMMENT.enValue,  // 路由键
             JsonUtils.objectToJson(messageMO)               // 消息体（JSON字符串）
       );
       return ResponseDataStructureEnum.ok();

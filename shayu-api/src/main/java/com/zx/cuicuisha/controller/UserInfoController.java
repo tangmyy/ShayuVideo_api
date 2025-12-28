@@ -5,13 +5,12 @@ import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
-import com.zx.cuicuisha.enums.UserInfoModifyType;
+import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.MinIOUtils;
-import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
@@ -73,7 +72,7 @@ public class UserInfoController extends BaseInfoProperties {
    // 用户信息修改
    @PostMapping("/modifyUserInfo")
    public ResponseDataStructureEnum modifyUserInfo(@RequestBody UpdatedUserBO updatedUserBO, @RequestParam Integer type) throws Exception{
-      UserInfoModifyType.checkUserInfoTypeIsRight(type);
+      UserInfoModifyTypeEnum.checkUserInfoTypeIsRight(type);
       Users newUserInfo =  userService.updateUserInfo(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
    }

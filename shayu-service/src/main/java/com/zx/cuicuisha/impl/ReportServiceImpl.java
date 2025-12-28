@@ -4,7 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.ReportBO;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.CommentMapper;
@@ -16,7 +16,6 @@ import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Report;
-import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.service.MsgService;
@@ -269,7 +268,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 messageMO.setFromUserId(handlerId);
                 messageMO.setToUserId(report.getReporterId());
                 messageMO.setMsgContent(msgContent);
-                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
                 );
                 log.info("举报处理通知已发送到MQ：reportId={}, reporterId={}", reportId, report.getReporterId());
             } catch (Exception e) {
@@ -317,7 +316,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             boolean found = false;
             for (MessageMO message : allMessages) {
                 // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
-                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
                         // 找到对应的消息，更新处理结果
@@ -372,7 +371,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             boolean found = false;
             for (MessageMO message : allMessages) {
                 // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
-                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
                         // 找到对应的消息，删除

@@ -8,8 +8,8 @@ import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
-import com.zx.cuicuisha.enums.UserInfoModifyType;
-import com.zx.cuicuisha.enums.VlogSortType;
+import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
+import com.zx.cuicuisha.enums.VlogSortTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.bo.AdminLoginBO;
@@ -96,7 +96,7 @@ public class AdminController extends BaseInfoProperties {
    @ApiOperation(value = "修改用户信息（管理后台专用，可修改status和isDeleted字段）")
    @PostMapping("users/updateInfo")
    public ResponseDataStructureEnum updateUsersInfo(@RequestBody UpdatedUserBO updatedUserBO, @RequestParam Integer type) throws Exception{
-      UserInfoModifyType.checkUserInfoTypeIsRight(type);
+      UserInfoModifyTypeEnum.checkUserInfoTypeIsRight(type);
       // 管理后台使用专用方法，可以修改已逻辑删除的用户和status、isDeleted字段
       Users newUserInfo = userService.updateUserInfoForAdmin(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
@@ -212,13 +212,13 @@ public class AdminController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
       // 验证排序类型是否有效（0、1、2）
-      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
-      if (vlogSortType == null) {
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
+      if (vlogSortTypeEnum == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
       // 保存到Redis
       redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
-      return ResponseDataStructureEnum.ok(vlogSortType);
+      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
    }
 
    @ApiOperation(value = "获取推荐视频流排序规则")
@@ -233,8 +233,8 @@ public class AdminController extends BaseInfoProperties {
             // 使用默认值
          }
       }
-      VlogSortType vlogSortType = VlogSortType.getByTypeWithDefault(sortType);
-      return ResponseDataStructureEnum.ok(vlogSortType);
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByTypeWithDefault(sortType);
+      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
    }
 
    /**

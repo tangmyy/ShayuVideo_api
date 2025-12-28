@@ -3,7 +3,7 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
-import com.zx.cuicuisha.enums.UserInfoModifyType;
+import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.UsersMapper;
@@ -22,7 +22,7 @@ import tk.mybatis.mapper.entity.Example;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import com.zx.cuicuisha.enums.Sex;
+import com.zx.cuicuisha.enums.SexTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -63,7 +63,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       user.setVideoNum(DesensitizationUtil.commonDisplay(mobile));
       user.setFace(USER_FACE);
       user.setBirthday(DateUtil.stringToDate("2000-01-01"));
-      user.setSex(Sex.secret.type);
+      user.setSex(SexTypeEnum.secret.type);
       user.setCountry("中国");
       user.setProvince("");
       user.setCity("");
@@ -111,7 +111,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-      if (type == UserInfoModifyType.NICKNAME.type){
+      if (type == UserInfoModifyTypeEnum.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查） !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
@@ -119,7 +119,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
          }
       }
-      if (type == UserInfoModifyType.VIDEONUM.type){
+      if (type == UserInfoModifyTypeEnum.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);
@@ -178,7 +178,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-      if (type == UserInfoModifyType.NICKNAME.type){
+      if (type == UserInfoModifyTypeEnum.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查）  !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
@@ -186,7 +186,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
          }
       }
-      if (type == UserInfoModifyType.VIDEONUM.type){
+      if (type == UserInfoModifyTypeEnum.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);

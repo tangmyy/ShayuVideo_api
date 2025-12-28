@@ -3,7 +3,7 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -14,7 +14,6 @@ import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.FansService;
-import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.FansAdminVO;
@@ -123,12 +122,12 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       // 插入新的粉丝关系记录
       fansMapper.insert(fans);
       // 系统消息：关注
-      // msgService.createMsg(myId, vlogerId, MessageEnum.FOLLOW_YOU.type, null);
+      // msgService.createMsg(myId, vlogerId, MessageTypeEnum.FOLLOW_YOU.type, null);
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(myId);
       messageMO.setToUserId(vlogerId);
       // 优化：使用mq异步解耦
-      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
    }
 
    // 更新关注相关的缓存

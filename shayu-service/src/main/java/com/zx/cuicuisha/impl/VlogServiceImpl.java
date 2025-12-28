@@ -4,8 +4,8 @@ import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.VlogBO;
-import com.zx.cuicuisha.enums.MessageEnum;
-import com.zx.cuicuisha.enums.VlogSortType;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
+import com.zx.cuicuisha.enums.VlogSortTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -18,7 +18,6 @@ import com.zx.cuicuisha.pojo.MyLikedVlog;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.FansService;
-import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -174,10 +173,10 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          }
       }
       // 根据排序类型设置sortField（使用枚举优化）
-      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
-      if (vlogSortType != null && vlogSortType != VlogSortType.CREATED_TIME) {
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
+      if (vlogSortTypeEnum != null && vlogSortTypeEnum != VlogSortTypeEnum.CREATED_TIME) {
          // 如果不是创建时间排序，则设置sortField
-         map.put("sortField", vlogSortType.field);
+         map.put("sortField", vlogSortTypeEnum.field);
       }
       // sortType == 0 或 null 时，不设置sortField，使用默认的创建时间排序
       List<IndexVlogVO> list = vlogMapperCustom.getIndexVlogList(map);
@@ -209,10 +208,10 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          }
       }
       // 根据排序类型设置sortField（使用枚举优化）
-      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
-      if (vlogSortType != null && vlogSortType != VlogSortType.CREATED_TIME) {
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
+      if (vlogSortTypeEnum != null && vlogSortTypeEnum != VlogSortTypeEnum.CREATED_TIME) {
          // 如果不是创建时间排序，则设置sortField
-         map.put("sortField", vlogSortType.field);
+         map.put("sortField", vlogSortTypeEnum.field);
       }
       // sortType == 0 或 null 时，不设置sortField，使用默认的创建时间排序
       // 使用管理员专用查询方法，不过滤 is_deleted
@@ -301,13 +300,13 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       Map msgContent = new HashMap();
       msgContent.put("vlogId", vlogId);
       msgContent.put("vlogCover", vlog.getCover());
-      // msgService.createMsg(userId, vlog.getVlogerId(), MessageEnum.LIKE_VLOG.type, msgContent);
+      // msgService.createMsg(userId, vlog.getVlogerId(), MessageTypeEnum.LIKE_VLOG.type, msgContent);
       // MQ异步解耦
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(userId);
       messageMO.setToUserId(vlog.getVlogerId());
       messageMO.setMsgContent(msgContent);
-      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.LIKE_VLOG.enValue, JsonUtils.objectToJson(messageMO));
    }
    @Override
    public Vlog getVlog(String id) {

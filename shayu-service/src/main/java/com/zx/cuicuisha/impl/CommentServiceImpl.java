@@ -5,7 +5,7 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.bo.CommentUpdateBO;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -97,11 +97,11 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       msgContent.put("vlogCover", vlog.getCover());
       msgContent.put("commentId", commentId);
       msgContent.put("commentContent", commentBO.getContent());
-      Integer type = MessageEnum.COMMENT_VLOG.type;
-      String routeType = MessageEnum.COMMENT_VLOG.enValue;
+      Integer type = MessageTypeEnum.COMMENT_VLOG.type;
+      String routeType = MessageTypeEnum.COMMENT_VLOG.enValue;
       if (StringUtils.isNotBlank(commentBO.getFatherCommentId()) && !commentBO.getFatherCommentId().equalsIgnoreCase("0")) {
-         type = MessageEnum.REPLY_YOU.type;
-         routeType = MessageEnum.REPLY_YOU.enValue;
+         type = MessageTypeEnum.REPLY_YOU.type;
+         routeType = MessageTypeEnum.REPLY_YOU.enValue;
       }
       // msgService.createMsg(commentBO.getCommentUserId(), commentBO.getVlogerId(), type, msgContent);
       // MQ异步解耦
