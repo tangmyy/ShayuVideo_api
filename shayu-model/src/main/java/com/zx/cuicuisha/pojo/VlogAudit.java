@@ -54,6 +54,13 @@ public class VlogAudit {
     private String auditRemark;
 
     /**
+     * 封禁前的原始私密状态（封禁时保存，解封时恢复）
+     * 0-公开 1-私密
+     */
+    @Column(name = "original_is_private")
+    private Integer originalIsPrivate;
+
+    /**
      * 创建时间
      */
     @Column(name = "create_time")

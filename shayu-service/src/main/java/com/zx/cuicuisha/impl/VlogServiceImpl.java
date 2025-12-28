@@ -565,15 +565,51 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlogAudit.setAuditRemark(auditRemark);
       vlogAudit.setAuditTime(new Date());
       vlogAudit.setCreateTime(new Date());
-      vlogAuditMapper.insert(vlogAudit);
-      // 如果审核状态是2（封禁），将视频设置为私密
+      // 如果审核状态是2（封禁），保存视频的原始私密状态，并将视频设置为私密
       if (auditStatus == 2) {
+         // 保存封禁前的原始私密状态
+         Integer originalIsPrivate = vlog.getIsPrivate();
+         vlogAudit.setOriginalIsPrivate(originalIsPrivate);
+         // 将视频设置为私密
          Vlog updateVlog = new Vlog();
          updateVlog.setId(vlogId);
          updateVlog.setIsPrivate(YesOrNo.YES.type);
          updateVlog.setUpdatedTime(new Date());
          vlogMapper.updateByPrimaryKeySelective(updateVlog);
       }
+      // 如果审核状态是1（通过/解封），查询上一次封禁记录，恢复原始私密状态
+      if (auditStatus == 1) {
+         // 查询该视频最近一次封禁（audit_status=2）的审核记录
+         Example example = new Example(VlogAudit.class);
+         Example.Criteria criteria = example.createCriteria();
+         criteria.andEqualTo("vlogId", vlogId);
+         criteria.andEqualTo("auditStatus", 2);
+         example.setOrderByClause("id DESC");
+         List<VlogAudit> banRecords = vlogAuditMapper.selectByExample(example);
+         if (banRecords != null && !banRecords.isEmpty()) {
+            // 找到最近一次封禁记录（按ID倒序，第一条就是最新的）
+            VlogAudit lastBanRecord = banRecords.get(0);
+            Integer originalIsPrivate = lastBanRecord.getOriginalIsPrivate();
+            // 如果存在原始状态，恢复原始私密状态
+            if (originalIsPrivate != null) {
+               Vlog updateVlog = new Vlog();
+               updateVlog.setId(vlogId);
+               updateVlog.setIsPrivate(originalIsPrivate);
+               updateVlog.setUpdatedTime(new Date());
+               vlogMapper.updateByPrimaryKeySelective(updateVlog);
+            } else {
+               // 如果没有保存原始状态（可能是旧数据），则默认恢复为公开
+               Vlog updateVlog = new Vlog();
+               updateVlog.setId(vlogId);
+               updateVlog.setIsPrivate(YesOrNo.NO.type);
+               updateVlog.setUpdatedTime(new Date());
+               vlogMapper.updateByPrimaryKeySelective(updateVlog);
+            }
+         }
+         // 如果没有封禁记录，说明是首次审核通过，不需要修改视频的私密状态
+      }
+      
+      vlogAuditMapper.insert(vlogAudit);
    }
 
    /**
