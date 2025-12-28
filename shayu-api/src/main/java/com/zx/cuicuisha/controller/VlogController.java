@@ -110,7 +110,7 @@ public class VlogController extends BaseInfoProperties {
    }
 
    /**
-    * 我的公开视频
+    * 用户个人公开视频
     * @return
     */
    @GetMapping("myPublicList")
@@ -121,7 +121,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
    /**
-    * 我的私密视频
+    * 用户个人私密视频
     * @return
     */
    @GetMapping("myPrivateList")
@@ -132,7 +132,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
    /**
-    * 我的喜欢视频
+    * 用户个人喜欢视频
     * @return
     */
    @GetMapping("myLikedList")
