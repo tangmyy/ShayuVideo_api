@@ -170,17 +170,6 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       }
    }
 
-   // 查询我关注的博主列表
-   @Override
-   public PagedGridResult queryMyFollows(String myId, Integer page, Integer pageSize) {
-      Map<String, Object> map = new HashMap<>();
-      map.put("myId", myId);
-      PageHelper.startPage(page, pageSize);
-      List<VlogerVO> list = fansMapperCustom.queryMyFollows(map);
-      return setterPagedGrid(list, page);
-   }
-
-   // 查询我的粉丝列表
    /**
     * <判断粉丝是否是我的朋友（互粉互关）>
     * 一、普通做法：
@@ -193,6 +182,18 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
     * 1. 关注/取关的时候，关联关系保存在redis中，不要依赖数据库
     * 2. 数据库查询后，直接循环查询redis，避免第二次循环查询数据库的尴尬局面
     */
+
+   // 查询我的关注列表
+   @Override
+   public PagedGridResult queryMyFollows(String myId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      PageHelper.startPage(page, pageSize);
+      List<VlogerVO> list = fansMapperCustom.queryMyFollows(map);
+      return setterPagedGrid(list, page);
+   }
+
+   // 查询我的粉丝列表
    @Override
    public PagedGridResult queryMyFans(String myId, Integer page, Integer pageSize) {
       Map<String, Object> map = new HashMap<>();
@@ -210,7 +211,7 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    }
 
    /**
-    * 查询所有粉丝关系（管理端使用）
+    * Admin - 查询所有粉丝关系
     * @param myId 用户ID，如果为空则查询所有粉丝关系，否则查询指定用户的粉丝
     * @param page 页码
     * @param pageSize 每页数量

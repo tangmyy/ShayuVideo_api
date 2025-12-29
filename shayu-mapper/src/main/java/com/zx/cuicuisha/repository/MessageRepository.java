@@ -24,4 +24,7 @@ public interface MessageRepository extends MongoRepository<MessageMO, String> {
    // Admin - 根据接收者ID删除所有消息
    void deleteAllByToUserId(String toUserId);
 
+   // Admin - 根据发送者ID删除所有消息
+   void deleteAllByFromUserId(String fromUserId);
+
 }

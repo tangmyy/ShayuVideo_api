@@ -68,7 +68,6 @@ public class PassportController extends BaseInfoProperties {
    // }
    @PostMapping("login")
    public Object login(@Valid @RequestBody RedisLoginBO redisLoginBO) throws Exception {
-
       String mobile = redisLoginBO.getMobile();
       String code = redisLoginBO.getSmsCode();
       // 1. 从Redis中获取验证码进行比对
@@ -76,12 +75,20 @@ public class PassportController extends BaseInfoProperties {
       if (StringUtils.isBlank(redisCode) || !redisCode.equalsIgnoreCase(code)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SMS_CODE_ERROR);
       }
-      // 2. 查询数据库, 判断用户是否存在
-      Users user = userService.queryMobileIsExist(mobile);
+      // 2. 查询数据库, 判断用户是否存在（包括已逻辑删除的用户）
+      Users user = userService.queryUserByMobileIncludeDeleted(mobile);
       if (user == null) {
-         // 2.1 如果用户不存在, 则注册一个新用户
+         // 如果完全不存在, 则注册一个新用户
+         log.info("手机号 {} 不存在，开始创建新用户", mobile);
          user = userService.createUser(mobile);
+         log.info("创建新用户成功，用户ID: {}", user.getId());
+      } else if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         // 如果找到被逻辑删除的用户, 恢复该用户
+         log.info("手机号 {} 对应的用户曾被逻辑删除，正在恢复用户，用户ID: {}", mobile, user.getId());
+         user = userService.restoreDeletedUser(user.getId());
+         log.info("用户恢复成功，用户ID: {}", user.getId());
       }
+      // 如果用户存在且未删除，直接使用
       // TODO: 如果需要涉及到账号封禁 可以在 else 处理
       // 3. 如果不为空, 保存用户信息和会话信息到Redis中 (分布式会话)
       String uToken = UUID.randomUUID().toString();

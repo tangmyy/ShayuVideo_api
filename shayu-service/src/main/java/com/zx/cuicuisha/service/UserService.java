@@ -8,13 +8,16 @@ import org.springframework.transaction.annotation.Transactional;
 
 public interface UserService {
 
-   // 判断用户是否存在, 如果存在则返回用户信息
+   // 根据手机号查询用户（不包括已逻辑删除的用户）
    Users queryMobileIsExist(String mobile);
+
+   // 根据手机号查询用户（包括已逻辑删除的用户）
+   Users queryUserByMobileIncludeDeleted(String mobile);
 
    // 创建用户信息, 并且返回用户对象
    Users createUser(String mobile);
 
-   // 根据用户主键查询用户信息
+   // 根据用户主键查询用户信息（不包括已逻辑删除的用户）
    Users getUser(String userId);
 
    // 用户信息修改 -2
@@ -44,9 +47,13 @@ public interface UserService {
     */
    PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize);
 
-   // Admin - 删除/恢复用户（切换逻辑删除状态）
+   // Admin - 删除用户（逻辑删除并清理相关数据）
    @Transactional
    Users deleteOrRestoreUser(String userId);
+
+   // Admin - 恢复已逻辑删除的用户
+   @Transactional
+   Users restoreDeletedUser(String userId);
 
    // Admin - 封禁/恢复用户（切换用户状态）
    @Transactional

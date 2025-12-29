@@ -132,7 +132,24 @@ public class AdminController extends BaseInfoProperties {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      Users user = userService.deleteOrRestoreUser(userId);
+      // 查询用户当前状态
+      Users currentUser = userService.getUser(userId);
+      if (currentUser == null) {
+         // 如果getUser查不到（因为过滤了已删除的），尝试直接查询
+         currentUser = userService.queryUserByMobileIncludeDeleted(userService.getUser(userId).getMobile());
+      }
+      if (currentUser == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 根据当前状态决定是删除还是恢复
+      Users user;
+      if (currentUser.getIsDeleted() != null && currentUser.getIsDeleted() == 1) {
+         // 当前是删除状态，执行恢复
+         user = userService.restoreDeletedUser(userId);
+      } else {
+         // 当前是正常状态，执行删除
+         user = userService.deleteOrRestoreUser(userId);
+      }
       return ResponseDataStructureEnum.ok(user);
    }
 
@@ -152,13 +169,20 @@ public class AdminController extends BaseInfoProperties {
       if (StringUtils.isBlank(mobile)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 查询数据库, 判断用户是否存在
-      Users user = userService.queryMobileIsExist(mobile);
+      // 查询数据库, 判断用户是否存在（包括已逻辑删除的用户）
+      Users user = userService.queryUserByMobileIncludeDeleted(mobile);
       if (user == null) {
+         // 如果完全不存在, 则创建新用户
          log.info("手机号 {} 不存在，开始创建新用户", mobile);
          user = userService.createUser(mobile);
-         log.info("用户注册成功，用户ID: {}", user.getId());
+         log.info("用户创建成功，用户ID: {}", user.getId());
+      } else if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         // 如果找到被逻辑删除的用户, 恢复该用户
+         log.info("手机号 {} 对应的用户曾被逻辑删除，正在恢复用户，用户ID: {}", mobile, user.getId());
+         user = userService.restoreDeletedUser(user.getId());
+         log.info("用户恢复成功，用户ID: {}", user.getId());
       }
+      // 如果用户存在且未删除，直接使用
       // 返回用户信息
       log.info("手机号 {} 已存在，返回现有用户信息，用户ID: {}", mobile, user.getId());
       UsersVO usersVO = new UsersVO();
