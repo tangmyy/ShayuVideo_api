@@ -39,6 +39,8 @@
         WHERE
             c.vlog_id = #{paramMap.vlogId}
             AND (c.is_deleted = 0 OR c.is_deleted IS NULL)
+            AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+            AND (fu.is_deleted = 0 OR fu.is_deleted IS NULL)
         ORDER BY
             c.like_counts DESC,
             c.create_time DESC
