@@ -49,7 +49,7 @@ public interface UserService {
 
    // Admin - 删除用户（逻辑删除并清理相关数据）
    @Transactional
-   Users deleteOrRestoreUser(String userId);
+   Users deleteUser(String userId);
 
    // Admin - 恢复已逻辑删除的用户
    @Transactional

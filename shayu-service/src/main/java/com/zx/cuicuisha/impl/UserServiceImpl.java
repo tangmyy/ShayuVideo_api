@@ -32,6 +32,7 @@ import tk.mybatis.mapper.entity.Example;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import com.zx.cuicuisha.enums.SexTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
@@ -331,7 +332,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
     */
    @Transactional
    @Override
-   public Users deleteOrRestoreUser(String userId) {
+   public Users deleteUser(String userId) {
       // 管理后台可以直接查询用户，不过滤 is_deleted
       Users user = usersMapper.selectByPrimaryKey(userId);
       if (user == null) {
@@ -404,46 +405,173 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          }
          try {
-            // 4. 逻辑删除用户发布的评论
+            // 4. 逻辑删除用户发布的评论，并更新Redis计数
             Example commentExample = new Example(Comment.class);
             Example.Criteria commentCriteria = commentExample.createCriteria();
             commentCriteria.andEqualTo("commentUserId", userId);
+            List<Comment> commentList = commentMapper.selectByExample(commentExample);
+            // 更新Redis计数：减少每个评论所属视频的评论数
+            if (commentList != null && !commentList.isEmpty()) {
+               for (Comment comment : commentList) {
+                  String vlogId = comment.getVlogId();
+                  try {
+                     // 减少视频评论数
+                     redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
+                  } catch (Exception e) {
+                     log.error("更新评论数Redis计数失败：userId={}, vlogId={}, commentId={}", userId, vlogId, comment.getId(), e);
+                     // Redis更新失败不影响主流程，只记录日志
+                  }
+               }
+            }
+            // 逻辑删除数据库中的评论
             Comment deleteComment = new Comment();
             deleteComment.setIsDeleted(1);
             commentMapper.updateByExampleSelective(deleteComment, commentExample);
-            log.info("逻辑删除用户发布的评论成功：userId={}", userId);
+            log.info("逻辑删除用户发布的评论成功：userId={}, 共{}条评论", userId, commentList != null ? commentList.size() : 0);
          } catch (Exception e) {
             log.error("逻辑删除用户发布的评论失败：userId={}", userId, e);
             GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          }
          try {
-            // 5. 删除用户点赞的记录
+            // 5. 删除用户点赞的视频记录，并更新Redis计数
+            // 先查询用户的所有点赞记录
             Example likedVlogExample = new Example(MyLikedVlog.class);
             Example.Criteria likedVlogCriteria = likedVlogExample.createCriteria();
             likedVlogCriteria.andEqualTo("userId", userId);
+            List<MyLikedVlog> likedVlogList = myLikedVlogMapper.selectByExample(likedVlogExample);
+            // 更新Redis计数：减少每个被点赞视频的点赞数和视频作者的获赞数
+            if (likedVlogList != null && !likedVlogList.isEmpty()) {
+               for (MyLikedVlog likedVlog : likedVlogList) {
+                  String vlogId = likedVlog.getVlogId();
+                  // 查询视频信息以获取vlogerId
+                  Vlog vlog = vlogMapper.selectByPrimaryKey(vlogId);
+                  if (vlog != null) {
+                     String vlogerId = vlog.getVlogerId();
+                     try {
+                        // 减少视频点赞数
+                        redis.decrement(REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId, 1);
+                        // 减少视频作者的获赞总数
+                        redis.decrement(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + vlogerId, 1);
+                        // 删除点赞关联关系
+                        redis.delete(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId);
+                     } catch (Exception e) {
+                        log.error("更新点赞Redis计数失败：userId={}, vlogId={}", userId, vlogId, e);
+                        // Redis更新失败不影响主流程，只记录日志
+                     }
+                  }
+               }
+            }
+            // 删除数据库中的点赞记录
             myLikedVlogMapper.deleteByExample(likedVlogExample);
-            log.info("删除用户点赞记录成功：userId={}", userId);
+            log.info("删除用户点赞记录成功：userId={}, 共{}条记录", userId, likedVlogList != null ? likedVlogList.size() : 0);
          } catch (Exception e) {
             log.error("删除用户点赞记录失败：userId={}", userId, e);
             GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          }
          try {
-            // 6. 删除用户的关注关系（作为博主和作为粉丝）
+            // 6. 删除用户的关注关系（作为博主和作为粉丝），并更新Redis计数
+            // 先查询用户作为粉丝的所有关注记录（我关注的人）
             Example fansExample1 = new Example(Fans.class);
             Example.Criteria fansCriteria1 = fansExample1.createCriteria();
-            fansCriteria1.andEqualTo("vlogerId", userId);
-            fansMapper.deleteByExample(fansExample1);
+            fansCriteria1.andEqualTo("fanId", userId);
+            List<Fans> myFollowsList = fansMapper.selectByExample(fansExample1);
+            // 更新Redis计数：减少每个被关注用户的粉丝数，减少用户的关注数
+            if (myFollowsList != null && !myFollowsList.isEmpty()) {
+               int followsCount = myFollowsList.size();
+               for (Fans fan : myFollowsList) {
+                  String vlogerId = fan.getVlogerId();
+                  try {
+                     // 减少被关注用户的粉丝数
+                     redis.decrement(REDIS_MY_FANS_COUNTS + ":" + vlogerId, 1);
+                     // 删除关注关联关系
+                     redis.delete(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + userId + ":" + vlogerId);
+                  } catch (Exception e) {
+                     log.error("更新关注Redis计数失败：userId={}, vlogerId={}", userId, vlogerId, e);
+                     // Redis更新失败不影响主流程，只记录日志
+                  }
+               }
+               // 减少用户的关注总数
+               try {
+                  redis.decrement(REDIS_MY_FOLLOWS_COUNTS + ":" + userId, followsCount);
+               } catch (Exception e) {
+                  log.error("更新用户关注数Redis计数失败：userId={}", userId, e);
+               }
+            }
+            // 先查询用户作为博主的所有粉丝记录（关注我的人）
             Example fansExample2 = new Example(Fans.class);
             Example.Criteria fansCriteria2 = fansExample2.createCriteria();
-            fansCriteria2.andEqualTo("fanId", userId);
+            fansCriteria2.andEqualTo("vlogerId", userId);
+            List<Fans> myFansList = fansMapper.selectByExample(fansExample2);
+            // 更新Redis计数：减少每个粉丝的关注数，减少用户的粉丝数
+            if (myFansList != null && !myFansList.isEmpty()) {
+               int fansCount = myFansList.size();
+               for (Fans fan : myFansList) {
+                  String fanId = fan.getFanId();
+                  try {
+                     // 减少粉丝的关注数
+                     redis.decrement(REDIS_MY_FOLLOWS_COUNTS + ":" + fanId, 1);
+                     // 删除关注关联关系
+                     redis.delete(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + fanId + ":" + userId);
+                  } catch (Exception e) {
+                     log.error("更新粉丝关注数Redis计数失败：fanId={}, userId={}", fanId, userId, e);
+                     // Redis更新失败不影响主流程，只记录日志
+                  }
+               }
+               // 减少用户的粉丝总数
+               try {
+                  redis.decrement(REDIS_MY_FANS_COUNTS + ":" + userId, fansCount);
+               } catch (Exception e) {
+                  log.error("更新用户粉丝数Redis计数失败：userId={}", userId, e);
+               }
+            }
+            // 删除数据库中的关注记录
+            fansMapper.deleteByExample(fansExample1);
             fansMapper.deleteByExample(fansExample2);
-            log.info("删除用户关注关系成功：userId={}", userId);
+            log.info("删除用户关注关系成功：userId={}, 关注{}人, 粉丝{}人", 
+                     userId, 
+                     myFollowsList != null ? myFollowsList.size() : 0,
+                     myFansList != null ? myFansList.size() : 0);
          } catch (Exception e) {
             log.error("删除用户关注关系失败：userId={}", userId, e);
             GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          }
          try {
-            // 7. 逻辑删除用户发起的举报记录
+            // 7. 删除用户点赞的评论，并更新Redis计数
+            // 从Redis Hash中查找所有该用户点赞的评论
+            try {
+               Map<Object, Object> userLikeCommentMap = redis.hgetall(REDIS_USER_LIKE_COMMENT);
+               if (userLikeCommentMap != null && !userLikeCommentMap.isEmpty()) {
+                  String userIdPrefix = userId + ":";
+                  List<String> commentIdsToDecrement = new java.util.ArrayList<>();
+                  List<String> fieldsToDelete = new java.util.ArrayList<>();
+                  for (Object fieldObj : userLikeCommentMap.keySet()) {
+                     String field = (String) fieldObj;
+                     // field格式为 "{userId}:{commentId}"
+                     if (field.startsWith(userIdPrefix)) {
+                        String commentId = field.substring(userIdPrefix.length());
+                        commentIdsToDecrement.add(commentId);
+                        fieldsToDelete.add(field);
+                     }
+                  }
+                  // 减少每个被点赞评论的点赞数
+                  for (String commentId : commentIdsToDecrement) {
+                     try {
+                        redis.decrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
+                     } catch (Exception e) {
+                        log.error("减少评论点赞数失败：userId={}, commentId={}", userId, commentId, e);
+                     }
+                  }
+                  // 删除用户点赞评论的关联关系
+                  if (!fieldsToDelete.isEmpty()) {
+                     redis.deleteHash(REDIS_USER_LIKE_COMMENT, fieldsToDelete.toArray());
+                  }
+                  log.info("删除用户点赞评论记录成功：userId={}, 共{}条记录", userId, fieldsToDelete.size());
+               }
+            } catch (Exception e) {
+               log.error("删除用户点赞评论Redis数据失败：userId={}", userId, e);
+               // Redis操作失败不影响主流程，只记录日志
+            }
+            // 8. 逻辑删除用户发起的举报记录
             Example reportExample = new Example(Report.class);
             Example.Criteria reportCriteria = reportExample.createCriteria();
             reportCriteria.andEqualTo("reporterId", userId);
@@ -452,11 +580,11 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             reportMapper.updateByExampleSelective(deleteReport, reportExample);
             log.info("逻辑删除用户发起的举报记录成功：userId={}", userId);
          } catch (Exception e) {
-            log.error("逻辑删除用户发起的举报记录失败：userId={}", userId, e);
+            log.error("删除用户点赞评论或举报记录失败：userId={}", userId, e);
             GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          }
          try {
-            // 8. 删除MongoDB中该用户发送和接收的所有消息
+            // 9. 删除MongoDB中该用户发送和接收的所有消息
             messageRepository.deleteAllByToUserId(userId);
             messageRepository.deleteAllByFromUserId(userId);
             log.info("删除用户MongoDB消息成功：userId={}", userId);

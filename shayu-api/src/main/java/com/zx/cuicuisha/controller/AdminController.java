@@ -144,7 +144,7 @@ public class AdminController extends BaseInfoProperties {
          user = userService.restoreDeletedUser(userId);
       } else {
          // 当前是正常状态，执行删除
-         user = userService.deleteOrRestoreUser(userId);
+         user = userService.deleteUser(userId);
       }
       return ResponseDataStructureEnum.ok(user);
    }

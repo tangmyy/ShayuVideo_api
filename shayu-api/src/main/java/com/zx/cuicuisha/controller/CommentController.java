@@ -36,8 +36,6 @@ public class CommentController extends BaseInfoProperties {
    @Autowired
    private VlogService vlogService;
    @Autowired
-   private MsgService msgService;
-   @Autowired
    public RabbitTemplate rabbitTemplate;
 
    @ApiOperation(value = "发表评论")
