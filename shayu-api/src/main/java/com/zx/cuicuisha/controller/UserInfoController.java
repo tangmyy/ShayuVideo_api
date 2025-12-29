@@ -6,6 +6,7 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
 import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
+import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
@@ -34,8 +35,26 @@ public class UserInfoController extends BaseInfoProperties {
    private MinIOConfig minIOConfig;
 
    @GetMapping("/query")
-   public Object query(@RequestParam String userId) throws Exception {
-      Users  user = userService.getUser(userId);
+   public Object query(@RequestParam String userId, @RequestHeader(value = "headerUserToken", required = false) String token) throws Exception {
+      // 1. 验证 token 是否存在
+      if (StringUtils.isBlank(token)) {
+         GraceException.display(ResponseStatusEnum.TOKEN_INVALID_ERROR);
+      }
+      // 2. 从 Redis 中检查 token 是否存在
+      String redisToken = redis.get(REDIS_USER_TOKEN + ":" + userId);
+      if (StringUtils.isBlank(redisToken) || !redisToken.equals(token)) {
+         // token 不存在或不匹配，说明用户已被删除或 token 已失效
+         GraceException.display(ResponseStatusEnum.TICKET_INVALID);
+      }
+      // 3. 验证用户是否存在
+      Users user = userService.getUser(userId);
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 4. 检查用户是否被逻辑删除
+      if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
       UsersVO usersVO = new UsersVO();
       BeanUtils.copyProperties(user, usersVO);
       // 我的关注总数
@@ -44,13 +63,11 @@ public class UserInfoController extends BaseInfoProperties {
       String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
       // 我的视频获赞总数
       String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
-
       Integer myFollowsCounts = 0;
       Integer myFansCounts = 0;
       Integer likedVlogCounts = 0;
       Integer likedVlogerCounts = 0;
       Integer totalLikeMeCounts = 0;
-
       if (StringUtils.isNotBlank(myFollowsCountsStr)) {
          myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
       }
@@ -61,11 +78,9 @@ public class UserInfoController extends BaseInfoProperties {
          likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
       }
       totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
-
       usersVO.setMyFollowsCounts(myFollowsCounts);
       usersVO.setMyFansCounts(myFansCounts);
       usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
-
       return ResponseDataStructureEnum.ok(usersVO);
    }
 

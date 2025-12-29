@@ -60,18 +60,19 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    private static final String USER_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
    private static final String USER_BGIMG = "http://106.54.6.213:9000/shayu/1765019119.jpg";
 
+   // # ======================================== Users方法/提供用户端使用 ========================================
+
    /**
     * 查询用户（只查询未逻辑删除的用户）
-    * @param mobile 手机号
     * @return 用户信息，如果不存在则返回null
     */
    @Override
-   public Users queryMobileIsExist(String mobile) {
-      Example userExample = new Example(Users.class);
-      Example.Criteria criteria = userExample.createCriteria();
-      criteria.andEqualTo("mobile", mobile);
-      criteria.andEqualTo("isDeleted", 0);
-      Users user = usersMapper.selectOneByExample(userExample);
+   public Users getUser(String userId) {
+      Users user = usersMapper.selectByPrimaryKey(userId);
+      // 检查用户是否存在且未被逻辑删除
+      if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+         return null;
+      }
       return user;
    }
 
@@ -114,16 +115,6 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       user.setCreatedTime(new Date());
       user.setUpdatedTime(new Date());
       usersMapper.insert(user);
-      return user;
-   }
-
-   @Override
-   public Users getUser(String userId) {
-      Users user = usersMapper.selectByPrimaryKey(userId);
-      // 检查用户是否存在且未被逻辑删除
-      if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
-         return null;
-      }
       return user;
    }
 
@@ -200,8 +191,16 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return getUser(updatedUserBO.getId());
    }
 
+   // # ======================================== Admin方法/提供管理员端使用 ========================================
+
+   // Admin - 根据用户主键查询用户信息（包括已逻辑删除的用户，管理端使用）
+   @Override
+   public Users getUserIncludeDeleted(String userId) {
+      return usersMapper.selectByPrimaryKey(userId);
+   }
+
    /**
-    * 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
+    * Admin - 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
     */
    @Transactional
    @Override
@@ -248,7 +247,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 管理后台修改用户信息（不带type参数，用于修改头像、背景图等）
+    * Admin - 管理后台修改用户信息（不带type参数，用于修改头像、背景图等）
     */
    @Transactional
    @Override
@@ -271,7 +270,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 管理后台查询用户列表（不过滤已逻辑删除的用户）
+    * Admin - 管理后台查询用户列表（不过滤已逻辑删除的用户）
     */
    @Override
    public PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize) {
@@ -326,7 +325,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 删除用户（逻辑删除并清理相关数据）
+    * Admin - 删除用户（逻辑删除并清理相关数据）
     * 如果用户是正常状态（is_deleted = 0），则逻辑删除（设置为 1）并清理所有相关数据
     * 如果用户已经是已逻辑删除状态（is_deleted = 1），则不做任何操作
     */
@@ -344,19 +343,11 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
          log.warn("用户已经是删除状态，无需重复删除：userId={}", userId);
          return user;
       }
-      // 逻辑删除用户
-      Users updateUser = new Users();
-      updateUser.setId(userId);
-      updateUser.setIsDeleted(1);
-      updateUser.setUpdatedTime(new Date());
-      int result = usersMapper.updateByPrimaryKeySelective(updateUser);
-      if (result != 1) {
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
       // 删除/重置用户的所有相关数据
       {
          try {
             // 1. 删除Redis缓存
+            // 清除用户会话信息（token），用户需要重新登录，前端也需要清除本地app中的用户信息和token信息
             redis.delete(REDIS_USER_TOKEN + ":" + userId);
             redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
             redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
@@ -367,9 +358,10 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             // 缓存删除失败不影响主流程，只记录日志
          }
          try {
-            // 2. 重置用户个人信息（保留手机号）
+            // 2. 重置用户个人信息（保留手机号和创建时间，其他字段重置为默认值，和新用户一样）
             Users resetUser = new Users();
             resetUser.setId(userId);
+            // 重置所有个人信息字段
             resetUser.setNickname("用户:" + DesensitizationUtil.commonDisplay(user.getMobile()));
             resetUser.setVideoNum(DesensitizationUtil.commonDisplay(user.getMobile()));
             resetUser.setFace(USER_FACE);
@@ -381,10 +373,17 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             resetUser.setDistrict("");
             resetUser.setBgImg(USER_BGIMG);
             resetUser.setDescription("这家伙很懒，什么都没留下~");
+            // 重置账号限制：允许修改视频号（和新用户一样）
             resetUser.setCanVideoNumBeUpdated(YesOrNo.YES.type);
+            // 重置状态为正常
             resetUser.setStatus(0);
             resetUser.setUpdatedTime(new Date());
-            usersMapper.updateByPrimaryKeySelective(resetUser);
+            // 使用updateByPrimaryKeySelective更新，只更新非null字段
+            int resetResult = usersMapper.updateByPrimaryKeySelective(resetUser);
+            if (resetResult != 1) {
+               log.error("重置用户个人信息失败：更新影响行数为{}，userId={}", resetResult, userId);
+               GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            }
             log.info("重置用户个人信息成功：userId={}", userId);
          } catch (Exception e) {
             log.error("重置用户个人信息失败：userId={}", userId, e);
@@ -466,11 +465,21 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             // 消息删除失败不影响主流程，只记录日志
          }
       }
+      // 最后设置逻辑删除标志
+      Users updateUser = new Users();
+      updateUser.setId(userId);
+      updateUser.setIsDeleted(1);
+      updateUser.setUpdatedTime(new Date());
+      int result = usersMapper.updateByPrimaryKeySelective(updateUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      log.info("用户逻辑删除完成：userId={}", userId);
       return usersMapper.selectByPrimaryKey(userId);
    }
 
    /**
-    * 恢复用户 - 已逻辑删除的
+    * Admin - 恢复用户 - 已逻辑删除的
     * @param userId 用户ID
     * @return 恢复后的用户信息
     */
@@ -486,22 +495,24 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
          log.warn("用户未删除，无需恢复：userId={}", userId);
          return existUser;
       }
-      // 恢复用户（设置 isDeleted = 0）
+      // 恢复用户（设置 isDeleted = 0，同时解除封禁状态 status = 0）
       Users updateUser = new Users();
       updateUser.setId(userId);
       updateUser.setIsDeleted(0);
+      updateUser.setStatus(0);
       updateUser.setUpdatedTime(new Date());
       int result = usersMapper.updateByPrimaryKeySelective(updateUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
+      log.info("恢复用户成功：userId={}", userId);
       // 返回恢复后的用户信息
       return usersMapper.selectByPrimaryKey(userId);
    }
 
 
    /**
-    * 封禁/恢复用户（切换用户状态）
+    * Admin - 封禁/恢复用户（切换用户状态）
     * 如果用户是正常状态（status = 0），则封禁（设置为 1）
     * 如果用户是封禁状态（status = 1），则恢复（设置为 0）
     */
@@ -529,7 +540,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 获取所有用户的数量
+    * Admin - 获取所有用户的数量
     * 从数据库中统计所有用户（不包括已逻辑删除的）
     * @return 所有用户的数量
     */

@@ -132,12 +132,8 @@ public class AdminController extends BaseInfoProperties {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 查询用户当前状态
-      Users currentUser = userService.getUser(userId);
-      if (currentUser == null) {
-         // 如果getUser查不到（因为过滤了已删除的），尝试直接查询
-         currentUser = userService.queryUserByMobileIncludeDeleted(userService.getUser(userId).getMobile());
-      }
+      // 查询用户当前状态（包括已删除的用户）
+      Users currentUser = userService.getUserIncludeDeleted(userId);
       if (currentUser == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
