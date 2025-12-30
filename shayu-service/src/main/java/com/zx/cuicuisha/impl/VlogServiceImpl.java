@@ -93,14 +93,15 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       // 创建默认的待审核记录
       VlogAudit vlogAudit = new VlogAudit();
       vlogAudit.setVlogId(vid);
-      vlogAudit.setAuditStatus(0);        // 0-待审核
+      vlogAudit.setAuditStatus(0);
       // 待审核时，审核人信息、审核时间、审核备注均为null
       vlogAudit.setAuditorId(null);
       vlogAudit.setAuditorName(null);
       vlogAudit.setAuditTime(null);
       vlogAudit.setAuditRemark(null);
       vlogAudit.setCreateTime(new Date());
-      vlogAudit.setOriginalIsPrivate(null); // 只在封禁时使用
+      // 创建视频时默认是公开的，所以originalIsPrivate设置为公开（0）
+      vlogAudit.setOriginalIsPrivate(YesOrNo.NO.type);
       vlogAuditMapper.insert(vlogAudit);
    }
 
@@ -529,7 +530,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    /**
     * Admin - 审核视频（封禁/解封视频）
     * @param vlogId 视频ID
-    * @param auditStatus 审核状态 0-待审核 1-通过 2-拒绝（封禁）
+    * @param auditStatus 审核状态 0-审核中 1-通过 2-拒绝（封禁）
     * @param adminId 管理员ID
     * @param auditRemark 审核备注
     */
@@ -545,7 +546,7 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       if (adminId == null) {
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 验证审核状态值（0-待审核，1-通过，2-拒绝）
+      // 验证审核状态值（0-审核中，1-通过，2-拒绝）
       if (auditStatus < 0 || auditStatus > 2) {
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
@@ -559,20 +560,36 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       if (admin == null) {
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 创建审核记录
-      VlogAudit vlogAudit = new VlogAudit();
-      vlogAudit.setVlogId(vlogId);
+      // 查询该视频是否已有审核记录（一个视频应该只有一条审核记录）
+      Example example = new Example(VlogAudit.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("vlogId", vlogId);
+      List<VlogAudit> existingRecords = vlogAuditMapper.selectByExample(example);
+      VlogAudit vlogAudit;
+      boolean isUpdate = false;
+      if (existingRecords != null && !existingRecords.isEmpty()) {
+         // 如果已有记录，则更新该记录（一个视频应该只有一条记录）
+         vlogAudit = existingRecords.get(0);
+         isUpdate = true;
+      } else {
+         // 如果没有记录（理论上不应该发生，因为创建视频时已经创建了待审核记录），则创建新记录
+         vlogAudit = new VlogAudit();
+         vlogAudit.setVlogId(vlogId);
+         vlogAudit.setCreateTime(new Date());
+      }
+      // 更新审核记录信息
       vlogAudit.setAuditStatus(auditStatus);
       vlogAudit.setAuditorId(String.valueOf(adminId));
       vlogAudit.setAuditorName(admin.getRealName() != null ? admin.getRealName() : admin.getUsername());
       vlogAudit.setAuditRemark(auditRemark);
       vlogAudit.setAuditTime(new Date());
-      vlogAudit.setCreateTime(new Date());
       // 如果审核状态是2（封禁），保存视频的原始私密状态，并将视频设置为私密
       if (auditStatus == 2) {
-         // 保存封禁前的原始私密状态
-         Integer originalIsPrivate = vlog.getIsPrivate();
-         vlogAudit.setOriginalIsPrivate(originalIsPrivate);
+         // 保存封禁前的原始私密状态（只在首次封禁时保存，如果已经有originalIsPrivate则不覆盖）
+         if (vlogAudit.getOriginalIsPrivate() == null) {
+            Integer originalIsPrivate = vlog.getIsPrivate();
+            vlogAudit.setOriginalIsPrivate(originalIsPrivate);
+         }
          // 将视频设置为私密
          Vlog updateVlog = new Vlog();
          updateVlog.setId(vlogId);
@@ -580,39 +597,28 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
          updateVlog.setUpdatedTime(new Date());
          vlogMapper.updateByPrimaryKeySelective(updateVlog);
       }
-      // 如果审核状态是1（通过/解封），查询上一次封禁记录，恢复原始私密状态
+      // 如果审核状态是1（通过/解封），恢复原始私密状态
       if (auditStatus == 1) {
-         // 查询该视频最近一次封禁（audit_status=2）的审核记录
-         Example example = new Example(VlogAudit.class);
-         Example.Criteria criteria = example.createCriteria();
-         criteria.andEqualTo("vlogId", vlogId);
-         criteria.andEqualTo("auditStatus", 2);
-         example.setOrderByClause("id DESC");
-         List<VlogAudit> banRecords = vlogAuditMapper.selectByExample(example);
-         if (banRecords != null && !banRecords.isEmpty()) {
-            // 找到最近一次封禁记录（按ID倒序，第一条就是最新的）
-            VlogAudit lastBanRecord = banRecords.get(0);
-            Integer originalIsPrivate = lastBanRecord.getOriginalIsPrivate();
-            // 如果存在原始状态，恢复原始私密状态
-            if (originalIsPrivate != null) {
-               Vlog updateVlog = new Vlog();
-               updateVlog.setId(vlogId);
-               updateVlog.setIsPrivate(originalIsPrivate);
-               updateVlog.setUpdatedTime(new Date());
-               vlogMapper.updateByPrimaryKeySelective(updateVlog);
-            } else {
-               // 如果没有保存原始状态（可能是旧数据），则默认恢复为公开
-               Vlog updateVlog = new Vlog();
-               updateVlog.setId(vlogId);
-               updateVlog.setIsPrivate(YesOrNo.NO.type);
-               updateVlog.setUpdatedTime(new Date());
-               vlogMapper.updateByPrimaryKeySelective(updateVlog);
-            }
+         Integer originalIsPrivate = vlogAudit.getOriginalIsPrivate();
+         // 如果存在原始状态，恢复原始私密状态
+         if (originalIsPrivate != null) {
+            Vlog updateVlog = new Vlog();
+            updateVlog.setId(vlogId);
+            updateVlog.setIsPrivate(originalIsPrivate);
+            updateVlog.setUpdatedTime(new Date());
+            vlogMapper.updateByPrimaryKeySelective(updateVlog);
+         } else {
+            // 如果没有保存原始状态（可能是首次审核通过，没有封禁过），则保持当前状态或设置为公开
+            // 如果当前是私密状态，说明可能是用户自己设置的，保持原样；如果当前是公开状态，也保持原样
+            // 这里不做任何修改，保持视频当前的私密状态
          }
-         // 如果没有封禁记录，说明是首次审核通过，不需要修改视频的私密状态
       }
-
-      vlogAuditMapper.insert(vlogAudit);
+      // 保存或更新审核记录
+      if (isUpdate) {
+         vlogAuditMapper.updateByPrimaryKeySelective(vlogAudit);
+      } else {
+         vlogAuditMapper.insert(vlogAudit);
+      }
    }
 
    // Admin - 删除/恢复视频（切换逻辑删除状态）

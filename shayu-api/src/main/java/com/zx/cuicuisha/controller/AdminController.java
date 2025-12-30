@@ -228,7 +228,7 @@ public class AdminController extends BaseInfoProperties {
    /**
     * 审核接口-封禁/解封视频
     * @param vlogId 视频ID
-    * @param auditStatus 审核状态 0-待审核 1-通过 2-拒绝（封禁）
+    * @param auditStatus 审核状态 0-审核中 1-通过 2-拒绝（封禁）
     * @param adminId 管理员ID
     * @param auditRemark 审核备注（可选）
     * @return 操作结果
@@ -248,7 +248,7 @@ public class AdminController extends BaseInfoProperties {
       if (adminId == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 验证审核状态值（0-待审核，1-通过，2-拒绝）
+      // 验证审核状态值（0-审核中，1-通过，2-拒绝）
       if (auditStatus < 0 || auditStatus > 2) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
