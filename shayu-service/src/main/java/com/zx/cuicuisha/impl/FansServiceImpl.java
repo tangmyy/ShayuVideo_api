@@ -87,21 +87,25 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Transactional
    @Override
    public void doFollow(String myId, String vlogerId) {
-      // 检查关注者是否被封禁
+      // 检查关注者状态：只有封禁（status=2）不能关注他人
       Users fanUser = usersMapper.selectByPrimaryKey(myId);
       if (fanUser == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      if (fanUser.getStatus() != null && fanUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer fanStatus = fanUser.getStatus();
+      if (fanStatus != null && fanStatus == 2) {
+         // 封禁状态，不能关注他人
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
-      // 检查被关注者是否被封禁（被封禁的用户不能被关注）
+      // 检查被关注者状态：只有封禁（status=2）不能被关注
       Users vlogerUser = usersMapper.selectByPrimaryKey(vlogerId);
       if (vlogerUser == null) {
          GraceException.display(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
-      if (vlogerUser.getStatus() != null && vlogerUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer vlogerStatus = vlogerUser.getStatus();
+      if (vlogerStatus != null && vlogerStatus == 2) {
+         // 封禁状态，不能被关注
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
       String fanId = sid.nextShort();
       Fans fans = new Fans();

@@ -6,10 +6,12 @@ import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
-import com.zx.cuicuisha.service.MsgService;
+import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.vo.CommentVO;
@@ -35,6 +37,8 @@ public class CommentController extends BaseInfoProperties {
    private CommentService commentService;
    @Autowired
    private VlogService vlogService;
+   @Autowired
+   private UserService userService;
    @Autowired
    public RabbitTemplate rabbitTemplate;
 

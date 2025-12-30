@@ -151,11 +151,11 @@ public class AdminController extends BaseInfoProperties {
 
    @ApiOperation(value = "封禁/恢复用户（切换用户状态）")
    @PostMapping("users/banOrRestore")
-   public ResponseDataStructureEnum banOrRestoreUser(@RequestParam String userId) {
+   public ResponseDataStructureEnum banOrRestoreUser(@RequestParam String userId, @RequestParam(required = false) Integer banType) {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      Users user = userService.banOrRestoreUser(userId);
+      Users user = userService.banOrRestoreUser(userId, banType);
       return ResponseDataStructureEnum.ok(user);
    }
 

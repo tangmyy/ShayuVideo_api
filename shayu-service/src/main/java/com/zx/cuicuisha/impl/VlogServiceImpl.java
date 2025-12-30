@@ -71,13 +71,15 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    @Transactional
    @Override
    public void createVlog(VlogBO vlogBO) {
-      // 检查用户是否被封禁
+      // 检查用户状态：只有封禁（status=2）不能发布视频
       Users user = usersMapper.selectByPrimaryKey(vlogBO.getVlogerId());
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer status = user.getStatus();
+      if (status != null && status == 2) {
+         // 封禁状态，不能发布视频
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
       String vid = sid.nextShort();
       Vlog vlog = new Vlog();

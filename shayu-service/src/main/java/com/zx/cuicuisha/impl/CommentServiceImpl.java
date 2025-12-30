@@ -59,13 +59,20 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
 
    @Override
    public CommentVO createComment(CommentBO commentBO) {
-      // 检查用户是否被封禁
+      // 检查用户状态：禁言（status=1）和封禁（status=2）都不能发布评论
       Users user = usersMapper.selectByPrimaryKey(commentBO.getCommentUserId());
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer status = user.getStatus();
+      if (status != null) {
+         if (status == 1) {
+            // 禁言状态
+            GraceException.display(ResponseStatusEnum.USER_MUTED);
+         } else if (status == 2) {
+            // 封禁状态
+            GraceException.display(ResponseStatusEnum.USER_BANNED);
+         }
       }
       // 构造 CommentBO 信息
       String commentId = sid.nextShort();

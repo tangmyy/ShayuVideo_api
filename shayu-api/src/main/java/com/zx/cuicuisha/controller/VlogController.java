@@ -166,10 +166,6 @@ public class VlogController extends BaseInfoProperties {
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 检查用户是否被封禁
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
-      }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
       if (vloger == null) {
@@ -209,10 +205,6 @@ public class VlogController extends BaseInfoProperties {
       Users user = userService.getUser(userId);
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      // 检查用户是否被封禁
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
       }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
