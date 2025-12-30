@@ -55,12 +55,11 @@ public interface UserService {
    @Transactional
    Users restoreDeletedUser(String userId);
 
-   // Admin - 封禁/恢复用户（切换用户状态）
-   // banType: 1-禁言（禁止发布评论），2-封禁（禁止发视频和发评论和关注他人和被他人关注）
-   // 如果用户是正常状态，则根据 banType 设置相应状态
-   // 如果用户是禁言或封禁状态，则恢复为正常状态（status = 0）
+   // Admin - 设置用户状态
+   // status: 0-正常，1-禁言（禁止发布评论），2-封禁（禁止发视频和发评论和关注他人和被他人关注）
+   // 前端直接传递目标状态值，可以在三个状态之间任意转换
    @Transactional
-   Users banOrRestoreUser(String userId, Integer banType);
+   Users banOrRestoreUser(String userId, Integer status);
 
    // Admin - 获取所有用户的数量
    Integer getTotalUserCount();

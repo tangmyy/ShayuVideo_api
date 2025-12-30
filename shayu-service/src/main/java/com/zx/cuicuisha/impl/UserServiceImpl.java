@@ -598,38 +598,29 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
 
    /**
-    * Admin - 封禁/恢复用户（切换用户状态）
-    * banType: 1-禁言（禁止发布评论），2-封禁（禁止发视频和发评论和关注他人和被他人关注）
-    * 如果用户是正常状态（status = 0），则根据 banType 设置相应状态（1-禁言，2-封禁）
-    * 如果用户是禁言或封禁状态（status = 1 或 2），则恢复为正常状态（status = 0）
+    * Admin - 设置用户状态
+    * status: 0-正常，1-禁言（禁止发布评论），2-封禁（禁止发视频和发评论和关注他人和被他人关注）
+    * 前端直接传递目标状态值，可以在三个状态之间任意转换
     */
    @Transactional
    @Override
-   public Users banOrRestoreUser(String userId, Integer banType) {
+   public Users banOrRestoreUser(String userId, Integer status) {
       // 管理后台可以直接查询用户，不过滤 is_deleted
       Users user = usersMapper.selectByPrimaryKey(userId);
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 切换用户状态
-      Integer currentStatus = user.getStatus();
-      Integer newStatus;
-      if (currentStatus == null || currentStatus == 0) {
-         // 用户当前是正常状态，需要封禁
-         if (banType == null) {
-            GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
-         }
-         if (banType != 1 && banType != 2) {
-            GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
-         }
-         newStatus = banType; // 1-禁言，2-封禁
-      } else {
-         // 用户当前是禁言或封禁状态，恢复为正常状态
-         newStatus = 0;
+      // 验证状态值
+      if (status == null) {
+         GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
       }
+      if (status != 0 && status != 1 && status != 2) {
+         GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
+      }
+      // 直接设置为目标状态
       Users updateUser = new Users();
       updateUser.setId(userId);
-      updateUser.setStatus(newStatus);
+      updateUser.setStatus(status);
       updateUser.setUpdatedTime(new Date());
       int result = usersMapper.updateByPrimaryKeySelective(updateUser);
       if (result != 1) {
