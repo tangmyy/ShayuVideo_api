@@ -86,11 +86,22 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       vlog.setLikeCounts(0);
       vlog.setCommentsCounts(0);
       vlog.setIsPrivate(YesOrNo.NO.type);
-      vlog.setIsDeleted(1);               // 默认未审核
+      vlog.setIsDeleted(0);               // 默认未删除
       vlog.setCreatedTime(new Date());
       vlog.setUpdatedTime(new Date());
       vlogMapper.insert(vlog);
-
+      // 创建默认的待审核记录
+      VlogAudit vlogAudit = new VlogAudit();
+      vlogAudit.setVlogId(vid);
+      vlogAudit.setAuditStatus(0);        // 0-待审核
+      // 待审核时，审核人信息、审核时间、审核备注均为null
+      vlogAudit.setAuditorId(null);
+      vlogAudit.setAuditorName(null);
+      vlogAudit.setAuditTime(null);
+      vlogAudit.setAuditRemark(null);
+      vlogAudit.setCreateTime(new Date());
+      vlogAudit.setOriginalIsPrivate(null); // 只在封禁时使用
+      vlogAuditMapper.insert(vlogAudit);
    }
 
    // 更新视频信息
