@@ -76,6 +76,11 @@ public class Users {
     private Integer canVideoNumBeUpdated;
 
     /**
+     * 用户状态 0-正常状态，1-封禁状态
+     */
+    private Integer status;
+
+    /**
      * 创建时间 创建时间
      */
     @Column(name = "created_time")
@@ -86,6 +91,12 @@ public class Users {
      */
     @Column(name = "updated_time")
     private Date updatedTime;
+
+    /**
+     * 逻辑删除 0-正常，1-逻辑删除
+     */
+    @Column(name = "is_deleted")
+    private Integer isDeleted;
 
     /**
      * @return id
@@ -336,6 +347,24 @@ public class Users {
     }
 
     /**
+     * 获取用户状态 0-正常状态，1-封禁状态
+     *
+     * @return status - 用户状态 0-正常状态，1-封禁状态
+     */
+    public Integer getStatus() {
+        return status;
+    }
+
+    /**
+     * 设置用户状态 0-正常状态，1-封禁状态
+     *
+     * @param status 用户状态 0-正常状态，1-封禁状态
+     */
+    public void setStatus(Integer status) {
+        this.status = status;
+    }
+
+    /**
      * 获取创建时间 创建时间
      *
      * @return created_time - 创建时间 创建时间
@@ -369,5 +398,23 @@ public class Users {
      */
     public void setUpdatedTime(Date updatedTime) {
         this.updatedTime = updatedTime;
+    }
+
+    /**
+     * 获取逻辑删除 0-正常，1-逻辑删除
+     *
+     * @return is_deleted - 逻辑删除 0-正常，1-逻辑删除
+     */
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
+
+    /**
+     * 设置逻辑删除 0-正常，1-逻辑删除
+     *
+     * @param isDeleted 逻辑删除 0-正常，1-逻辑删除
+     */
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
     }
 }

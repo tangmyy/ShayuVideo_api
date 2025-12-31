@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zx.cuicuisha.mapper.VlogAuditMapper" >
+  <resultMap id="BaseResultMap" type="com.zx.cuicuisha.pojo.VlogAudit" >
+    <!--
+      WARNING - @mbg.generated
+    -->
+    <id column="id" property="id" jdbcType="BIGINT" />
+    <result column="vlog_id" property="vlogId" jdbcType="VARCHAR" />
+    <result column="audit_status" property="auditStatus" jdbcType="TINYINT" />
+    <result column="auditor_id" property="auditorId" jdbcType="VARCHAR" />
+    <result column="auditor_name" property="auditorName" jdbcType="VARCHAR" />
+    <result column="audit_time" property="auditTime" jdbcType="TIMESTAMP" />
+    <result column="audit_remark" property="auditRemark" jdbcType="VARCHAR" />
+    <result column="original_is_private" property="originalIsPrivate" jdbcType="INTEGER" />
+    <result column="create_time" property="createTime" jdbcType="TIMESTAMP" />
+  </resultMap>
+</mapper>

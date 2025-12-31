@@ -29,6 +29,11 @@ public class Vlog {
     private String title;
 
     /**
+     * 标签
+     */
+    private String tag;
+
+    /**
      * 视频width
      */
     private Integer width;
@@ -55,6 +60,12 @@ public class Vlog {
      */
     @Column(name = "is_private")
     private Integer isPrivate;
+
+    /**
+     * 逻辑删除 0-正常，1-逻辑删除
+     */
+    @Column(name = "is_deleted")
+    private Integer isDeleted;
 
     /**
      * 创建时间 创建时间
@@ -155,6 +166,24 @@ public class Vlog {
     }
 
     /**
+     * 获取标签
+     *
+     * @return tag - 标签
+     */
+    public String getTag() {
+        return tag;
+    }
+
+    /**
+     * 设置标签
+     *
+     * @param tag 标签
+     */
+    public void setTag(String tag) {
+        this.tag = tag;
+    }
+
+    /**
      * 获取视频width
      *
      * @return width - 视频width
@@ -242,6 +271,24 @@ public class Vlog {
      */
     public void setIsPrivate(Integer isPrivate) {
         this.isPrivate = isPrivate;
+    }
+
+    /**
+     * 获取逻辑删除 0-正常，1-逻辑删除
+     *
+     * @return is_deleted - 逻辑删除 0-正常，1-逻辑删除
+     */
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
+
+    /**
+     * 设置逻辑删除 0-正常，1-逻辑删除
+     *
+     * @param isDeleted 逻辑删除 0-正常，1-逻辑删除
+     */
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
     }
 
     /**
