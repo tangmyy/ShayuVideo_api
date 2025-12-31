@@ -53,8 +53,10 @@ public class RabbitMQConsumer {
          msgContent = messageMO.getMsgContent();
       }
       // 5. 根据消息类型调用不同的方法创建消息
-      // REPORT_HANDLED 类型使用管理员消息方法，其他类型使用普通消息方法
-      if (messageTypeEnum == MessageTypeEnum.REPORT_HANDLED) {
+      // REPORT_HANDLED、SYSTEM_MESSAGE、SYSTEM_ANNOUNCEMENT 类型使用管理员消息方法（系统消息格式），其他类型使用普通消息方法
+      if (messageTypeEnum == MessageTypeEnum.REPORT_HANDLED 
+            || messageTypeEnum == MessageTypeEnum.SYSTEM_MESSAGE 
+            || messageTypeEnum == MessageTypeEnum.SYSTEM_ANNOUNCEMENT) {
          msgService.createAdminMsg(messageMO.getFromUserId(), messageMO.getToUserId(), messageTypeEnum.type, msgContent);
       } else {
          msgService.createMsg(messageMO.getFromUserId(), messageMO.getToUserId(), messageTypeEnum.type, msgContent);

@@ -12,7 +12,9 @@ public enum MessageTypeEnum {
     COMMENT_VLOG(3, "评论视频", "comment"),
     REPLY_YOU(4, "回复评论", "replay"),
     LIKE_COMMENT(5, "点赞评论", "likeComment"),
-    REPORT_HANDLED(6, "举报处理", "reportHandled");
+    REPORT_HANDLED(6, "举报处理", "reportHandled"),
+    SYSTEM_MESSAGE(7, "系统消息", "systemMessage"),
+    SYSTEM_ANNOUNCEMENT(8, "系统公告", "systemAnnouncement");
 
     public final Integer type;
     public final String value;

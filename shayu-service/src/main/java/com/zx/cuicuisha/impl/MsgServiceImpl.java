@@ -1,30 +1,25 @@
 package com.zx.cuicuisha.impl;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
-import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
-import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.AdminService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.UserService;
-import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
-import tk.mybatis.mapper.entity.Example;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -41,10 +36,6 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    private UserService userService;
    @Autowired
    private AdminService adminService;
-   @Autowired
-   private UsersMapper usersMapper;
-   @Autowired
-   private RabbitTemplate rabbitTemplate;
 
    private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
 
@@ -66,41 +57,6 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       }
       messageMO.setCreateTime(new Date());
       messageRepository.save(messageMO);
-   }
-
-   @Override
-   public void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
-      // 获取管理员头像
-      String adminUsersAvatar = ADMIN_DEFAULT_FACE; // 默认头像
-      if (StringUtils.isNotBlank(fromUserId)) {
-         try {
-            // 将String类型的fromUserId转换为Long类型
-            Long adminId = Long.parseLong(fromUserId);
-            AdminUsers admin = adminService.getAdminById(adminId);
-            if (admin != null && StringUtils.isNotBlank(admin.getAvatar())) {
-               adminUsersAvatar = admin.getAvatar();
-            } else {
-               log.warn("管理员不存在或没有头像，使用默认头像：fromUserId={}", fromUserId);
-            }
-         } catch (NumberFormatException e) {
-            log.warn("fromUserId不是有效的管理员ID，使用默认头像：fromUserId={}", fromUserId);
-         } catch (Exception e) {
-            log.error("查询管理员信息失败，使用默认头像：fromUserId={}, error={}", fromUserId, e.getMessage());
-         }
-      }
-      MessageMO messageMO = new MessageMO();
-      messageMO.setFromUserId(fromUserId);
-      messageMO.setFromNickname("系统消息");
-      messageMO.setFromFace(adminUsersAvatar);
-      messageMO.setToUserId(toUserId);
-      messageMO.setMsgType(type);
-      if (msgContent != null) {
-         messageMO.setMsgContent(msgContent);
-      }
-      messageMO.setCreateTime(new Date());
-      MessageMO savedMsg = messageRepository.save(messageMO);
-      log.info("系统消息创建成功：msgId={}, fromUserId={}, toUserId={}, msgType={}, avatar={}", 
-               savedMsg.getId(), fromUserId, toUserId, type, adminUsersAvatar);
    }
 
    @Override
@@ -153,7 +109,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       log.info("消息删除成功：msgId={}, toUserId={}", msgId, toUserId);
    }
 
-   // admin 管理员端专用方法
+   // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    @Override
    public PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize) {
       // MongoDB分页从0开始，需要将页码从1转换为0
@@ -196,6 +152,54 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       return gridResult;
    }
 
+   // Admin - 创建管理员消息（使用系统消息作为发送者）
+   @Override
+   public void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
+      // 获取管理员头像
+      String adminUsersAvatar = ADMIN_DEFAULT_FACE; // 默认头像
+      if (StringUtils.isNotBlank(fromUserId)) {
+         try {
+            // 将String类型的fromUserId转换为Long类型
+            Long adminId = Long.parseLong(fromUserId);
+            AdminUsers admin = adminService.getAdminById(adminId);
+            if (admin != null && StringUtils.isNotBlank(admin.getAvatar())) {
+               adminUsersAvatar = admin.getAvatar();
+            } else {
+               log.warn("管理员不存在或没有头像，使用默认头像：fromUserId={}", fromUserId);
+            }
+         } catch (NumberFormatException e) {
+            log.warn("fromUserId不是有效的管理员ID，使用默认头像：fromUserId={}", fromUserId);
+         } catch (Exception e) {
+            log.error("查询管理员信息失败，使用默认头像：fromUserId={}, error={}", fromUserId, e.getMessage());
+         }
+      }
+      // 根据消息类型设置不同的发送者昵称
+      String fromNickname = "系统通知"; // 默认昵称
+      if (type != null) {
+         if (type == MessageTypeEnum.REPORT_HANDLED.type) {
+            fromNickname = "举报结果";
+         } else if (type == MessageTypeEnum.SYSTEM_MESSAGE.type) {
+            fromNickname = "系统消息";
+         } else if (type == MessageTypeEnum.SYSTEM_ANNOUNCEMENT.type) {
+            fromNickname = "系统通知";
+         }
+      }
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(fromUserId);
+      messageMO.setFromNickname(fromNickname);
+      messageMO.setFromFace(adminUsersAvatar);
+      messageMO.setToUserId(toUserId);
+      messageMO.setMsgType(type);
+      if (msgContent != null) {
+         messageMO.setMsgContent(msgContent);
+      }
+      messageMO.setCreateTime(new Date());
+      MessageMO savedMsg = messageRepository.save(messageMO);
+      log.info("系统消息创建成功：msgId={}, fromUserId={}, toUserId={}, msgType={}, fromNickname={}, avatar={}", savedMsg.getId(), fromUserId, toUserId, type, fromNickname, adminUsersAvatar);
+   }
+
+
+   // Admin - 删除消息（管理员专用，不需要权限校验）
    @Override
    public void deleteMsgForAdmin(String msgId) {
       // 参数校验
@@ -213,6 +217,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       log.info("管理员删除消息成功：msgId={}", msgId);
    }
 
+   // Admin - 更新消息（管理员专用，支持灵活更新）
    @Override
    public MessageMO updateMsgForAdmin(MessageUpdateMO messageUpdateMO) {
       // 参数校验
@@ -287,115 +292,6 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       MessageMO updatedMessage = messageRepository.save(existMessage);
       log.info("管理员更新消息成功：msgId={}", messageUpdateMO.getId());
       return updatedMessage;
-   }
-
-   @Override
-   public void sendAnnouncement(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent) {
-      // 参数校验
-      if (StringUtils.isBlank(handlerId)) {
-         log.error("发送系统消息失败：管理员ID不能为空");
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      if (StringUtils.isBlank(toUserId)) {
-         log.error("发送系统消息失败：接收用户ID不能为空");
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      if (msgType == null) {
-         log.error("发送系统消息失败：消息类型不能为空");
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      // 验证消息类型是否有效
-      MessageTypeEnum messageTypeEnum = null;
-      for (MessageTypeEnum type : MessageTypeEnum.values()) {
-         if (type.type.equals(msgType)) {
-            messageTypeEnum = type;
-            break;
-         }
-      }
-      if (messageTypeEnum == null) {
-         log.error("发送系统消息失败：无效的消息类型，msgType={}", msgType);
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
-      // 验证接收用户是否存在
-      Users toUser = userService.getUser(toUserId);
-      if (toUser == null) {
-         log.error("发送系统消息失败：接收用户不存在，toUserId={}", toUserId);
-         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      // 发送消息到MQ（异步）
-      try {
-         MessageMO messageMO = new MessageMO();
-         messageMO.setFromUserId(handlerId);
-         messageMO.setToUserId(toUserId);
-         messageMO.setMsgContent(msgContent);
-         // 根据消息类型决定路由键
-         String routingKey = "sys.msg." + messageTypeEnum.enValue;
-         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, routingKey, JsonUtils.objectToJson(messageMO));
-         log.info("系统消息已发送到MQ：handlerId={}, toUserId={}, msgType={}, routingKey={}",
-                  handlerId, toUserId, msgType, routingKey);
-      } catch (Exception e) {
-         log.error("发送系统消息到MQ失败：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, msgType, e);
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
-   }
-
-   @Override
-   public void sendAnnouncementToAll(String handlerId, Integer msgType, Map<String, Object> msgContent) {
-      // 参数校验
-      if (StringUtils.isBlank(handlerId)) {
-         log.error("发送公告失败：管理员ID不能为空");
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      if (msgType == null) {
-         log.error("发送公告失败：消息类型不能为空");
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
-      }
-      // 验证消息类型是否有效
-      MessageTypeEnum messageTypeEnum = null;
-      for (MessageTypeEnum type : MessageTypeEnum.values()) {
-         if (type.type.equals(msgType)) {
-            messageTypeEnum = type;
-            break;
-         }
-      }
-      if (messageTypeEnum == null) {
-         log.error("发送公告失败：无效的消息类型，msgType={}", msgType);
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
-      // 查询所有未删除的用户
-      Example example = new Example(Users.class);
-      Example.Criteria criteria = example.createCriteria();
-      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
-      List<Users> allUsers = usersMapper.selectByExample(example);
-      if (allUsers == null || allUsers.isEmpty()) {
-         log.warn("发送公告失败：没有找到任何用户");
-         return;
-      }
-      log.info("开始发送公告给所有用户，共{}个用户", allUsers.size());
-      // 为每个用户发送消息到MQ（异步）
-      int successCount = 0;
-      int failCount = 0;
-      for (Users user : allUsers) {
-         try {
-            MessageMO messageMO = new MessageMO();
-            messageMO.setFromUserId(handlerId);
-            messageMO.setToUserId(user.getId());
-            messageMO.setMsgContent(msgContent);
-            // 根据消息类型决定路由键
-            String routingKey = "sys.msg." + messageTypeEnum.enValue;
-            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, routingKey, JsonUtils.objectToJson(messageMO));
-            successCount++;
-         } catch (Exception e) {
-            failCount++;
-            log.error("发送公告到用户失败：userId={}", user.getId(), e);
-            // 单个用户发送失败不影响其他用户，继续发送
-         }
-      }
-      log.info("公告发送完成：成功{}个，失败{}个，总计{}个用户", successCount, failCount, allUsers.size());
-      if (failCount > 0 && successCount == 0) {
-         // 如果全部失败，抛出异常
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
    }
 
 }

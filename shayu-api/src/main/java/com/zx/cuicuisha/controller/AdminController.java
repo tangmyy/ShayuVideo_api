@@ -2,9 +2,9 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
-import com.zx.cuicuisha.bo.AnnouncementBO;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentUpdateBO;
-import com.zx.cuicuisha.bo.SystemNotificationBO;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
@@ -15,25 +15,31 @@ import com.zx.cuicuisha.enums.VlogSortTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.bo.AdminLoginBO;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
-import com.zx.cuicuisha.vo.AdminUsersVO;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.AdminUsersVO;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tk.mybatis.mapper.entity.Example;
 
 import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -59,6 +65,10 @@ public class AdminController extends BaseInfoProperties {
    private ReportService reportService;
    @Autowired
    private AdminService adminService;
+   @Autowired
+   private RabbitTemplate rabbitTemplate;
+   @Autowired
+   private UsersMapper usersMapper;
 
    /**
     * 查询用户列表（支持分页和搜索）
@@ -408,38 +418,114 @@ public class AdminController extends BaseInfoProperties {
 
    /**
     * 管理端：主动发送系统消息
-    * /admin/msg/send
+    * /admin/msg/sendSystemMessage
     * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统消息
-    * @param systemNotificationBO 系统消息对象（包含管理员ID、接收用户ID、消息类型、消息内容）
+    * 消息类型固定为 SYSTEM_MESSAGE(7)，最终通过 createAdminMsg 创建系统消息
+    * @param handlerId 管理员ID
+    * @param toUserId 接收用户ID
+    * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
     * @return 操作结果
     */
-   @ApiOperation(value = "主动发送系统消息（通过MQ异步发送）")
+   @ApiOperation(value = "主动发送系统消息（通过MQ异步发送，消息类型固定为系统消息）")
    @PostMapping("msg/sendSystemMessage")
-   public ResponseDataStructureEnum sendSystemMessage(@RequestBody @Valid SystemNotificationBO systemNotificationBO) {
-      msgService.sendAnnouncement(
-            systemNotificationBO.getHandlerId(),
-            systemNotificationBO.getToUserId(),
-            systemNotificationBO.getMsgType(),
-            systemNotificationBO.getMsgContent()
-      );
+   public ResponseDataStructureEnum sendSystemMessage(@RequestParam String handlerId, @RequestParam String toUserId, @RequestParam(required = false) String msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(toUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证接收用户是否存在
+      Users toUser = userService.getUser(toUserId);
+      if (toUser == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 解析 msgContent（JSON字符串转Map）
+      Map<String, Object> msgContentMap = null;
+      if (StringUtils.isNotBlank(msgContent)) {
+         try {
+            msgContentMap = JsonUtils.jsonToPojo(msgContent, Map.class);
+         } catch (Exception e) {
+            log.error("解析消息内容失败：msgContent={}", msgContent, e);
+            return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+      }
+      // 发送消息到MQ（异步），参照 handleReport 的逻辑
+      try {
+         MessageMO messageMO = new MessageMO();
+         messageMO.setFromUserId(handlerId);
+         messageMO.setToUserId(toUserId);
+         messageMO.setMsgContent(msgContentMap);
+         // 路由键：sys.msg.systemMessage
+         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.SYSTEM_MESSAGE.enValue, JsonUtils.objectToJson(messageMO));
+         log.info("系统消息已发送到MQ：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, MessageTypeEnum.SYSTEM_MESSAGE.type);
+      } catch (Exception e) {
+         log.error("发送系统消息到MQ失败：handlerId={}, toUserId={}", handlerId, toUserId, e);
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
       return ResponseDataStructureEnum.ok();
    }
 
    /**
     * 管理端：发送系统公告/活动通知给所有用户
-    * /admin/msg/announcement
+    * /admin/msg/sendSystemNotification
     * 通过 RabbitMQ 异步发送公告给所有未删除的用户
-    * @param announcementBO 公告对象（包含管理员ID、消息类型、消息内容）
+    * 消息类型固定为 SYSTEM_ANNOUNCEMENT(8)，最终通过 createAdminMsg 创建系统消息
+    * @param handlerId 管理员ID
+    * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
     * @return 操作结果
     */
-   @ApiOperation(value = "发送系统公告/活动通知给所有用户（通过MQ异步发送）")
+   @ApiOperation(value = "发送系统公告/活动通知给所有用户（通过MQ异步发送，消息类型固定为系统公告）")
    @PostMapping("msg/sendSystemNotification")
-   public ResponseDataStructureEnum sendSystemNotification(@RequestBody @Valid AnnouncementBO announcementBO) {
-      msgService.sendAnnouncementToAll(
-            announcementBO.getHandlerId(),
-            announcementBO.getMsgType(),
-            announcementBO.getMsgContent()
-      );
+   public ResponseDataStructureEnum sendSystemNotification(@RequestParam String handlerId, @RequestParam(required = false) String msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 解析 msgContent（JSON字符串转Map）
+      Map<String, Object> msgContentMap = null;
+      if (StringUtils.isNotBlank(msgContent)) {
+         try {
+            msgContentMap = JsonUtils.jsonToPojo(msgContent, Map.class);
+         } catch (Exception e) {
+            log.error("解析消息内容失败：msgContent={}", msgContent, e);
+            return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+      }
+      // 查询所有未删除的用户
+      Example example = new Example(Users.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
+      List<Users> allUsers = usersMapper.selectByExample(example);
+      if (allUsers == null || allUsers.isEmpty()) {
+         log.warn("发送公告失败：没有找到任何用户");
+         return ResponseDataStructureEnum.ok();
+      }
+      log.info("开始发送公告给所有用户，共{}个用户", allUsers.size());
+      // 为每个用户发送消息到MQ（异步），参照 handleReport 的逻辑
+      int successCount = 0;
+      int failCount = 0;
+      for (Users user : allUsers) {
+         try {
+            MessageMO messageMO = new MessageMO();
+            messageMO.setFromUserId(handlerId);
+            messageMO.setToUserId(user.getId());
+            messageMO.setMsgContent(msgContentMap);
+            // 路由键：sys.msg.systemAnnouncement
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.SYSTEM_ANNOUNCEMENT.enValue, JsonUtils.objectToJson(messageMO));
+            successCount++;
+         } catch (Exception e) {
+            failCount++;
+            log.error("发送公告到用户失败：userId={}", user.getId(), e);
+            // 单个用户发送失败不影响其他用户，继续发送
+         }
+      }
+      log.info("公告发送完成：成功{}个，失败{}个，总计{}个用户", successCount, failCount, allUsers.size());
+      if (failCount > 0 && successCount == 0) {
+         // 如果全部失败，返回错误
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
       return ResponseDataStructureEnum.ok();
    }
 

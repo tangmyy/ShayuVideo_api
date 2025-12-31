@@ -12,9 +12,6 @@ public interface MsgService {
    // 创建消息
    void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent);
 
-   // 创建管理员消息（使用系统消息作为发送者）
-   void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent);
-
    // 查询消息列表
    List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize);
 
@@ -24,16 +21,13 @@ public interface MsgService {
    // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize);
 
+   // Admin - 创建管理员消息（使用系统消息作为发送者）
+   void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent);
+
    // Admin - 删除消息（管理员专用，不需要权限校验）
    void deleteMsgForAdmin(String msgId);
 
    // Admin - 更新消息（管理员专用，支持灵活更新）
    MessageMO updateMsgForAdmin(MessageUpdateMO messageUpdateMO);
-
-   // Admin - 主动发送系统消息（通过MQ异步发送）
-   void sendAnnouncement(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent);
-
-   // Admin - 发送公告/通知给所有用户（通过MQ异步发送）
-   void sendAnnouncementToAll(String handlerId, Integer msgType, Map<String, Object> msgContent);
 
 }
