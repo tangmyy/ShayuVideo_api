@@ -3,6 +3,7 @@ package com.zx.cuicuisha.controller;
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.CommentUpdateBO;
+import com.zx.cuicuisha.bo.SystemNotificationBO;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
@@ -402,6 +403,25 @@ public class AdminController extends BaseInfoProperties {
       }
       MessageMO updatedMessage = msgService.updateMsgForAdmin(messageUpdateMO);
       return ResponseDataStructureEnum.ok(updatedMessage);
+   }
+
+   /**
+    * 管理端：主动发送系统通知
+    * /admin/msg/send
+    * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统通知
+    * @param systemNotificationBO 系统通知对象（包含管理员ID、接收用户ID、消息类型、消息内容）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "主动发送系统通知（通过MQ异步发送）")
+   @PostMapping("msg/send")
+   public ResponseDataStructureEnum sendSystemNotification(@RequestBody @Valid SystemNotificationBO systemNotificationBO) {
+      msgService.sendSystemNotification(
+            systemNotificationBO.getHandlerId(),
+            systemNotificationBO.getToUserId(),
+            systemNotificationBO.getMsgType(),
+            systemNotificationBO.getMsgContent()
+      );
+      return ResponseDataStructureEnum.ok();
    }
 
    /**

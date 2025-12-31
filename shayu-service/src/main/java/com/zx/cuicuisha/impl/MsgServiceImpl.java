@@ -1,6 +1,7 @@
 package com.zx.cuicuisha.impl;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.exceptions.GraceException;
@@ -12,9 +13,11 @@ import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.AdminService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.UserService;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -36,6 +39,8 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    private UserService userService;
    @Autowired
    private AdminService adminService;
+   @Autowired
+   private RabbitTemplate rabbitTemplate;
 
    private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
 
@@ -278,6 +283,56 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       MessageMO updatedMessage = messageRepository.save(existMessage);
       log.info("管理员更新消息成功：msgId={}", messageUpdateMO.getId());
       return updatedMessage;
+   }
+
+   @Override
+   public void sendSystemNotification(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         log.error("发送系统通知失败：管理员ID不能为空");
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(toUserId)) {
+         log.error("发送系统通知失败：接收用户ID不能为空");
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (msgType == null) {
+         log.error("发送系统通知失败：消息类型不能为空");
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证消息类型是否有效
+      MessageTypeEnum messageTypeEnum = null;
+      for (MessageTypeEnum type : MessageTypeEnum.values()) {
+         if (type.type.equals(msgType)) {
+            messageTypeEnum = type;
+            break;
+         }
+      }
+      if (messageTypeEnum == null) {
+         log.error("发送系统通知失败：无效的消息类型，msgType={}", msgType);
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 验证接收用户是否存在
+      Users toUser = userService.getUser(toUserId);
+      if (toUser == null) {
+         log.error("发送系统通知失败：接收用户不存在，toUserId={}", toUserId);
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 发送消息到MQ（异步）
+      try {
+         MessageMO messageMO = new MessageMO();
+         messageMO.setFromUserId(handlerId);
+         messageMO.setToUserId(toUserId);
+         messageMO.setMsgContent(msgContent);
+         // 根据消息类型决定路由键
+         String routingKey = "sys.msg." + messageTypeEnum.enValue;
+         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, routingKey, JsonUtils.objectToJson(messageMO));
+         log.info("系统通知已发送到MQ：handlerId={}, toUserId={}, msgType={}, routingKey={}", 
+                  handlerId, toUserId, msgType, routingKey);
+      } catch (Exception e) {
+         log.error("发送系统通知到MQ失败：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, msgType, e);
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
    }
 }
 

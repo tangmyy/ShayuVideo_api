@@ -30,4 +30,7 @@ public interface MsgService {
    // Admin - 更新消息（管理员专用，支持灵活更新）
    MessageMO updateMsgForAdmin(MessageUpdateMO messageUpdateMO);
 
+   // Admin - 主动发送系统通知（通过MQ异步发送）
+   void sendSystemNotification(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent);
+
 }
