@@ -2,6 +2,7 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.bo.AnnouncementBO;
 import com.zx.cuicuisha.bo.CommentUpdateBO;
 import com.zx.cuicuisha.bo.SystemNotificationBO;
 import com.zx.cuicuisha.mo.MessageMO;
@@ -406,20 +407,38 @@ public class AdminController extends BaseInfoProperties {
    }
 
    /**
-    * 管理端：主动发送系统通知
+    * 管理端：主动发送系统消息
     * /admin/msg/send
-    * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统通知
-    * @param systemNotificationBO 系统通知对象（包含管理员ID、接收用户ID、消息类型、消息内容）
+    * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统消息
+    * @param systemNotificationBO 系统消息对象（包含管理员ID、接收用户ID、消息类型、消息内容）
     * @return 操作结果
     */
-   @ApiOperation(value = "主动发送系统通知（通过MQ异步发送）")
-   @PostMapping("msg/send")
-   public ResponseDataStructureEnum sendSystemNotification(@RequestBody @Valid SystemNotificationBO systemNotificationBO) {
-      msgService.sendSystemNotification(
+   @ApiOperation(value = "主动发送系统消息（通过MQ异步发送）")
+   @PostMapping("msg/sendSystemMessage")
+   public ResponseDataStructureEnum sendSystemMessage(@RequestBody @Valid SystemNotificationBO systemNotificationBO) {
+      msgService.sendAnnouncement(
             systemNotificationBO.getHandlerId(),
             systemNotificationBO.getToUserId(),
             systemNotificationBO.getMsgType(),
             systemNotificationBO.getMsgContent()
+      );
+      return ResponseDataStructureEnum.ok();
+   }
+
+   /**
+    * 管理端：发送系统公告/活动通知给所有用户
+    * /admin/msg/announcement
+    * 通过 RabbitMQ 异步发送公告给所有未删除的用户
+    * @param announcementBO 公告对象（包含管理员ID、消息类型、消息内容）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "发送系统公告/活动通知给所有用户（通过MQ异步发送）")
+   @PostMapping("msg/sendSystemNotification")
+   public ResponseDataStructureEnum sendSystemNotification(@RequestBody @Valid AnnouncementBO announcementBO) {
+      msgService.sendAnnouncementToAll(
+            announcementBO.getHandlerId(),
+            announcementBO.getMsgType(),
+            announcementBO.getMsgContent()
       );
       return ResponseDataStructureEnum.ok();
    }

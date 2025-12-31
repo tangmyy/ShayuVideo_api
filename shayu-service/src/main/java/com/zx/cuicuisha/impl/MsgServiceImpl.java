@@ -7,6 +7,7 @@ import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.repository.MessageRepository;
@@ -23,6 +24,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import tk.mybatis.mapper.entity.Example;
 
 import java.util.Date;
 import java.util.HashMap;
@@ -39,6 +41,8 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    private UserService userService;
    @Autowired
    private AdminService adminService;
+   @Autowired
+   private UsersMapper usersMapper;
    @Autowired
    private RabbitTemplate rabbitTemplate;
 
@@ -286,18 +290,18 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    }
 
    @Override
-   public void sendSystemNotification(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent) {
+   public void sendAnnouncement(String handlerId, String toUserId, Integer msgType, Map<String, Object> msgContent) {
       // 参数校验
       if (StringUtils.isBlank(handlerId)) {
-         log.error("发送系统通知失败：管理员ID不能为空");
+         log.error("发送系统消息失败：管理员ID不能为空");
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
       if (StringUtils.isBlank(toUserId)) {
-         log.error("发送系统通知失败：接收用户ID不能为空");
+         log.error("发送系统消息失败：接收用户ID不能为空");
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
       if (msgType == null) {
-         log.error("发送系统通知失败：消息类型不能为空");
+         log.error("发送系统消息失败：消息类型不能为空");
          GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
       }
       // 验证消息类型是否有效
@@ -309,13 +313,13 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
          }
       }
       if (messageTypeEnum == null) {
-         log.error("发送系统通知失败：无效的消息类型，msgType={}", msgType);
+         log.error("发送系统消息失败：无效的消息类型，msgType={}", msgType);
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
       // 验证接收用户是否存在
       Users toUser = userService.getUser(toUserId);
       if (toUser == null) {
-         log.error("发送系统通知失败：接收用户不存在，toUserId={}", toUserId);
+         log.error("发送系统消息失败：接收用户不存在，toUserId={}", toUserId);
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
       // 发送消息到MQ（异步）
@@ -327,12 +331,73 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
          // 根据消息类型决定路由键
          String routingKey = "sys.msg." + messageTypeEnum.enValue;
          rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, routingKey, JsonUtils.objectToJson(messageMO));
-         log.info("系统通知已发送到MQ：handlerId={}, toUserId={}, msgType={}, routingKey={}", 
+         log.info("系统消息已发送到MQ：handlerId={}, toUserId={}, msgType={}, routingKey={}",
                   handlerId, toUserId, msgType, routingKey);
       } catch (Exception e) {
-         log.error("发送系统通知到MQ失败：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, msgType, e);
+         log.error("发送系统消息到MQ失败：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, msgType, e);
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
    }
+
+   @Override
+   public void sendAnnouncementToAll(String handlerId, Integer msgType, Map<String, Object> msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         log.error("发送公告失败：管理员ID不能为空");
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (msgType == null) {
+         log.error("发送公告失败：消息类型不能为空");
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证消息类型是否有效
+      MessageTypeEnum messageTypeEnum = null;
+      for (MessageTypeEnum type : MessageTypeEnum.values()) {
+         if (type.type.equals(msgType)) {
+            messageTypeEnum = type;
+            break;
+         }
+      }
+      if (messageTypeEnum == null) {
+         log.error("发送公告失败：无效的消息类型，msgType={}", msgType);
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 查询所有未删除的用户
+      Example example = new Example(Users.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
+      List<Users> allUsers = usersMapper.selectByExample(example);
+      if (allUsers == null || allUsers.isEmpty()) {
+         log.warn("发送公告失败：没有找到任何用户");
+         return;
+      }
+      log.info("开始发送公告给所有用户，共{}个用户", allUsers.size());
+      // 为每个用户发送消息到MQ（异步）
+      int successCount = 0;
+      int failCount = 0;
+      for (Users user : allUsers) {
+         try {
+            MessageMO messageMO = new MessageMO();
+            messageMO.setFromUserId(handlerId);
+            messageMO.setToUserId(user.getId());
+            messageMO.setMsgContent(msgContent);
+            // 根据消息类型决定路由键
+            String routingKey = "sys.msg." + messageTypeEnum.enValue;
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, routingKey, JsonUtils.objectToJson(messageMO));
+            successCount++;
+         } catch (Exception e) {
+            failCount++;
+            log.error("发送公告到用户失败：userId={}", user.getId(), e);
+            // 单个用户发送失败不影响其他用户，继续发送
+         }
+      }
+      log.info("公告发送完成：成功{}个，失败{}个，总计{}个用户", successCount, failCount, allUsers.size());
+      if (failCount > 0 && successCount == 0) {
+         // 如果全部失败，抛出异常
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+   }
+
 }
+
 

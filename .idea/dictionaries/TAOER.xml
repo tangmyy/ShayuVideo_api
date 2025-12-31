@@ -2,6 +2,8 @@
   <dictionary name="TAOER">
     <words>
       <w>bgimg</w>
+      <w>senduser</w>
+      <w>sendusers</w>
     </words>
   </dictionary>
 </component>
