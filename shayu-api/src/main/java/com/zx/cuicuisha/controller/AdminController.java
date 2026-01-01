@@ -423,7 +423,7 @@ public class AdminController extends BaseInfoProperties {
     * 管理端：主动发送系统消息
     * /admin/msg/sendSystemMessage
     * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统消息
-    * 消息类型固定为 SYSTEM_MESSAGE(7)，最终通过 createAdminMsg 创建系统消息
+    * 消息类型固定为 SYSTEM_MESSAGE(8)，最终通过 createAdminMsg 创建系统消息
     * @param handlerId 管理员ID
     * @param toUserId 接收用户ID
     * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
@@ -474,7 +474,7 @@ public class AdminController extends BaseInfoProperties {
     * 管理端：发送系统公告/活动通知给所有用户
     * /admin/msg/sendSystemNotification
     * 通过 RabbitMQ 异步发送公告给所有未删除的用户
-    * 消息类型固定为 SYSTEM_ANNOUNCEMENT(8)，最终通过 createAdminMsg 创建系统消息
+    * 消息类型固定为 SYSTEM_ANNOUNCEMENT(9)，最终通过 createAdminMsg 创建系统消息
     * @param handlerId 管理员ID
     * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
     * @return 操作结果

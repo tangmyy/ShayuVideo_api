@@ -208,7 +208,7 @@ public class AppealServiceImpl extends BaseInfoProperties implements AppealServi
                 messageMO.setFromUserId(handlerId);
                 messageMO.setToUserId(appeal.getAppealerId());
                 messageMO.setMsgContent(msgContent);
-                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.APPEAL_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
                 );
                 log.info("申诉处理通知已发送到MQ：appealId={}, appealerId={}", appealId, appeal.getAppealerId());
             } catch (Exception e) {
@@ -254,8 +254,8 @@ public class AppealServiceImpl extends BaseInfoProperties implements AppealServi
             List<MessageMO> allMessages = messageRepository.findAll();
             boolean found = false;
             for (MessageMO message : allMessages) {
-                // 检查消息类型是否为举报处理，且msgContent中包含对应的appealId
-                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
+                // 检查消息类型是否为申诉处理，且msgContent中包含对应的appealId
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.APPEAL_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && appealId.equals(msgContent.get("appealId"))) {
                         // 找到对应的消息，更新处理结果
@@ -307,8 +307,8 @@ public class AppealServiceImpl extends BaseInfoProperties implements AppealServi
             List<MessageMO> allMessages = messageRepository.findAll();
             boolean found = false;
             for (MessageMO message : allMessages) {
-                // 检查消息类型是否为举报处理，且msgContent中包含对应的appealId
-                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
+                // 检查消息类型是否为申诉处理，且msgContent中包含对应的appealId
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.APPEAL_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && appealId.equals(msgContent.get("appealId"))) {
                         // 找到对应的消息，删除

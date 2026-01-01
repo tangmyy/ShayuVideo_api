@@ -178,6 +178,8 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       if (type != null) {
          if (type == MessageTypeEnum.REPORT_HANDLED.type) {
             fromNickname = "举报结果";
+         } else if (type == MessageTypeEnum.APPEAL_HANDLED.type) {
+            fromNickname = "申诉结果";
          } else if (type == MessageTypeEnum.SYSTEM_MESSAGE.type) {
             fromNickname = "系统消息";
          } else if (type == MessageTypeEnum.SYSTEM_ANNOUNCEMENT.type) {
