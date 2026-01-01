@@ -18,6 +18,7 @@ import com.zx.cuicuisha.bo.AdminLoginBO;
 import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Appeal;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
@@ -63,6 +64,8 @@ public class AdminController extends BaseInfoProperties {
    private MsgService msgService;
    @Autowired
    private ReportService reportService;
+   @Autowired
+   private AppealService appealService;
    @Autowired
    private AdminService adminService;
    @Autowired
@@ -587,6 +590,59 @@ public class AdminController extends BaseInfoProperties {
    }
 
    /**
+    * 管理端：申诉列表
+    * /admin/appeal/list
+    * @param appealType 申诉类型（可选，1-视频，2-评论）
+    * @param status 处理状态（可选，0-待处理，1-已处理（通过），2-已驳回）
+    * @param targetId 被申诉对象ID（可选）
+    * @param reportId 举报记录ID（可选）
+    * @param page 页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @ApiOperation(value = "查询申诉列表（支持按类型、状态、对象ID、举报ID筛选）")
+   @GetMapping("appeal/list")
+   public ResponseDataStructureEnum appealList(
+         @RequestParam(required = false) Integer appealType,
+         @RequestParam(required = false) Integer status,
+         @RequestParam(required = false) String targetId,
+         @RequestParam(required = false) String reportId,
+         @RequestParam(required = false) Integer page,
+         @RequestParam(required = false) Integer pageSize) {
+      if (page == null) { page = COMMON_START_PAGE; }
+      if (pageSize == null) { pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult result = appealService.queryAppeals(appealType, status, targetId, reportId, page, pageSize);
+      return ResponseDataStructureEnum.ok(result);
+   }
+
+   @ApiOperation(value = "处理申诉")
+   @PostMapping("appeal/handle")
+   public ResponseDataStructureEnum handleAppeal(
+         @RequestParam String appealId, @RequestParam String handlerId, @RequestParam Integer status,
+         @RequestParam(required = false) String handleResult, @RequestParam(required = false, defaultValue = "false") Boolean notifyAppealer) {
+      if (StringUtils.isBlank(appealId) || StringUtils.isBlank(handlerId) || status == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Appeal appeal = appealService.handleAppeal(appealId, handlerId, status, handleResult, notifyAppealer);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+   @ApiOperation(value = "修改已处理的申诉记录（同时更新SQL和MongoDB消息）")
+   @PutMapping("appeal/update")
+   public ResponseDataStructureEnum updateAppeal(@RequestParam String appealId, @RequestParam String handlerId, @RequestParam Integer status, @RequestParam(required = false) String handleResult) {
+      Appeal appeal = appealService.updateAppeal(appealId, handlerId, status, handleResult);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+   @ApiOperation(value = "重置申诉的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）")
+   @PutMapping("appeal/reset")
+   public ResponseDataStructureEnum resetAppeal(@RequestParam String appealId) {
+      Appeal appeal = appealService.resetAppeal(appealId);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+
+   /**
     * 管理端：数据统计
     * /admin/counts/
     * @return 数据总数量
@@ -638,6 +694,27 @@ public class AdminController extends BaseInfoProperties {
    @GetMapping("counts/report/comment")
    public ResponseDataStructureEnum countsCommentReportNum() {
       Integer totalCount = reportService.getTotalCommentReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有申诉数量")
+   @GetMapping("counts/appeal")
+   public ResponseDataStructureEnum countsAppealNum() {
+      Integer totalCount = appealService.getTotalAppealCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有视频申诉数量")
+   @GetMapping("counts/appeal/vlog")
+   public ResponseDataStructureEnum countsVlogAppealNum() {
+      Integer totalCount = appealService.getTotalVlogAppealCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有评论申诉数量")
+   @GetMapping("counts/appeal/comment")
+   public ResponseDataStructureEnum countsCommentAppealNum() {
+      Integer totalCount = appealService.getTotalCommentAppealCount();
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
