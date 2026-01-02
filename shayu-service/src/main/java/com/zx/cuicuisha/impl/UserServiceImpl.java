@@ -23,6 +23,7 @@ import org.n3r.idworker.Sid;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.UsersVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -75,6 +76,104 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
          return null;
       }
       return user;
+   }
+
+   /**
+    * 查询自己的用户信息（需要token验证）
+    * @param userId 用户ID
+    * @param token 用户token
+    * @return 用户完整信息（包含手机号、token等），如果不存在或token无效则抛出异常
+    */
+   @Override
+   public UsersVO queryMe(String userId, String token) {
+      // 1. 验证 token 是否存在
+      if (StringUtils.isBlank(token)) {
+         GraceException.display(ResponseStatusEnum.TOKEN_INVALID_ERROR);
+      }
+      // 2. 从 Redis 中检查 token 是否存在
+      String redisToken = redis.get(REDIS_USER_TOKEN + ":" + userId);
+      if (StringUtils.isBlank(redisToken) || !redisToken.equals(token)) {
+         // token 不存在或不匹配，说明用户已被删除或 token 已失效
+         GraceException.display(ResponseStatusEnum.TICKET_INVALID);
+      }
+      // 3. 验证用户是否存在
+      Users user = getUser(userId);
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 4. 检查用户是否被逻辑删除
+      if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 5. 转换为VO对象
+      UsersVO usersVO = new UsersVO();
+      BeanUtils.copyProperties(user, usersVO);
+      // 6. 获取统计信息
+      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
+      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+      Integer myFollowsCounts = 0;
+      Integer myFansCounts = 0;
+      Integer likedVlogCounts = 0;
+      Integer likedVlogerCounts = 0;
+      Integer totalLikeMeCounts = 0;
+      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
+         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
+      }
+      if (StringUtils.isNotBlank(myFansCountsStr)) {
+         myFansCounts = Integer.valueOf(myFansCountsStr);
+      }
+      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
+         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
+      }
+      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
+      usersVO.setMyFollowsCounts(myFollowsCounts);
+      usersVO.setMyFansCounts(myFansCounts);
+      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
+      return usersVO;
+   }
+
+   /**
+    * 查询用户公开信息（用于查看他人主页，不需要token验证）
+    * @param userId 用户ID
+    * @return 用户公开信息，如果不存在则返回null
+    */
+   @Override
+   public UsersVO queryVloger(String userId) {
+      // 查询用户基本信息（不包括已逻辑删除的）
+      Users user = getUser(userId);
+      if (user == null) {
+         return null;
+      }
+      // 转换为VO对象
+      UsersVO usersVO = new UsersVO();
+      BeanUtils.copyProperties(user, usersVO);
+      // 不返回敏感信息
+      usersVO.setMobile(null);
+      usersVO.setUserToken(null);
+      // 获取统计信息
+      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
+      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+      Integer myFollowsCounts = 0;
+      Integer myFansCounts = 0;
+      Integer likedVlogCounts = 0;
+      Integer likedVlogerCounts = 0;
+      Integer totalLikeMeCounts = 0;
+      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
+         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
+      }
+      if (StringUtils.isNotBlank(myFansCountsStr)) {
+         myFansCounts = Integer.valueOf(myFansCountsStr);
+      }
+      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
+         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
+      }
+      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
+      usersVO.setMyFollowsCounts(myFollowsCounts);
+      usersVO.setMyFansCounts(myFansCounts);
+      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
+      return usersVO;
    }
 
    /**

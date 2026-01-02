@@ -44,8 +44,8 @@ public class RabbitMQConsumer {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
          return;
       }
-      // 4. 根据消息类型决定是否传递msgContent
-      // FOLLOW_YOU 类型的消息不需要msgContent，其他类型需要
+      // 4. 根据消息类型决定是否传递 msgContent
+      // FOLLOW_YOU 类型的消息不需要 msgContent，其他类型需要
       Map<String, Object> msgContent;
       if (messageTypeEnum == MessageTypeEnum.FOLLOW_YOU) {
          msgContent = null;
@@ -54,9 +54,9 @@ public class RabbitMQConsumer {
       }
       // 5. 根据消息类型调用不同的方法创建消息
       // REPORT_HANDLED、APPEAL_HANDLED、SYSTEM_MESSAGE、SYSTEM_ANNOUNCEMENT 类型使用管理员消息方法（系统消息格式），其他类型使用普通消息方法
-      if (messageTypeEnum == MessageTypeEnum.REPORT_HANDLED 
+      if (messageTypeEnum == MessageTypeEnum.REPORT_HANDLED
             || messageTypeEnum == MessageTypeEnum.APPEAL_HANDLED
-            || messageTypeEnum == MessageTypeEnum.SYSTEM_MESSAGE 
+            || messageTypeEnum == MessageTypeEnum.SYSTEM_MESSAGE
             || messageTypeEnum == MessageTypeEnum.SYSTEM_ANNOUNCEMENT) {
          msgService.createAdminMsg(messageMO.getFromUserId(), messageMO.getToUserId(), messageTypeEnum.type, msgContent);
       } else {

@@ -6,7 +6,6 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
 import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
-import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Users;
@@ -16,7 +15,6 @@ import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -34,53 +32,39 @@ public class UserInfoController extends BaseInfoProperties {
    @Autowired
    private MinIOConfig minIOConfig;
 
-   @GetMapping("/query")
-   public Object query(@RequestParam String userId, @RequestHeader(value = "headerUserToken", required = false) String token) throws Exception {
-      // 1. 验证 token 是否存在
-      if (StringUtils.isBlank(token)) {
-         GraceException.display(ResponseStatusEnum.TOKEN_INVALID_ERROR);
+   /**
+    * 查询自己的用户信息（需要token验证）
+    * @param userId 用户ID
+    * @param token 用户token（从header获取）
+    * @return 用户信息
+    */
+   @GetMapping("/queryMe")
+   public Object queryMe(@RequestParam String userId, @RequestHeader(value = "headerUserToken", required = false) String token) throws Exception {
+      // 参数验证
+      if (StringUtils.isBlank(userId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 2. 从 Redis 中检查 token 是否存在
-      String redisToken = redis.get(REDIS_USER_TOKEN + ":" + userId);
-      if (StringUtils.isBlank(redisToken) || !redisToken.equals(token)) {
-         // token 不存在或不匹配，说明用户已被删除或 token 已失效
-         GraceException.display(ResponseStatusEnum.TICKET_INVALID);
+      // 调用Service层处理业务逻辑（包括token验证、用户查询、统计信息填充）
+      UsersVO usersVO = userService.queryMe(userId, token);
+      return ResponseDataStructureEnum.ok(usersVO);
+   }
+
+   /**
+    * 查询用户公开信息（用于查看他人主页，不需要token验证）
+    * @param userId 用户ID
+    * @return 用户公开信息
+    */
+   @GetMapping("/queryVloger")
+   public Object queryVloger(@RequestParam String userId) throws Exception {
+      // 参数验证
+      if (StringUtils.isBlank(userId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 3. 验证用户是否存在
-      Users user = userService.getUser(userId);
-      if (user == null) {
-         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      // 调用Service层处理业务逻辑（用户查询、统计信息填充）
+      UsersVO usersVO = userService.queryVloger(userId);
+      if (usersVO == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 4. 检查用户是否被逻辑删除
-      if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      UsersVO usersVO = new UsersVO();
-      BeanUtils.copyProperties(user, usersVO);
-      // 我的关注总数
-      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
-      // 我的粉丝总数
-      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
-      // 我的视频获赞总数
-      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
-      Integer myFollowsCounts = 0;
-      Integer myFansCounts = 0;
-      Integer likedVlogCounts = 0;
-      Integer likedVlogerCounts = 0;
-      Integer totalLikeMeCounts = 0;
-      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
-         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
-      }
-      if (StringUtils.isNotBlank(myFansCountsStr)) {
-         myFansCounts = Integer.valueOf(myFansCountsStr);
-      }
-      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
-         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
-      }
-      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
-      usersVO.setMyFollowsCounts(myFollowsCounts);
-      usersVO.setMyFansCounts(myFansCounts);
-      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
       return ResponseDataStructureEnum.ok(usersVO);
    }
 

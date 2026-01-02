@@ -3,6 +3,7 @@ package com.zx.cuicuisha.service;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.UsersVO;
 import org.springframework.transaction.annotation.Transactional;
 
 
@@ -10,6 +11,21 @@ public interface UserService {
 
    // 根据用户主键查询用户信息（不包括已逻辑删除的用户）
    Users getUser(String userId);
+
+   /**
+    * 查询自己的用户信息（需要token验证）
+    * @param userId 用户ID
+    * @param token 用户token
+    * @return 用户完整信息（包含手机号、token等），如果不存在或token无效则抛出异常
+    */
+   UsersVO queryMe(String userId, String token);
+
+   /**
+    * 查询用户公开信息（用于查看他人主页，不需要token验证）
+    * @param userId 用户ID
+    * @return 用户公开信息，如果不存在则返回null
+    */
+   UsersVO queryVloger(String userId);
 
    // 根据手机号查询用户（包括已逻辑删除的用户）
    Users queryUserByMobileIncludeDeleted(String mobile);
