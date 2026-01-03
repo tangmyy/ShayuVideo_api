@@ -22,6 +22,7 @@ import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.pojo.VlogAudit;
 import com.zx.cuicuisha.service.AdminService;
 import com.zx.cuicuisha.service.FansService;
+import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -64,6 +65,8 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
    private Sid sid;
    @Autowired
    public RabbitTemplate rabbitTemplate;
+   @Autowired
+   private MsgService msgService;
 
    // # ==================== Users方法/提供用户端使用 ====================
 
@@ -277,6 +280,19 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
       likedVlog.setVlogId(vlogId);
       likedVlog.setUserId(userId);
       myLikedVlogMapper.delete(likedVlog);
+      // 删除点赞视频消息
+      try {
+         // 需要先获取视频信息，以获取 vlogerId
+         Vlog vlog = getVlog(vlogId);
+         if (vlog != null && StringUtils.isNotBlank(vlog.getVlogerId())) {
+            // 删除点赞视频消息（根据 vlogId 匹配 msgContent）
+            msgService.deleteMsgByCondition(userId, vlog.getVlogerId(), MessageTypeEnum.LIKE_VLOG.type, "vlogId", vlogId);
+            log.info("删除点赞视频消息成功：userId={}, vlogId={}, vlogerId={}", userId, vlogId, vlog.getVlogerId());
+         }
+      } catch (Exception e) {
+         log.error("删除点赞视频消息失败：userId={}, vlogId={}", userId, vlogId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
    }
    // Redis辅助方法 - 更新取消点赞视频时相关的缓存
    public void updateUnLikeVlog(String userId, String vlogerId, String vlogId) {

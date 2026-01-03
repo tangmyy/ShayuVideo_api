@@ -179,6 +179,23 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       commentMapper.updateByPrimaryKeySelective(pendingDelete);
       // redis中累减
       redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
+      // 删除评论/回复消息
+      try {
+         Comment comment = commentMapper.selectByPrimaryKey(commentId);
+         if (comment != null) {
+            // 判断是评论还是回复
+            Integer msgType = MessageTypeEnum.COMMENT_VLOG.type;
+            if (StringUtils.isNotBlank(comment.getFatherCommentId()) && !comment.getFatherCommentId().equalsIgnoreCase("0")) {
+               msgType = MessageTypeEnum.REPLY_YOU.type;
+            }
+            // 删除消息（根据 commentId 匹配 msgContent）
+            msgService.deleteMsgByCondition(commentUserId, comment.getVlogerId(), msgType, "commentId", commentId);
+            log.info("删除评论/回复消息成功：commentUserId={}, commentId={}, msgType={}", commentUserId, commentId, msgType);
+         }
+      } catch (Exception e) {
+         log.error("删除评论/回复消息失败：commentUserId={}, commentId={}", commentUserId, commentId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
    }
 
    // # ==================== Admin方法/提供管理员端使用 ====================

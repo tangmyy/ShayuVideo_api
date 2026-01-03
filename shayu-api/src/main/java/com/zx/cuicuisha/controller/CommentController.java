@@ -6,12 +6,10 @@ import com.zx.cuicuisha.bo.CommentBO;
 import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.mo.MessageMO;
-import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.pojo.Comment;
-import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
-import com.zx.cuicuisha.service.UserService;
+import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.vo.CommentVO;
@@ -38,7 +36,7 @@ public class CommentController extends BaseInfoProperties {
    @Autowired
    private VlogService vlogService;
    @Autowired
-   private UserService userService;
+   private MsgService msgService;
    @Autowired
    public RabbitTemplate rabbitTemplate;
 
@@ -115,9 +113,22 @@ public class CommentController extends BaseInfoProperties {
 
    @PostMapping("unlike")
    public ResponseDataStructureEnum unlike(@RequestParam String commentId, @RequestParam String userId) {
+      // 1. 更新Redis点赞数（核心业务）
       redis.decrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
       // redis.hdel(REDIS_USER_LIKE_COMMENT, userId, "1");        hdel = deleteHash
       redis.deleteHash(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
+      // 2. 删除点赞评论消息
+      try {
+         Comment comment = commentService.getComment(commentId);
+         if (comment != null) {
+            // 删除消息（根据 commentId 匹配 msgContent）
+            msgService.deleteMsgByCondition(userId, comment.getCommentUserId(), MessageTypeEnum.LIKE_COMMENT.type, "commentId", commentId);
+            log.info("删除点赞评论消息成功：userId={}, commentId={}", userId, commentId);
+         }
+      } catch (Exception e) {
+         log.error("删除点赞评论消息失败：userId={}, commentId={}", userId, commentId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
       return ResponseDataStructureEnum.ok();
    }
 

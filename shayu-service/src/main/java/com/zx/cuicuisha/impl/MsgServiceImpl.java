@@ -39,25 +39,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
 
    private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
 
-   @Override
-   public void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
-      Users fromUser = userService.getUser(fromUserId);
-      if (fromUser == null) {
-         log.error("创建消息失败：发送者用户不存在，fromUserId={}", fromUserId);
-         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      MessageMO messageMO = new MessageMO();
-      messageMO.setFromUserId(fromUserId);
-      messageMO.setFromNickname(fromUser.getNickname());
-      messageMO.setFromFace(fromUser.getFace());
-      messageMO.setToUserId(toUserId);
-      messageMO.setMsgType(type);
-      if (msgContent != null) {
-         messageMO.setMsgContent(msgContent);
-      }
-      messageMO.setCreateTime(new Date());
-      messageRepository.save(messageMO);
-   }
+   // # ==================== Users方法/提供用户端使用 ====================
 
    @Override
    public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
@@ -84,30 +66,70 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    }
 
    @Override
-   public void deleteMsg(String msgId, String toUserId) {
-      // 参数校验
-      if (StringUtils.isBlank(msgId)) {
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+   public void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
+      Users fromUser = userService.getUser(fromUserId);
+      if (fromUser == null) {
+         log.error("创建消息失败：发送者用户不存在，fromUserId={}", fromUserId);
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      if (StringUtils.isBlank(toUserId)) {
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(fromUserId);
+      messageMO.setFromNickname(fromUser.getNickname());
+      messageMO.setFromFace(fromUser.getFace());
+      messageMO.setToUserId(toUserId);
+      messageMO.setMsgType(type);
+      if (msgContent != null) {
+         messageMO.setMsgContent(msgContent);
       }
-      // 查询消息是否存在，并验证消息是否属于该用户
-      MessageMO messageMO = messageRepository.findById(msgId).orElse(null);
-      if (messageMO == null) {
-         log.warn("消息不存在：msgId={}", msgId);
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
-      // 验证消息是否属于该用户（只能删除自己接收的消息）
-      if (!messageMO.getToUserId().equals(toUserId)) {
-         log.warn("无权删除该消息：msgId={}, toUserId={}, messageToUserId={}",
-               msgId, toUserId, messageMO.getToUserId());
-         GraceException.display(ResponseStatusEnum.NO_AUTH);
-      }
-      // 删除消息
-      messageRepository.deleteById(msgId);
-      log.info("消息删除成功：msgId={}, toUserId={}", msgId, toUserId);
+      messageMO.setCreateTime(new Date());
+      messageRepository.save(messageMO);
    }
+
+   // 根据业务条件删除消息（用于取消关注、取消点赞等操作）
+   @Override
+   public void deleteMsgByCondition(String fromUserId, String toUserId, Integer msgType, String msgContentKey, String msgContentValue) {
+      // 参数校验
+      if (StringUtils.isBlank(fromUserId) || StringUtils.isBlank(toUserId) || msgType == null) {
+         log.warn("删除消息参数不完整：fromUserId={}, toUserId={}, msgType={}", fromUserId, toUserId, msgType);
+         return; // 参数不完整时不删除，避免误删
+      }
+      try {
+         // 根据 fromUserId, toUserId, msgType 查询消息
+         List<MessageMO> messages = messageRepository.findByFromUserIdAndToUserIdAndMsgType(fromUserId, toUserId, msgType);
+         if (messages == null || messages.isEmpty()) {
+            log.debug("未找到需要删除的消息：fromUserId={}, toUserId={}, msgType={}", fromUserId, toUserId, msgType);
+            return;
+         }
+         // 如果指定了 msgContentKey 和 msgContentValue，需要进一步过滤
+         if (StringUtils.isNotBlank(msgContentKey) && StringUtils.isNotBlank(msgContentValue)) {
+            for (MessageMO message : messages) {
+               Map msgContent = message.getMsgContent();
+               if (msgContent != null) {
+                  Object value = msgContent.get(msgContentKey);
+                  if (value != null && value.toString().equals(msgContentValue)) {
+                     // 匹配到符合条件的消息，删除
+                     messageRepository.deleteById(message.getId());
+                     log.info("删除消息成功：msgId={}, fromUserId={}, toUserId={}, msgType={}, {}={}",
+                           message.getId(), fromUserId, toUserId, msgType, msgContentKey, msgContentValue);
+                  }
+               }
+            }
+         } else {
+            // 没有指定 msgContentKey，删除所有匹配的消息（通常用于关注、点赞视频等简单消息）
+            for (MessageMO message : messages) {
+               messageRepository.deleteById(message.getId());
+               log.info("删除消息成功：msgId={}, fromUserId={}, toUserId={}, msgType={}",
+                     message.getId(), fromUserId, toUserId, msgType);
+            }
+         }
+      } catch (Exception e) {
+         log.error("删除消息失败：fromUserId={}, toUserId={}, msgType={}, msgContentKey={}, msgContentValue={}",
+               fromUserId, toUserId, msgType, msgContentKey, msgContentValue, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
+   }
+
+   // # ==================== Admin方法/提供管理员端使用 ====================
 
    // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    @Override

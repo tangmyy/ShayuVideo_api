@@ -15,8 +15,15 @@ public interface MsgService {
    // 查询消息列表
    List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize);
 
-   // 删除消息（根据消息ID）
-   void deleteMsg(String msgId, String toUserId);
+   /**
+    *    fromUserId: 消息发送者ID
+    *    toUserId: 消息接收者ID
+    *    msgType: 消息类型
+    *    msgContentKey: msgContent中的键（可选，如 "commentId", "vlogId"）
+    *    msgContentValue: msgContent中的值（可选，与msgContentKey配合使用）
+    */
+   // 根据业务条件删除消息（用于取消关注、取消点赞等操作）
+   void deleteMsgByCondition(String fromUserId, String toUserId, Integer msgType, String msgContentKey, String msgContentValue);
 
    // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize);

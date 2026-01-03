@@ -14,6 +14,7 @@ import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Fans;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.FansService;
+import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.FansAdminVO;
@@ -46,6 +47,8 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    private Sid sid;
    @Autowired
    public RabbitTemplate rabbitTemplate;
+   @Autowired
+   private MsgService msgService;
 
    /**
     * 查询粉丝关系 --> 提供给关注和取关使用
@@ -161,6 +164,14 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       }
       // 删除我的关注记录
       fansMapper.delete(fan);
+      // 删除关注消息
+      try {
+         msgService.deleteMsgByCondition(myId, vlogerId, MessageTypeEnum.FOLLOW_YOU.type, null, null);
+         log.info("删除关注消息成功：myId={}, vlogerId={}", myId, vlogerId);
+      } catch (Exception e) {
+         log.error("删除关注消息失败：myId={}, vlogerId={}", myId, vlogerId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
    }
    // 更新取关时相关的缓存
    public void updateCancelCache(String myId, String vlogerId) {
