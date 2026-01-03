@@ -57,6 +57,42 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
    @Autowired
    public RabbitTemplate rabbitTemplate;
 
+   // # ==================== Users方法/提供用户端使用 ====================
+
+   @Override
+   public Comment getComment(String id) {
+      Comment comment = commentMapper.selectByPrimaryKey(id);
+      // 管理员查询可以返回已逻辑删除的评论，所以这里不过滤
+      return comment;
+   }
+
+   // 查询视频的评论(评论区)
+   @Override
+   public PagedGridResult queryVlogComments(String vlogId, String userId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      map.put("vlogId", vlogId);
+      PageHelper.startPage(page, pageSize);
+      List<CommentVO> list = commentMapperCustom.getCommentList(map);
+      // TODO：优化 抽象封装两个方法
+      for (CommentVO commentVO:list) {
+         String commentId = commentVO.getCommentId();
+         // 当前短视频的某个评论的点赞总数
+         String countsStr = redis.getHashValue(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId);
+         Integer counts = 0;
+         if (StringUtils.isNotBlank(countsStr)) {
+            counts = Integer.valueOf(countsStr);
+         }
+         commentVO.setLikeCounts(counts);
+         // 判断当前用户是否点赞过该评论
+         String doILike = redis.hget(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
+         if (StringUtils.isNotBlank(doILike) && doILike.equalsIgnoreCase("1")) {
+            commentVO.setIsLike(YesOrNo.YES.type);
+         }
+      }
+      return setterPagedGrid(list, page);
+   }
+
+   // 创建评论
    @Override
    public CommentVO createComment(CommentBO commentBO) {
       // 检查用户状态：禁言（status=1）和封禁（status=2）都不能发布评论
@@ -120,53 +156,7 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       return commentVO;
    }
 
-   @Override
-   public PagedGridResult queryVlogComments(String vlogId, String userId, Integer page, Integer pageSize) {
-      Map<String, Object> map = new HashMap<>();
-      map.put("vlogId", vlogId);
-      PageHelper.startPage(page, pageSize);
-      List<CommentVO> list = commentMapperCustom.getCommentList(map);
-      // TODO：优化 抽象封装两个方法
-      for (CommentVO commentVO:list) {
-         String commentId = commentVO.getCommentId();
-         // 当前短视频的某个评论的点赞总数
-         String countsStr = redis.getHashValue(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId);
-         Integer counts = 0;
-         if (StringUtils.isNotBlank(countsStr)) {
-            counts = Integer.valueOf(countsStr);
-         }
-         commentVO.setLikeCounts(counts);
-         // 判断当前用户是否点赞过该评论
-         String doILike = redis.hget(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
-         if (StringUtils.isNotBlank(doILike) && doILike.equalsIgnoreCase("1")) {
-            commentVO.setIsLike(YesOrNo.YES.type);
-         }
-      }
-      return setterPagedGrid(list, page);
-   }
-
-   /**
-    * 查询所有评论（管理端使用）
-    * @param vlogId 视频ID（可选，如果为空则不按视频筛选）
-    * @param userId 评论者ID（可选，如果为空则不按用户筛选）
-    * @param page 页码
-    * @param pageSize 每页数量
-    * @return 分页结果
-    */
-   @Override
-   public PagedGridResult queryAllComments(String vlogId, String userId, Integer page, Integer pageSize) {
-      Map<String, Object> map = new HashMap<>();
-      if (StringUtils.isNotBlank(vlogId)) {
-         map.put("vlogId", vlogId);
-      }
-      if (StringUtils.isNotBlank(userId)) {
-         map.put("userId", userId);
-      }
-      PageHelper.startPage(page, pageSize);
-      List<CommentAdminVO> list = commentMapperCustom.getAllComments(map);
-      return setterPagedGrid(list, page);
-   }
-
+   // 删除评论
    @Override
    public void deleteComment(String commentUserId, String commentId, String vlogId) {
       // 检查评论是否存在且未被逻辑删除
@@ -191,15 +181,32 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       redis.decrement(REDIS_VLOG_COMMENT_COUNTS + ":" + vlogId, 1);
    }
 
+   // # ==================== Admin方法/提供管理员端使用 ====================
+
+   /**
+    * Admin - 查询所有评论（管理端使用）
+    * @param vlogId 视频ID（可选，如果为空则不按视频筛选）
+    * @param userId 评论者ID（可选，如果为空则不按用户筛选）
+    * @param page 页码
+    * @param pageSize 每页数量
+    * @return 分页结果
+    */
    @Override
-   public Comment getComment(String id) {
-      Comment comment = commentMapper.selectByPrimaryKey(id);
-      // 管理员查询可以返回已逻辑删除的评论，所以这里不过滤
-      return comment;
+   public PagedGridResult queryAllComments(String vlogId, String userId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      if (StringUtils.isNotBlank(vlogId)) {
+         map.put("vlogId", vlogId);
+      }
+      if (StringUtils.isNotBlank(userId)) {
+         map.put("userId", userId);
+      }
+      PageHelper.startPage(page, pageSize);
+      List<CommentAdminVO> list = commentMapperCustom.getAllComments(map);
+      return setterPagedGrid(list, page);
    }
 
    /**
-    * 删除/恢复评论（切换逻辑删除状态）
+    * Admin - 删除/恢复评论（切换逻辑删除状态）
     * 如果评论是正常状态（is_deleted = 0），则逻辑删除（设置为 1）
     * 如果评论是已逻辑删除状态（is_deleted = 1），则恢复（设置为 0）
     */
@@ -243,11 +250,7 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       return commentMapper.selectByPrimaryKey(commentId);
    }
 
-   /**
-    * 获取所有视频评论的总数
-    * 通过遍历Redis中所有匹配的key，累加评论数量
-    * @return 所有视频评论的总数
-    */
+   // Admin - 获取所有视频评论的总数
    @Override
    public Integer getTotalCommentCount() {
       try {
@@ -280,11 +283,7 @@ public class CommentServiceImpl extends BaseInfoProperties implements CommentSer
       }
    }
 
-   /**
-    * 管理员更新评论内容
-    * @param commentUpdateBO 评论更新对象，包含评论ID和新的评论内容
-    * @return 更新后的评论对象
-    */
+   // Admin - 管理员更新评论内容
    @Transactional
    @Override
    public Comment updateCommentForAdmin(CommentUpdateBO commentUpdateBO) {
