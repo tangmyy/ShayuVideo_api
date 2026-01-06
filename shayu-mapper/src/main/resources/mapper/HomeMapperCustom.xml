@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zx.cuicuisha.mapper.HomeMapperCustom" >
+
+  <!-- 查询活跃用户排行榜 -->
+  <select id="queryActiveUsers" parameterType="map" resultType="com.zx.cuicuisha.vo.ActiveUserVO">
+    <choose>
+      <when test="paramMap.sortBy != null and paramMap.sortBy == 'fans'">
+        SELECT
+          u.id as id,
+          u.nickname as nickname,
+          u.video_num as videoNum,
+          u.face as face,
+          COUNT(DISTINCT f.id) as fansCounts,
+          0 as videoNumCount
+        FROM
+          users u
+          LEFT JOIN fans f ON u.id = f.vloger_id
+        WHERE
+          (u.is_deleted = 0 OR u.is_deleted IS NULL)
+        GROUP BY
+          u.id, u.nickname, u.video_num, u.face
+        ORDER BY
+          fansCounts DESC
+        LIMIT #{paramMap.limit}
+      </when>
+      <otherwise>
+        SELECT
+          u.id as id,
+          u.nickname as nickname,
+          u.video_num as videoNum,
+          u.face as face,
+          COUNT(DISTINCT v.id) as videoNumCount,
+          0 as fansCounts
+        FROM
+          users u
+          LEFT JOIN vlog v ON u.id = v.vloger_id
+            AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+        WHERE
+          (u.is_deleted = 0 OR u.is_deleted IS NULL)
+        GROUP BY
+          u.id, u.nickname, u.video_num, u.face
+        ORDER BY
+          videoNumCount DESC
+        LIMIT #{paramMap.limit}
+      </otherwise>
+    </choose>
+  </select>
+
+  <!-- 查询指定年份的每月视频发布数量 -->
+  <select id="queryMonthlyVideos" resultType="int" parameterType="int">
+    SELECT
+      COALESCE(COUNT(v.id), 0) as videoCount
+    FROM (
+      SELECT 1 as month UNION SELECT 2 UNION SELECT 3 UNION SELECT 4 UNION SELECT 5 UNION SELECT 6
+      UNION SELECT 7 UNION SELECT 8 UNION SELECT 9 UNION SELECT 10 UNION SELECT 11 UNION SELECT 12
+    ) months
+    LEFT JOIN vlog v ON MONTH(v.created_time) = months.month
+      AND YEAR(v.created_time) = #{year}
+      AND (v.is_deleted = 0 OR v.is_deleted IS NULL)
+    GROUP BY months.month
+    ORDER BY months.month ASC
+  </select>
+
+</mapper>
+

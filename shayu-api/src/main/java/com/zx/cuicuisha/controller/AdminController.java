@@ -25,6 +25,7 @@ import com.zx.cuicuisha.service.*;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.ActiveUserVO;
 import com.zx.cuicuisha.vo.AdminUsersVO;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
@@ -72,6 +73,8 @@ public class AdminController extends BaseInfoProperties {
    private RabbitTemplate rabbitTemplate;
    @Autowired
    private UsersMapper usersMapper;
+   @Autowired
+   private HomeService homeService;
 
    /**
     * 查询用户列表（支持分页和搜索）
@@ -757,5 +760,32 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok();
    }
 
+   /**
+    * 首页数据接口 - 活跃用户排行榜
+    * @param limit 返回数量限制，默认10
+    * @param sortBy 排序方式：'videos'（按视频数）或 'fans'（按粉丝数），默认'videos'
+    * @return 活跃用户列表
+    */
+   @ApiOperation(value = "首页数据接口 - 活跃用户排行榜")
+   @GetMapping("home/activeUsers")
+   public ResponseDataStructureEnum getActiveUsers(
+         @RequestParam(required = false) Integer limit,
+         @RequestParam(required = false) String sortBy) {
+      List<ActiveUserVO> activeUsers = homeService.getActiveUsers(limit, sortBy);
+      return ResponseDataStructureEnum.ok(activeUsers);
+   }
+
+   /**
+    * 首页数据接口 - 每月视频发布数量统计
+    * @param year 年份，可选，默认为当前年份
+    * @return 每月视频发布数量列表（按月份1-12顺序），每个元素表示该月的视频发布总数
+    */
+   @ApiOperation(value = "首页数据接口 - 每月视频发布数量统计")
+   @GetMapping("home/monthlyVideos")
+   public ResponseDataStructureEnum getMonthlyVideos(
+         @RequestParam(required = false) Integer year) {
+      List<Integer> monthlyVideos = homeService.getMonthlyVideos(year);
+      return ResponseDataStructureEnum.ok(monthlyVideos);
+   }
 
 }
