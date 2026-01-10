@@ -342,6 +342,9 @@
     <!-- 管理端不过滤 is_deleted，可以查询所有视频（包括已逻辑删除的） -->
     <!-- 但需要过滤已逻辑删除的用户发布的视频 -->
     AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
+    <if test="paramMap.vlogId != null and paramMap.vlogId != ''">
+      AND v.id = #{paramMap.vlogId}
+    </if>
     <if test="paramMap.search != null and paramMap.search != ''">
       AND v.title like '%${paramMap.search}%'
     </if>

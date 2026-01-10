@@ -63,7 +63,7 @@ public interface VlogService {
    void auditVlog(String vlogId, Integer auditStatus, Long adminId, String auditRemark);
 
    // Admin - 查询视频列表（管理端使用，不过滤is_deleted，可以查询所有视频）
-   PagedGridResult getIndexVlogListForAdmin(String search, Integer page, Integer pageSize);
+   PagedGridResult getIndexVlogListForAdmin(String search, String vlogId, Integer page, Integer pageSize);
 
    // Admin - 获取所有视频点赞的总数
    Integer getTotalLikeCount();

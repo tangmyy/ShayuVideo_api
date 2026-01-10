@@ -44,6 +44,7 @@ public class HomeServiceImpl extends BaseInfoProperties implements HomeService {
    public List<Integer> getMonthlyVideos(Integer year) {
       // 硬编码年份为2025
       year = 2025;
+
       List<Integer> stats = homeMapperCustom.queryMonthlyVideos(year);
       // 确保返回12个月的数据，如果查询结果不足12个，补充0
       List<Integer> result = new ArrayList<>();

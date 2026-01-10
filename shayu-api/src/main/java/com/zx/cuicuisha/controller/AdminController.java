@@ -210,19 +210,21 @@ public class AdminController extends BaseInfoProperties {
    /**
     * 管理端：视频列表
     * /admin/vlog/list
-    * @param search 搜索关键字（可选）
+    * @param search 搜索关键字（可选，标题关键字）
+    * @param vlogId 视频ID（可选）
     * @param page   页码（可选，默认1）
     * @param pageSize 每页数量（可选，默认10）
     * @return 分页结果
     */
    @GetMapping("vlog/list")
    public ResponseDataStructureEnum vlogList(@RequestParam(required = false) String search,
+                                              @RequestParam(required = false) String vlogId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       // 使用管理员专用查询方法，可以查询所有视频（包括已逻辑删除的）
-      PagedGridResult list = vlogService.getIndexVlogListForAdmin(search == null ? "" : search, page, pageSize);
+      PagedGridResult list = vlogService.getIndexVlogListForAdmin(search, vlogId, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
 

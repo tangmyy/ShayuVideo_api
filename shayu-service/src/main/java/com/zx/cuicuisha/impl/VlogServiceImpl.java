@@ -483,12 +483,15 @@ public class VlogServiceImpl extends BaseInfoProperties implements VlogService {
 
    // Admin - 管理后台查询视频列表（不过滤已逻辑删除的视频）
    @Override
-   public PagedGridResult getIndexVlogListForAdmin(String search, Integer page, Integer pageSize) {
+   public PagedGridResult getIndexVlogListForAdmin(String search, String vlogId, Integer page, Integer pageSize) {
       // 开始分页
       PageHelper.startPage(page, pageSize);
       Map<String, Object> map = new HashMap<>();
       if (StringUtils.isNotBlank(search)){
          map.put("search", search);
+      }
+      if (StringUtils.isNotBlank(vlogId)){
+         map.put("vlogId", vlogId);
       }
       // 从Redis读取排序类型（0-创建时间，1-点赞数，2-评论数）
       String sortTypeStr = redis.get(REDIS_VLOG_INDEX_SORT_TYPE);
