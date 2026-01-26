@@ -279,6 +279,12 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok();
    }
 
+   /**
+    * 获取推荐排序规则 与 设置推荐排序规则
+    * /admin/vlog/getSortType
+    * /admin/vlog/setSortType
+    * @return
+    */
    @ApiOperation(value = "获取推荐视频流排序规则")
    @GetMapping("vlog/getSortType")
    public ResponseDataStructureEnum getVlogSortType() {

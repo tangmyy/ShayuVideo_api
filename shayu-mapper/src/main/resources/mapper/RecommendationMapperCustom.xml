@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zx.cuicuisha.mapper.RecommendationMapperCustom">
+
+    <!-- 查询所有用户的视频行为数据（点赞+评论）
+         评分规则：点赞1分，评论2分，如果同一个视频既有点赞又有评论，取最高分2分
+    -->
+    <select id="getAllUserBehaviors" resultType="com.zx.cuicuisha.vo.UserBehaviorVO">
+        SELECT 
+            user_id as userId,
+            vlog_id as vlogId,
+            MAX(score) as score
+        FROM (
+            SELECT 
+                user_id,
+                vlog_id,
+                1.0 as score
+            FROM my_liked_vlog
+            UNION ALL
+            SELECT 
+                comment_user_id as user_id,
+                vlog_id,
+                2.0 as score
+            FROM comment
+            WHERE (is_deleted = 0 OR is_deleted IS NULL)
+        ) t
+        GROUP BY user_id, vlog_id
+    </select>
+
+    <!-- 查询指定用户的视频行为数据
+         评分规则：点赞1分，评论2分，如果同一个视频既有点赞又有评论，取最高分2分
+    -->
+    <select id="getUserBehaviors" parameterType="string" resultType="com.zx.cuicuisha.vo.UserBehaviorVO">
+        SELECT 
+            user_id as userId,
+            vlog_id as vlogId,
+            MAX(score) as score
+        FROM (
+            SELECT 
+                user_id,
+                vlog_id,
+                1.0 as score
+            FROM my_liked_vlog
+            WHERE user_id = #{userId}
+            UNION ALL
+            SELECT 
+                comment_user_id as user_id,
+                vlog_id,
+                2.0 as score
+            FROM comment
+            WHERE comment_user_id = #{userId}
+              AND (is_deleted = 0 OR is_deleted IS NULL)
+        ) t
+        GROUP BY user_id, vlog_id
+    </select>
+
+</mapper>
+
