@@ -1,7 +1,6 @@
 package com.zx.cuicuisha.service;
 
 import com.zx.cuicuisha.utils.PagedGridResult;
-import com.zx.cuicuisha.vo.RecommendationVO;
 import com.zx.cuicuisha.vo.UserSimilarityVO;
 
 import java.util.List;
@@ -12,23 +11,14 @@ import java.util.List;
 public interface UserCFService {
 
     /**
-     * 为用户推荐视频（基于UserCF算法）
-     * 
-     * @param userId 目标用户ID
-     * @param topN 推荐数量，默认10
-     * @return 推荐视频ID列表
-     */
-    List<String> recommendVlogs(String userId, Integer topN);
-
-    /**
-     * 为用户推荐视频（分页版本）
+     * 为用户推荐视频（基于UserCF算法，返回与vlog/indexList相同格式的数据）
      * 
      * @param userId 目标用户ID
      * @param page 页码
      * @param pageSize 每页数量
-     * @return 分页推荐结果
+     * @return 分页推荐结果（包含IndexVlogVO列表）
      */
-    PagedGridResult recommendVlogsPaged(String userId, Integer page, Integer pageSize);
+    PagedGridResult recommendVlogs(String userId, Integer page, Integer pageSize);
 
     /**
      * 获取与目标用户最相似的K个用户

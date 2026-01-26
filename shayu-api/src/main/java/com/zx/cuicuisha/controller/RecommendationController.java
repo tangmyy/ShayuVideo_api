@@ -25,21 +25,9 @@ public class RecommendationController extends BaseInfoProperties {
     @Autowired
     private UserCFService userCFService;
 
-    @ApiOperation(value = "获取推荐视频列表（基于UserCF）")
+    @ApiOperation(value = "获取推荐视频列表（基于UserCF，返回格式与vlog/indexList一致）")
     @GetMapping("vlogs")
     public ResponseDataStructureEnum recommendVlogs(
-            @RequestParam String userId,
-            @RequestParam(required = false) Integer topN) {
-        if (topN == null || topN <= 0) {
-            topN = 10;
-        }
-        List<String> recommendations = userCFService.recommendVlogs(userId, topN);
-        return ResponseDataStructureEnum.ok(recommendations);
-    }
-
-    @ApiOperation(value = "获取推荐视频列表（分页）")
-    @GetMapping("vlogs/paged")
-    public ResponseDataStructureEnum recommendVlogsPaged(
             @RequestParam String userId,
             @RequestParam(required = false) Integer page,
             @RequestParam(required = false) Integer pageSize) {
@@ -49,7 +37,7 @@ public class RecommendationController extends BaseInfoProperties {
         if (pageSize == null) {
             pageSize = COMMON_PAGE_SIZE;
         }
-        PagedGridResult result = userCFService.recommendVlogsPaged(userId, page, pageSize);
+        PagedGridResult result = userCFService.recommendVlogs(userId, page, pageSize);
         return ResponseDataStructureEnum.ok(result);
     }
 
@@ -65,7 +53,7 @@ public class RecommendationController extends BaseInfoProperties {
         return ResponseDataStructureEnum.ok(similarUsers);
     }
 
-    @ApiOperation(value = "计算并缓存用户相似度矩阵（管理员功能，建议定时任务调用）")
+    @ApiOperation(value = "计算并缓存用户相似度矩阵")
     @PostMapping("calculateSimilarities")
     public ResponseDataStructureEnum calculateSimilarities() {
         userCFService.calculateAndCacheUserSimilarities();

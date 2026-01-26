@@ -6,11 +6,14 @@ import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.RecommendationMapperCustom;
 import com.zx.cuicuisha.mapper.VlogMapper;
+import com.zx.cuicuisha.mapper.VlogMapperCustom;
 import com.zx.cuicuisha.pojo.Vlog;
+import com.zx.cuicuisha.service.FansService;
 import com.zx.cuicuisha.service.UserCFService;
 import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.utils.SimilarityCalculator;
+import com.zx.cuicuisha.vo.IndexVlogVO;
 import com.zx.cuicuisha.vo.UserBehaviorVO;
 import com.zx.cuicuisha.vo.UserSimilarityVO;
 import lombok.extern.slf4j.Slf4j;
@@ -34,82 +37,22 @@ public class UserCFServiceImpl extends BaseInfoProperties implements UserCFServi
     @Autowired
     private VlogMapper vlogMapper;
 
+    @Autowired
+    private VlogMapperCustom vlogMapperCustom;
+
+    @Autowired
+    private FansService fansService;
+
     // 默认参数
     private static final int DEFAULT_K = 50;  // 默认相似用户数量
-    private static final int DEFAULT_TOP_N = 10;  // 默认推荐数量
     private static final double MIN_SIMILARITY = 0.0;  // 最小相似度阈值
 
     @Override
-    public List<String> recommendVlogs(String userId, Integer topN) {
+    public PagedGridResult recommendVlogs(String userId, Integer page, Integer pageSize) {
         if (StringUtils.isBlank(userId)) {
             GraceException.display(ResponseStatusEnum.UN_LOGIN);
         }
 
-        if (topN == null || topN <= 0) {
-            topN = DEFAULT_TOP_N;
-        }
-
-        // 1. 尝试从缓存获取推荐结果
-        String cacheKey = BaseInfoProperties.REDIS_USER_RECOMMENDATIONS + ":" + userId + ":" + topN;
-        String cachedResult = redis.get(cacheKey);
-        if (StringUtils.isNotBlank(cachedResult)) {
-            try {
-                List<String> cachedList = JsonUtils.jsonToList(cachedResult, String.class);
-                if (cachedList != null && !cachedList.isEmpty()) {
-                    log.info("从缓存获取用户{}的推荐结果", userId);
-                    return cachedList;
-                }
-            } catch (Exception e) {
-                log.warn("解析推荐结果缓存失败: {}", e.getMessage());
-            }
-        }
-
-        // 2. 构建用户-视频评分矩阵
-        Map<String, Map<String, Double>> userItemMatrix = buildUserItemMatrix();
-
-        // 3. 检查目标用户是否有行为数据
-        Map<String, Double> targetUserRatings = userItemMatrix.get(userId);
-        if (targetUserRatings == null || targetUserRatings.isEmpty()) {
-            log.warn("用户{}没有行为数据，无法进行推荐", userId);
-            return Collections.emptyList();
-        }
-
-        // 4. 获取相似用户
-        List<UserSimilarityVO> similarUsers = getSimilarUsers(userId, DEFAULT_K);
-
-        if (similarUsers == null || similarUsers.isEmpty()) {
-            log.warn("用户{}没有找到相似用户", userId);
-            return Collections.emptyList();
-        }
-
-        // 5. 预测评分并生成推荐
-        Map<String, Double> predictions = predictRatings(userId, similarUsers, userItemMatrix, targetUserRatings);
-
-        // 6. 过滤掉用户已看过的视频，并按评分排序
-        List<String> recommendations = predictions.entrySet().stream()
-                .filter(entry -> !targetUserRatings.containsKey(entry.getKey()))
-                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
-                .limit(topN)
-                .map(Map.Entry::getKey)
-                .collect(Collectors.toList());
-
-        // 7. 验证推荐的视频是否存在且未删除
-        recommendations = filterValidVlogs(recommendations);
-
-        // 8. 缓存推荐结果（缓存1小时）
-        if (!recommendations.isEmpty()) {
-            try {
-                redis.set(cacheKey, JsonUtils.objectToJson(recommendations), 3600);
-            } catch (Exception e) {
-                log.warn("缓存推荐结果失败: {}", e.getMessage());
-            }
-        }
-
-        return recommendations;
-    }
-
-    @Override
-    public PagedGridResult recommendVlogsPaged(String userId, Integer page, Integer pageSize) {
         if (page == null) {
             page = COMMON_START_PAGE;
         }
@@ -117,19 +60,68 @@ public class UserCFServiceImpl extends BaseInfoProperties implements UserCFServi
             pageSize = COMMON_PAGE_SIZE;
         }
 
-        // 获取更多推荐结果用于分页
-        int totalNeeded = page * pageSize;
-        List<String> allRecommendations = recommendVlogs(userId, totalNeeded);
+        // 1. 构建用户-视频评分矩阵
+        Map<String, Map<String, Double>> userItemMatrix = buildUserItemMatrix();
 
-        // 分页处理
+        // 2. 检查目标用户是否有行为数据
+        Map<String, Double> targetUserRatings = userItemMatrix.get(userId);
+        if (targetUserRatings == null || targetUserRatings.isEmpty()) {
+            log.warn("用户{}没有行为数据，无法进行推荐，返回空列表", userId);
+            return setterPagedGrid(Collections.emptyList(), page);
+        }
+
+        // 3. 获取相似用户
+        List<UserSimilarityVO> similarUsers = getSimilarUsers(userId, DEFAULT_K);
+
+        if (similarUsers == null || similarUsers.isEmpty()) {
+            log.warn("用户{}没有找到相似用户，返回空列表", userId);
+            return setterPagedGrid(Collections.emptyList(), page);
+        }
+
+        // 4. 预测评分并生成推荐（获取足够多的推荐结果用于分页）
+        Map<String, Double> predictions = predictRatings(userId, similarUsers, userItemMatrix, targetUserRatings);
+
+        // 5. 过滤掉用户已看过的视频，并按评分排序
+        List<String> allRecommendations = predictions.entrySet().stream()
+                .filter(entry -> !targetUserRatings.containsKey(entry.getKey()))
+                .sorted((a, b) -> Double.compare(b.getValue(), a.getValue()))
+                .map(Map.Entry::getKey)
+                .collect(Collectors.toList());
+
+        // 6. 验证推荐的视频是否存在且未删除
+        allRecommendations = filterValidVlogs(allRecommendations);
+
+        // 7. 分页处理
         int start = (page - 1) * pageSize;
         int end = Math.min(start + pageSize, allRecommendations.size());
-        List<String> pagedList = start < allRecommendations.size() 
+        List<String> pagedVlogIds = start < allRecommendations.size() 
                 ? allRecommendations.subList(start, end) 
                 : Collections.emptyList();
 
+        // 8. 根据视频ID列表查询完整的IndexVlogVO信息
+        List<IndexVlogVO> vlogVOList = new ArrayList<>();
+        for (String vlogId : pagedVlogIds) {
+            try {
+                Map<String, Object> map = new HashMap<>();
+                map.put("vlogId", vlogId);
+                if (StringUtils.isNotBlank(userId)) {
+                    map.put("userId", userId);
+                }
+                List<IndexVlogVO> vlogList = vlogMapperCustom.getVlogDetailById(map);
+                if (vlogList != null && !vlogList.isEmpty()) {
+                    IndexVlogVO vlogVO = vlogList.get(0);
+                    // 设置用户相关字段（关注、点赞等）
+                    setterVO(vlogVO, userId);
+                    vlogVOList.add(vlogVO);
+                }
+            } catch (Exception e) {
+                log.warn("查询视频{}详情失败: {}", vlogId, e.getMessage());
+            }
+        }
+
+        // 9. 返回分页结果
         PagedGridResult gridResult = new PagedGridResult();
-        gridResult.setRows(pagedList);
+        gridResult.setRows(vlogVOList);
         gridResult.setPage(page);
         gridResult.setRecords((long) allRecommendations.size());
         gridResult.setTotal((int) Math.ceil((double) allRecommendations.size() / pageSize));
@@ -376,6 +368,59 @@ public class UserCFServiceImpl extends BaseInfoProperties implements UserCFServi
         }
 
         return validVlogIds;
+    }
+
+    /**
+     * 设置IndexVlogVO的用户相关字段（与VlogServiceImpl.setterVO保持一致）
+     * 
+     * @param vlogVO 视频VO
+     * @param userId 用户ID
+     * @return 设置后的视频VO
+     */
+    private IndexVlogVO setterVO(IndexVlogVO vlogVO, String userId) {
+        String vlogerId = vlogVO.getVlogerId();
+        String vlogId = vlogVO.getVlogId();
+        if (StringUtils.isNotBlank(userId)) {
+            // 用户是否关注该博主
+            boolean doIFollowVloger = fansService.queryDoIFollowVloger(userId, vlogerId);
+            vlogVO.setDoIFollowVloger(doIFollowVloger);
+            // 判断当前用户是否点赞过视频
+            vlogVO.setDoILikeThisVlog(doILikeVlog(userId, vlogId));
+        }
+        // 获得当前视频被点赞过的总数
+        vlogVO.setLikeCounts(getVlogBeLikedCounts(vlogId));
+        return vlogVO;
+    }
+
+    /**
+     * 获取用户是否点赞过该视频
+     * 
+     * @param userId 用户ID
+     * @param vlogId 视频ID
+     * @return 是否点赞
+     */
+    private boolean doILikeVlog(String userId, String vlogId) {
+        String doILike = redis.get(BaseInfoProperties.REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId);
+        return StringUtils.isNotBlank(doILike) && doILike.equalsIgnoreCase("1");
+    }
+
+    /**
+     * 获取该视频获赞总数
+     * 
+     * @param vlogId 视频ID
+     * @return 点赞总数
+     */
+    private Integer getVlogBeLikedCounts(String vlogId) {
+        try {
+            String countsStr = redis.get(BaseInfoProperties.REDIS_VLOG_BE_LIKED_COUNTS + ":" + vlogId);
+            if (StringUtils.isBlank(countsStr)) {
+                countsStr = "0";
+            }
+            return Integer.valueOf(countsStr);
+        } catch (Exception e) {
+            log.error("获取视频{}点赞数失败: {}", vlogId, e.getMessage());
+            return 0;
+        }
     }
 }
 
