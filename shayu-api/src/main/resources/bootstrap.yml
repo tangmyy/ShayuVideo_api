@@ -4,5 +4,5 @@ spring:
   cloud:
     nacos:
       config:
-        server-addr: 10.0.4.12:8848
+        server-addr: ${NACOS_CONFIG_ADDR}
         file-extension: yaml

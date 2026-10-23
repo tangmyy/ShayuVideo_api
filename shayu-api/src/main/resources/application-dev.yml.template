@@ -1,55 +1,50 @@
-# ===========================================
-# 配置文件模板
-# 复制此文件为 application-dev.yml 并填入实际配置
-# 注意：此文件可以提交到 Git，但 application-dev.yml 不应该提交
-# ===========================================
-
 server:
-  port: ${port:8088}
+  port: ${DEV_SERVER_PORT}
 
 spring:
   application:
     name: shayuvideo-nacos
   datasource: # 数据源的相关配置
-    type: com.zaxxer.hikari.HikariDataSource
-    driver-class-name: com.mysql.jdbc.Driver
-    # 使用环境变量，不提供默认值，强制必须设置环境变量
-    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: ${DB_USERNAME}
-    password: ${DB_PASSWORD}  # 必须通过环境变量提供，无默认值
+    type: com.zaxxer.hikari.HikariDataSource      # 数据源的类型，可以更改为其他的数据源配置，比如druid
+    driver-class-name: com.mysql.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
+    url: ${DEV_DB_URL}
+    username: ${DEV_DB_USERNAME}
+    password: ${DEV_DB_PASSWORD}
     hikari:
-      connection-timeout: 30000
-      minimum-idle: 5
-      maximum-pool-size: 20
-      auto-commit: true
-      idle-timeout: 600000
-      pool-name: DataSourceHikariCP
-      max-lifetime: 18000000
+      connection-timeout: 30000               # 等待连接池分配连接的最大时间（毫秒），超过这个时长还没有可用的连接，则会抛出SQLException
+      minimum-idle: 5                         # 最小连接数
+      maximum-pool-size: 20                   # 最大连接数
+      auto-commit: true                       # 自动提交
+      idle-timeout: 600000                    # 连接超时的最大时长（毫秒），超时则会被释放（retired）
+      pool-name: DataSourceHikariCP           # 连接池的名字
+      max-lifetime: 18000000                  # 连接池的最大生命时长（毫秒），超时则会被释放（retired）
       connection-test-query: SELECT 1
   # Redis 配置
   redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT:6379}  # 端口可以使用默认值
-    database: ${REDIS_DATABASE:0}
-    password: ${REDIS_PASSWORD}  # 密码必须通过环境变量提供
+    host: ${DEV_REDIS_HOST}
+    port: ${DEV_REDIS_PORT}
+    database: ${DEV_REDIS_DATABASE}
+    password: ${DEV_REDIS_PASSWORD}
   # Mongodb 配置
   data:
     mongodb:
-      uri: mongodb://${MONGODB_USERNAME}:${MONGODB_PASSWORD}@${MONGODB_HOST}:${MONGODB_PORT}/${MONGODB_DATABASE}
-      database: ${MONGODB_DATABASE}
+      uri: ${DEV_MONGODB_URI}
+      database: ${DEV_MONGODB_DATABASE}
   # Rabbitmq 配置
   rabbitmq:
-    host: ${RABBITMQ_HOST}
-    port: ${RABBITMQ_PORT:5672}
-    username: ${RABBITMQ_USERNAME}
-    password: ${RABBITMQ_PASSWORD}  # 必须通过环境变量提供
-    virtual-host: ${RABBITMQ_VHOST}
+    host: ${DEV_RABBITMQ_HOST}
+    port: ${DEV_RABBITMQ_PORT}
+    username: ${DEV_RABBITMQ_USERNAME}
+    password: ${DEV_RABBITMQ_PASSWORD}
+    virtual-host: ${DEV_RABBITMQ_VIRTUAL_HOST}
   # Nacos 配置
+#  application:
+#    name: shayuvideo-nacos
   cloud:
     nacos:
       discovery:
-        server-addr: ${NACOS_SERVER_ADDR}
-
+        server-addr: ${DEV_NACOS_DISCOVERY_ADDR}
+#counts: 100
 # 打开监控
 management:
   endpoint:
@@ -57,12 +52,12 @@ management:
       exposure:
         include: '*'
 
-# MinIO 配置
+# MinIO 配置 顶格配置否则找不到 使用外网IP
 minio:
-  endpoint: ${MINIO_ENDPOINT}
-  fileHost: ${MINIO_FILE_HOST}
-  bucketName: ${MINIO_BUCKET_NAME}
-  accessKey: ${MINIO_ACCESS_KEY}
-  secretKey: ${MINIO_SECRET_KEY}  # 必须通过环境变量提供
-  imgSize: ${MINIO_IMG_SIZE:1024}
-  fileSize: ${MINIO_FILE_SIZE:1024}
+  endpoint: ${DEV_MINIO_ENDPOINT}
+  fileHost: ${DEV_MINIO_FILE_HOST}
+  bucketName: ${DEV_MINIO_BUCKET}
+  accessKey: ${DEV_MINIO_ACCESS_KEY}
+  secretKey: ${DEV_MINIO_SECRET_KEY}
+  imgSize: 1024                           # 图片大小限制，单位：m
+  fileSize: 1024                          # 文件大小限制，单位：m

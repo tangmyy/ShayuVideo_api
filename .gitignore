@@ -156,8 +156,7 @@ $RECYCLE.BIN/
 # 使用 .template 文件作为模板，实际配置文件通过环境变量或配置中心管理
 
 # 包含敏感信息的配置文件（不提交）
-application-dev.yml
-application-prod.yml
+# dev/prod YAML now contain environment references and are safe to track.
 application-local.yml
 application-secret.yml
 *.secret
@@ -201,6 +200,8 @@ coverage/
 # 其他
 # ===========================================
 .env
+.env.*
+!.env.example
 .env.local
 .env.*.local
 node_modules/

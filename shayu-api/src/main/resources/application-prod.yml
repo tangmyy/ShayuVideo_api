@@ -1,13 +1,13 @@
 server:
-  port: 8088
+  port: ${PROD_SERVER_PORT}
 
 spring:
   datasource: # 数据源的相关配置
     type: com.zaxxer.hikari.HikariDataSource      # 数据源的类型，可以更改为其他的数据源配置，比如druid
     driver-class-name: com.mysql.jdbc.Driver      # mysql/MariaDB 的数据库驱动类名称
-    url: jdbc:mysql://10.0.4.12:3306/shayuvideo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
-    username: root
-    password: 2004
+    url: ${PROD_DB_URL}
+    username: ${PROD_DB_USERNAME}
+    password: ${PROD_DB_PASSWORD}
     hikari:
       connection-timeout: 30000               # 等待连接池分配连接的最大时间（毫秒），超过这个时长还没有可用的连接，则会抛出SQLException
       minimum-idle: 5                         # 最小连接数
@@ -19,29 +19,29 @@ spring:
       connection-test-query: SELECT 1
   # Redis 配置
   redis:
-    host: 10.0.4.12
-    port: 6379
-    database: 0
-    password: 2004
+    host: ${PROD_REDIS_HOST}
+    port: ${PROD_REDIS_PORT}
+    database: ${PROD_REDIS_DATABASE}
+    password: ${PROD_REDIS_PASSWORD}
   # Mongodb 配置
   data:
     mongodb:
-      uri: mongodb://root:2004@10.0.4.12:27017
-      database: shayuvideo
+      uri: ${PROD_MONGODB_URI}
+      database: ${PROD_MONGODB_DATABASE}
   # Rabbitmq 配置
   rabbitmq:
-    host: 10.0.4.12
-    port: 5672
-    username: tmyyy
-    password: 2004
-    virtual-host: shayuvideo
+    host: ${PROD_RABBITMQ_HOST}
+    port: ${PROD_RABBITMQ_PORT}
+    username: ${PROD_RABBITMQ_USERNAME}
+    password: ${PROD_RABBITMQ_PASSWORD}
+    virtual-host: ${PROD_RABBITMQ_VIRTUAL_HOST}
   # Nacos 配置
   application:
     name: shayuvideo-nacos
   cloud:
     nacos:
       discovery:
-        server-addr: 10.0.4.12:8848
+        server-addr: ${PROD_NACOS_DISCOVERY_ADDR}
 #counts: 100
 # 打开监控
 management:
@@ -52,10 +52,10 @@ management:
 
 # MinIO 配置 顶格配置否则找不到 使用外网IP
 minio:
-  endpoint: http://106.54.6.213:9000      # MinIO服务地址
-  fileHost: http://106.54.6.213:9000      # 文件地址host
-  bucketName: shayu                       # 存储桶bucket名称
-  accessKey: root                         # 用户名
-  secretKey: 20042004                     # 密码
+  endpoint: ${PROD_MINIO_ENDPOINT}
+  fileHost: ${PROD_MINIO_FILE_HOST}
+  bucketName: ${PROD_MINIO_BUCKET}
+  accessKey: ${PROD_MINIO_ACCESS_KEY}
+  secretKey: ${PROD_MINIO_SECRET_KEY}
   imgSize: 1024                           # 图片大小限制，单位：m
   fileSize: 1024                          # 文件大小限制，单位：m

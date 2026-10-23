@@ -6,7 +6,7 @@ server:
 
 spring:
   profiles:
-    active: prod
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   banner:
     location: classpath:banner/banner.txt
   servlet:

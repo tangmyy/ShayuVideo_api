@@ -8,6 +8,7 @@ import org.mybatis.generator.internal.DefaultShellCallback;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Properties;
 
 
 public class GeneratorDisplay {
@@ -20,7 +21,9 @@ public class GeneratorDisplay {
 		File configFile = new File("mybatis-generator"
 											+ File.separator
 											+"generatorConfig.xml");
-		ConfigurationParser cp = new ConfigurationParser(warnings);
+		Properties configurationVariables = new Properties();
+		configurationVariables.putAll(System.getenv());
+		ConfigurationParser cp = new ConfigurationParser(configurationVariables, warnings);
 		Configuration config = cp.parseConfiguration(configFile);
 		DefaultShellCallback callback = new DefaultShellCallback(overwrite);
 		MyBatisGenerator myBatisGenerator = new MyBatisGenerator(config,
