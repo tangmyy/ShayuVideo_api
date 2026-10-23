@@ -22,6 +22,9 @@ public interface VlogService {
    // 用户把视频改为公开/私密的视频
    void changeToPrivateOrPublic(String userId, String vlogId, Integer yesOrNo);
 
+   // 用户删除自己的视频（逻辑删除）
+   void deleteMyVlog(String userId, String vlogId);
+
    // 查询用的公开/私密的视频列表
    PagedGridResult queryMyVlogList(String userId, Integer page, Integer pageSize, Integer yesOrNo);
 
@@ -36,7 +39,7 @@ public interface VlogService {
    // 更新取消点赞视频时相关的缓存
    void updateUnLikeVlog(String userId, String vlogerId, String vlogId);
 
-   // 获得用户点赞视频的总数
+   // 获取该视频获赞总数
    Integer getVlogBeLikedCounts(String vlogId);
 
    // 查询用户点赞过的短视频
@@ -56,8 +59,11 @@ public interface VlogService {
    // Admin - 删除/恢复视频（切换逻辑删除状态）
    Vlog deleteOrRestoreVlog(String vlogId);
 
+   // Admin - 审核视频（封禁/解封视频）
+   void auditVlog(String vlogId, Integer auditStatus, Long adminId, String auditRemark);
+
    // Admin - 查询视频列表（管理端使用，不过滤is_deleted，可以查询所有视频）
-   PagedGridResult getIndexVlogListForAdmin(String search, Integer page, Integer pageSize);
+   PagedGridResult getIndexVlogListForAdmin(String search, String vlogId, Integer page, Integer pageSize);
 
    // Admin - 获取所有视频点赞的总数
    Integer getTotalLikeCount();

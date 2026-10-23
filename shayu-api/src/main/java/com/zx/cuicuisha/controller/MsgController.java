@@ -4,6 +4,7 @@ import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.service.MsgService;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -26,6 +27,8 @@ public class MsgController extends BaseInfoProperties {
 
    @Autowired
    private MsgService msgService;
+   @Autowired
+   private MessageRepository messageRepository;
 
    @ApiOperation(value = "查询所有消息")
    @GetMapping("list")
@@ -43,7 +46,35 @@ public class MsgController extends BaseInfoProperties {
       if (StringUtils.isBlank(msgId) || StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      msgService.deleteMsg(msgId, userId);
+      // 查询消息是否存在，并验证消息是否属于该用户
+      MessageMO messageMO = messageRepository.findById(msgId).orElse(null);
+      if (messageMO == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 验证消息是否属于该用户（只能删除自己接收的消息）
+      if (!messageMO.getToUserId().equals(userId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.NO_AUTH);
+      }
+      // 使用deleteMsgByCondition删除消息
+      // 根据消息类型决定是否需要msgContentKey和msgContentValue
+      String msgContentKey = null;
+      String msgContentValue = null;
+      if (messageMO.getMsgContent() != null) {
+         // 如果有commentId，使用commentId匹配
+         Object commentId = messageMO.getMsgContent().get("commentId");
+         if (commentId != null) {
+            msgContentKey = "commentId";
+            msgContentValue = commentId.toString();
+         } else {
+            // 如果有vlogId，使用vlogId匹配
+            Object vlogId = messageMO.getMsgContent().get("vlogId");
+            if (vlogId != null) {
+               msgContentKey = "vlogId";
+               msgContentValue = vlogId.toString();
+            }
+         }
+      }
+      msgService.deleteMsgByCondition(messageMO.getFromUserId(), messageMO.getToUserId(), messageMO.getMsgType(), msgContentKey, msgContentValue);
       return ResponseDataStructureEnum.ok();
    }
 

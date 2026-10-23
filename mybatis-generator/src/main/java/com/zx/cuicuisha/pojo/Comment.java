@@ -43,6 +43,12 @@ public class Comment {
     private Integer likeCounts;
 
     /**
+     * 逻辑删除 0-正常，1-逻辑删除
+     */
+    @Column(name = "is_deleted")
+    private Integer isDeleted;
+
+    /**
      * 留言时间
      */
     @Column(name = "create_time")
@@ -168,6 +174,24 @@ public class Comment {
      */
     public void setLikeCounts(Integer likeCounts) {
         this.likeCounts = likeCounts;
+    }
+
+    /**
+     * 获取逻辑删除 0-正常，1-逻辑删除
+     *
+     * @return is_deleted - 逻辑删除 0-正常，1-逻辑删除
+     */
+    public Integer getIsDeleted() {
+        return isDeleted;
+    }
+
+    /**
+     * 设置逻辑删除 0-正常，1-逻辑删除
+     *
+     * @param isDeleted 逻辑删除 0-正常，1-逻辑删除
+     */
+    public void setIsDeleted(Integer isDeleted) {
+        this.isDeleted = isDeleted;
     }
 
     /**

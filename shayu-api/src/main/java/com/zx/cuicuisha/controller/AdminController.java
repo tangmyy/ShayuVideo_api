@@ -2,32 +2,46 @@ package com.zx.cuicuisha.controller;
 
 import com.zx.cuicuisha.MinIOConfig;
 import com.zx.cuicuisha.base.BaseInfoProperties;
+import com.zx.cuicuisha.base.RabbitMQConfig;
+import com.zx.cuicuisha.bo.CommentUpdateBO;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
+import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
 import com.zx.cuicuisha.bo.VlogBO;
 import com.zx.cuicuisha.enums.FileTypeEnum;
-import com.zx.cuicuisha.enums.UserInfoModifyType;
-import com.zx.cuicuisha.enums.VlogSortType;
+import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
+import com.zx.cuicuisha.enums.VlogSortTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.bo.AdminLoginBO;
+import com.zx.cuicuisha.mapper.UsersMapper;
 import com.zx.cuicuisha.pojo.AdminUsers;
+import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.Appeal;
 import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.*;
-import com.zx.cuicuisha.vo.AdminVO;
+import com.zx.cuicuisha.utils.JsonUtils;
 import com.zx.cuicuisha.utils.MinIOUtils;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.ActiveUserVO;
+import com.zx.cuicuisha.vo.AdminUsersVO;
 import com.zx.cuicuisha.vo.UsersVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import tk.mybatis.mapper.entity.Example;
 
 import javax.validation.Valid;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 
@@ -52,7 +66,15 @@ public class AdminController extends BaseInfoProperties {
    @Autowired
    private ReportService reportService;
    @Autowired
+   private AppealService appealService;
+   @Autowired
    private AdminService adminService;
+   @Autowired
+   private RabbitTemplate rabbitTemplate;
+   @Autowired
+   private UsersMapper usersMapper;
+   @Autowired
+   private HomeService homeService;
 
    /**
     * 查询用户列表（支持分页和搜索）
@@ -92,7 +114,7 @@ public class AdminController extends BaseInfoProperties {
    @ApiOperation(value = "修改用户信息（管理后台专用，可修改status和isDeleted字段）")
    @PostMapping("users/updateInfo")
    public ResponseDataStructureEnum updateUsersInfo(@RequestBody UpdatedUserBO updatedUserBO, @RequestParam Integer type) throws Exception{
-      UserInfoModifyType.checkUserInfoTypeIsRight(type);
+      UserInfoModifyTypeEnum.checkUserInfoTypeIsRight(type);
       // 管理后台使用专用方法，可以修改已逻辑删除的用户和status、isDeleted字段
       Users newUserInfo = userService.updateUserInfoForAdmin(updatedUserBO, type);
       return ResponseDataStructureEnum.ok(newUserInfo);
@@ -128,17 +150,33 @@ public class AdminController extends BaseInfoProperties {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      Users user = userService.deleteOrRestoreUser(userId);
+      // 查询用户当前状态（包括已删除的用户）
+      Users currentUser = userService.getUserIncludeDeleted(userId);
+      if (currentUser == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 根据当前状态决定是删除还是恢复
+      Users user;
+      if (currentUser.getIsDeleted() != null && currentUser.getIsDeleted() == 1) {
+         // 当前是删除状态，执行恢复
+         user = userService.restoreDeletedUser(userId);
+      } else {
+         // 当前是正常状态，执行删除
+         user = userService.deleteUser(userId);
+      }
       return ResponseDataStructureEnum.ok(user);
    }
 
-   @ApiOperation(value = "封禁/恢复用户（切换用户状态）")
+   @ApiOperation(value = "设置用户状态（0-正常，1-禁言，2-封禁）")
    @PostMapping("users/banOrRestore")
-   public ResponseDataStructureEnum banOrRestoreUser(@RequestParam String userId) {
+   public ResponseDataStructureEnum banOrRestoreUser(@RequestParam String userId, @RequestParam Integer status) {
       if (StringUtils.isBlank(userId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      Users user = userService.banOrRestoreUser(userId);
+      if (status == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_STATUS_ERROR);
+      }
+      Users user = userService.banOrRestoreUser(userId, status);
       return ResponseDataStructureEnum.ok(user);
    }
 
@@ -148,13 +186,20 @@ public class AdminController extends BaseInfoProperties {
       if (StringUtils.isBlank(mobile)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 查询数据库, 判断用户是否存在
-      Users user = userService.queryMobileIsExist(mobile);
+      // 查询数据库, 判断用户是否存在（包括已逻辑删除的用户）
+      Users user = userService.queryUserByMobileIncludeDeleted(mobile);
       if (user == null) {
+         // 如果完全不存在, 则创建新用户
          log.info("手机号 {} 不存在，开始创建新用户", mobile);
          user = userService.createUser(mobile);
-         log.info("用户注册成功，用户ID: {}", user.getId());
+         log.info("用户创建成功，用户ID: {}", user.getId());
+      } else if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         // 如果找到被逻辑删除的用户, 恢复该用户
+         log.info("手机号 {} 对应的用户曾被逻辑删除，正在恢复用户，用户ID: {}", mobile, user.getId());
+         user = userService.restoreDeletedUser(user.getId());
+         log.info("用户恢复成功，用户ID: {}", user.getId());
       }
+      // 如果用户存在且未删除，直接使用
       // 返回用户信息
       log.info("手机号 {} 已存在，返回现有用户信息，用户ID: {}", mobile, user.getId());
       UsersVO usersVO = new UsersVO();
@@ -165,23 +210,25 @@ public class AdminController extends BaseInfoProperties {
    /**
     * 管理端：视频列表
     * /admin/vlog/list
-    * @param search 搜索关键字（可选）
+    * @param search 搜索关键字（可选，标题关键字）
+    * @param vlogId 视频ID（可选）
     * @param page   页码（可选，默认1）
     * @param pageSize 每页数量（可选，默认10）
     * @return 分页结果
     */
    @GetMapping("vlog/list")
    public ResponseDataStructureEnum vlogList(@RequestParam(required = false) String search,
+                                              @RequestParam(required = false) String vlogId,
                                               @RequestParam(required = false) Integer page,
                                               @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       // 使用管理员专用查询方法，可以查询所有视频（包括已逻辑删除的）
-      PagedGridResult list = vlogService.getIndexVlogListForAdmin(search == null ? "" : search, page, pageSize);
+      PagedGridResult list = vlogService.getIndexVlogListForAdmin(search, vlogId, page, pageSize);
       return ResponseDataStructureEnum.ok(list);
    }
 
-   @ApiOperation(value = "修改视频信息")
+   @ApiOperation(value = "编辑视频信息")
    @PostMapping("vlog/updateInfo")
    public ResponseDataStructureEnum updateVlogInfo(@RequestBody VlogBO vlogBO) {
       if (vlogBO == null || StringUtils.isBlank(vlogBO.getId())) {
@@ -201,22 +248,43 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(vlog);
    }
 
-   @ApiOperation(value = "设置推荐视频流排序规则（0-创建时间，1-点赞数，2-评论数）")
-   @PostMapping("vlog/setSortType")
-   public ResponseDataStructureEnum setVlogSortType(@RequestParam Integer sortType) {
-      if (sortType == null) {
+   /**
+    * 审核接口-封禁/解封视频
+    * @param vlogId 视频ID
+    * @param auditStatus 审核状态 0-审核中 1-通过 2-拒绝（封禁）
+    * @param adminId 管理员ID
+    * @param auditRemark 审核备注（可选）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "审核视频（封禁/解封视频）")
+   @PostMapping("vlog/audit")
+   public ResponseDataStructureEnum auditVlog(@RequestParam String vlogId,
+                                               @RequestParam Integer auditStatus,
+                                               @RequestParam Long adminId,
+                                               @RequestParam(required = false) String auditRemark) {
+      if (StringUtils.isBlank(vlogId)) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 验证排序类型是否有效（0、1、2）
-      VlogSortType vlogSortType = VlogSortType.getByType(sortType);
-      if (vlogSortType == null) {
+      if (auditStatus == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
-      // 保存到Redis
-      redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
-      return ResponseDataStructureEnum.ok(vlogSortType);
+      if (adminId == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证审核状态值（0-审核中，1-通过，2-拒绝）
+      if (auditStatus < 0 || auditStatus > 2) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      vlogService.auditVlog(vlogId, auditStatus, adminId, auditRemark);
+      return ResponseDataStructureEnum.ok();
    }
 
+   /**
+    * 获取推荐排序规则 与 设置推荐排序规则
+    * /admin/vlog/getSortType
+    * /admin/vlog/setSortType
+    * @return
+    */
    @ApiOperation(value = "获取推荐视频流排序规则")
    @GetMapping("vlog/getSortType")
    public ResponseDataStructureEnum getVlogSortType() {
@@ -229,8 +297,24 @@ public class AdminController extends BaseInfoProperties {
             // 使用默认值
          }
       }
-      VlogSortType vlogSortType = VlogSortType.getByTypeWithDefault(sortType);
-      return ResponseDataStructureEnum.ok(vlogSortType);
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByTypeWithDefault(sortType);
+      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
+   }
+
+   @ApiOperation(value = "设置推荐视频流排序规则（0-创建时间，1-点赞数，2-评论数）")
+   @PostMapping("vlog/setSortType")
+   public ResponseDataStructureEnum setVlogSortType(@RequestParam Integer sortType) {
+      if (sortType == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证排序类型是否有效（0、1、2）
+      VlogSortTypeEnum vlogSortTypeEnum = VlogSortTypeEnum.getByType(sortType);
+      if (vlogSortTypeEnum == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 保存到Redis
+      redis.set(REDIS_VLOG_INDEX_SORT_TYPE, String.valueOf(sortType));
+      return ResponseDataStructureEnum.ok(vlogSortTypeEnum);
    }
 
    /**
@@ -263,6 +347,19 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(comment);
    }
 
+   @ApiOperation(value = "编辑评论（管理员专用，可修改评论内容）")
+   @PostMapping("comment/update")
+   public ResponseDataStructureEnum updateComment(@RequestBody CommentUpdateBO commentUpdateBO) {
+      if (commentUpdateBO == null || StringUtils.isBlank(commentUpdateBO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(commentUpdateBO.getContent())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Comment updatedComment = commentService.updateCommentForAdmin(commentUpdateBO);
+      return ResponseDataStructureEnum.ok(updatedComment);
+   }
+
    /**
     * 管理端：粉丝列表
     * /admin/fans/list
@@ -293,9 +390,7 @@ public class AdminController extends BaseInfoProperties {
     */
    @ApiOperation(value = "查询消息列表（支持查询所有或按用户ID筛选）")
    @GetMapping("msg/list")
-   public ResponseDataStructureEnum msgList(@RequestParam(required = false) String userId,
-                                              @RequestParam(required = false) Integer page,
-                                              @RequestParam(required = false) Integer pageSize) {
+   public ResponseDataStructureEnum msgList(@RequestParam(required = false) String userId, @RequestParam(required = false) Integer page, @RequestParam(required = false) Integer pageSize) {
       if (page == null) {page = COMMON_START_PAGE;}
       if (pageSize == null) {pageSize = COMMON_PAGE_SIZE;}
       // 使用管理员专用方法，支持查询所有消息或按用户ID筛选
@@ -310,6 +405,141 @@ public class AdminController extends BaseInfoProperties {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
       }
       msgService.deleteMsgForAdmin(msgId);
+      return ResponseDataStructureEnum.ok();
+   }
+
+   /**
+    * 管理端：编辑消息
+    * /admin/msg/update
+    * 支持灵活更新消息的各个字段，所有字段都是可选的（除了id）
+    * 更新策略：
+    * 1. 只更新传入的非空字段
+    * 2. msgContent支持两种模式：
+    *    - 完全替换（mergeContent=false或未传）：直接替换原有内容
+    *    - 合并更新（mergeContent=true）：将新内容合并到原有内容中
+    * @param messageUpdateMO 消息更新对象
+    * @return 更新后的消息对象
+    */
+   @ApiOperation(value = "编辑消息（支持灵活更新，所有字段可选）")
+   @PostMapping("msg/update")
+   public ResponseDataStructureEnum updateMsg(@RequestBody MessageUpdateMO messageUpdateMO) {
+      if (messageUpdateMO == null || StringUtils.isBlank(messageUpdateMO.getId())) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      MessageMO updatedMessage = msgService.updateMsgForAdmin(messageUpdateMO);
+      return ResponseDataStructureEnum.ok(updatedMessage);
+   }
+
+   /**
+    * 管理端：主动发送系统消息
+    * /admin/msg/sendSystemMessage
+    * 参照 handleReport 的逻辑，通过 RabbitMQ 异步发送系统消息
+    * 消息类型固定为 SYSTEM_MESSAGE(8)，最终通过 createAdminMsg 创建系统消息
+    * @param handlerId 管理员ID
+    * @param toUserId 接收用户ID
+    * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "主动发送系统消息（通过MQ异步发送，消息类型固定为系统消息）")
+   @PostMapping("msg/sendSystemMessage")
+   public ResponseDataStructureEnum sendSystemMessage(@RequestParam String handlerId, @RequestParam String toUserId, @RequestParam(required = false) String msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      if (StringUtils.isBlank(toUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 验证接收用户是否存在
+      Users toUser = userService.getUser(toUserId);
+      if (toUser == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 解析 msgContent（JSON字符串转Map）
+      Map<String, Object> msgContentMap = null;
+      if (StringUtils.isNotBlank(msgContent)) {
+         try {
+            msgContentMap = JsonUtils.jsonToPojo(msgContent, Map.class);
+         } catch (Exception e) {
+            log.error("解析消息内容失败：msgContent={}", msgContent, e);
+            return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+      }
+      // 发送消息到MQ（异步），参照 handleReport 的逻辑
+      try {
+         MessageMO messageMO = new MessageMO();
+         messageMO.setFromUserId(handlerId);
+         messageMO.setToUserId(toUserId);
+         messageMO.setMsgContent(msgContentMap);
+         // 路由键：sys.msg.systemMessage
+         rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.SYSTEM_MESSAGE.enValue, JsonUtils.objectToJson(messageMO));
+         log.info("系统消息已发送到MQ：handlerId={}, toUserId={}, msgType={}", handlerId, toUserId, MessageTypeEnum.SYSTEM_MESSAGE.type);
+      } catch (Exception e) {
+         log.error("发送系统消息到MQ失败：handlerId={}, toUserId={}", handlerId, toUserId, e);
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      return ResponseDataStructureEnum.ok();
+   }
+
+   /**
+    * 管理端：发送系统公告/活动通知给所有用户
+    * /admin/msg/sendSystemNotification
+    * 通过 RabbitMQ 异步发送公告给所有未删除的用户
+    * 消息类型固定为 SYSTEM_ANNOUNCEMENT(9)，最终通过 createAdminMsg 创建系统消息
+    * @param handlerId 管理员ID
+    * @param msgContent 消息内容（Map格式，包含title、content、type、link、imageUrl等字段）
+    * @return 操作结果
+    */
+   @ApiOperation(value = "发送系统公告/活动通知给所有用户（通过MQ异步发送，消息类型固定为系统公告）")
+   @PostMapping("msg/sendSystemNotification")
+   public ResponseDataStructureEnum sendSystemNotification(@RequestParam String handlerId, @RequestParam(required = false) String msgContent) {
+      // 参数校验
+      if (StringUtils.isBlank(handlerId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 解析 msgContent（JSON字符串转Map）
+      Map<String, Object> msgContentMap = null;
+      if (StringUtils.isNotBlank(msgContent)) {
+         try {
+            msgContentMap = JsonUtils.jsonToPojo(msgContent, Map.class);
+         } catch (Exception e) {
+            log.error("解析消息内容失败：msgContent={}", msgContent, e);
+            return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+      }
+      // 查询所有未删除的用户
+      Example example = new Example(Users.class);
+      Example.Criteria criteria = example.createCriteria();
+      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
+      List<Users> allUsers = usersMapper.selectByExample(example);
+      if (allUsers == null || allUsers.isEmpty()) {
+         log.warn("发送公告失败：没有找到任何用户");
+         return ResponseDataStructureEnum.ok();
+      }
+      log.info("开始发送公告给所有用户，共{}个用户", allUsers.size());
+      // 为每个用户发送消息到MQ（异步），参照 handleReport 的逻辑
+      int successCount = 0;
+      int failCount = 0;
+      for (Users user : allUsers) {
+         try {
+            MessageMO messageMO = new MessageMO();
+            messageMO.setFromUserId(handlerId);
+            messageMO.setToUserId(user.getId());
+            messageMO.setMsgContent(msgContentMap);
+            // 路由键：sys.msg.systemAnnouncement
+            rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.SYSTEM_ANNOUNCEMENT.enValue, JsonUtils.objectToJson(messageMO));
+            successCount++;
+         } catch (Exception e) {
+            failCount++;
+            log.error("发送公告到用户失败：userId={}", user.getId(), e);
+            // 单个用户发送失败不影响其他用户，继续发送
+         }
+      }
+      log.info("公告发送完成：成功{}个，失败{}个，总计{}个用户", successCount, failCount, allUsers.size());
+      if (failCount > 0 && successCount == 0) {
+         // 如果全部失败，返回错误
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
       return ResponseDataStructureEnum.ok();
    }
 
@@ -371,6 +601,59 @@ public class AdminController extends BaseInfoProperties {
    }
 
    /**
+    * 管理端：申诉列表
+    * /admin/appeal/list
+    * @param appealType 申诉类型（可选，1-视频，2-评论）
+    * @param status 处理状态（可选，0-待处理，1-已处理（通过），2-已驳回）
+    * @param targetId 被申诉对象ID（可选）
+    * @param reportId 举报记录ID（可选）
+    * @param page 页码（可选，默认1）
+    * @param pageSize 每页数量（可选，默认10）
+    * @return 分页结果
+    */
+   @ApiOperation(value = "查询申诉列表（支持按类型、状态、对象ID、举报ID筛选）")
+   @GetMapping("appeal/list")
+   public ResponseDataStructureEnum appealList(
+         @RequestParam(required = false) Integer appealType,
+         @RequestParam(required = false) Integer status,
+         @RequestParam(required = false) String targetId,
+         @RequestParam(required = false) String reportId,
+         @RequestParam(required = false) Integer page,
+         @RequestParam(required = false) Integer pageSize) {
+      if (page == null) { page = COMMON_START_PAGE; }
+      if (pageSize == null) { pageSize = COMMON_PAGE_SIZE; }
+      PagedGridResult result = appealService.queryAppeals(appealType, status, targetId, reportId, page, pageSize);
+      return ResponseDataStructureEnum.ok(result);
+   }
+
+   @ApiOperation(value = "处理申诉")
+   @PostMapping("appeal/handle")
+   public ResponseDataStructureEnum handleAppeal(
+         @RequestParam String appealId, @RequestParam String handlerId, @RequestParam Integer status,
+         @RequestParam(required = false) String handleResult, @RequestParam(required = false, defaultValue = "false") Boolean notifyAppealer) {
+      if (StringUtils.isBlank(appealId) || StringUtils.isBlank(handlerId) || status == null) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      Appeal appeal = appealService.handleAppeal(appealId, handlerId, status, handleResult, notifyAppealer);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+   @ApiOperation(value = "修改已处理的申诉记录（同时更新SQL和MongoDB消息）")
+   @PutMapping("appeal/update")
+   public ResponseDataStructureEnum updateAppeal(@RequestParam String appealId, @RequestParam String handlerId, @RequestParam Integer status, @RequestParam(required = false) String handleResult) {
+      Appeal appeal = appealService.updateAppeal(appealId, handlerId, status, handleResult);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+   @ApiOperation(value = "重置申诉的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）")
+   @PutMapping("appeal/reset")
+   public ResponseDataStructureEnum resetAppeal(@RequestParam String appealId) {
+      Appeal appeal = appealService.resetAppeal(appealId);
+      return ResponseDataStructureEnum.ok(appeal);
+   }
+
+
+   /**
     * 管理端：数据统计
     * /admin/counts/
     * @return 数据总数量
@@ -411,6 +694,41 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok(totalCount);
    }
 
+   @ApiOperation(value = "统计所有视频举报数量")
+   @GetMapping("counts/report/vlog")
+   public ResponseDataStructureEnum countsVlogReportNum() {
+      Integer totalCount = reportService.getTotalVlogReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有评论举报数量")
+   @GetMapping("counts/report/comment")
+   public ResponseDataStructureEnum countsCommentReportNum() {
+      Integer totalCount = reportService.getTotalCommentReportCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有申诉数量")
+   @GetMapping("counts/appeal")
+   public ResponseDataStructureEnum countsAppealNum() {
+      Integer totalCount = appealService.getTotalAppealCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有视频申诉数量")
+   @GetMapping("counts/appeal/vlog")
+   public ResponseDataStructureEnum countsVlogAppealNum() {
+      Integer totalCount = appealService.getTotalVlogAppealCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
+   @ApiOperation(value = "统计所有评论申诉数量")
+   @GetMapping("counts/appeal/comment")
+   public ResponseDataStructureEnum countsCommentAppealNum() {
+      Integer totalCount = appealService.getTotalCommentAppealCount();
+      return ResponseDataStructureEnum.ok(totalCount);
+   }
+
    /**
     * 管理员登录
     * @param adminLoginBO 登录信息（用户名和密码）
@@ -421,16 +739,16 @@ public class AdminController extends BaseInfoProperties {
    public ResponseDataStructureEnum login(@Valid @RequestBody AdminLoginBO adminLoginBO) {
       AdminUsers admin = adminService.adminLogin(adminLoginBO);
       // 转换为VO对象
-      AdminVO adminVO = new AdminVO();
-      adminVO.setId(admin.getId());
-      adminVO.setUsername(admin.getUsername());
-      adminVO.setEmail(admin.getEmail());
-      adminVO.setRealName(admin.getRealName());
-      adminVO.setAvatar(admin.getAvatar());
+      AdminUsersVO adminUsersVO = new AdminUsersVO();
+      adminUsersVO.setId(admin.getId());
+      adminUsersVO.setUsername(admin.getUsername());
+      adminUsersVO.setEmail(admin.getEmail());
+      adminUsersVO.setRealName(admin.getRealName());
+      adminUsersVO.setAvatar(admin.getAvatar());
       // 从Redis获取token
       String adminToken = redis.get(REDIS_ADMIN_TOKEN + ":" + admin.getId());
-      adminVO.setAdminToken(adminToken);
-      return ResponseDataStructureEnum.ok(adminVO);
+      adminUsersVO.setAdminToken(adminToken);
+      return ResponseDataStructureEnum.ok(adminUsersVO);
    }
 
    /**
@@ -450,5 +768,32 @@ public class AdminController extends BaseInfoProperties {
       return ResponseDataStructureEnum.ok();
    }
 
+   /**
+    * 首页数据接口 - 活跃用户排行榜
+    * @param limit 返回数量限制，默认10
+    * @param sortBy 排序方式：'videos'（按视频数）或 'fans'（按粉丝数），默认'videos'
+    * @return 活跃用户列表
+    */
+   @ApiOperation(value = "首页数据接口 - 活跃用户排行榜")
+   @GetMapping("home/activeUsers")
+   public ResponseDataStructureEnum getActiveUsers(
+         @RequestParam(required = false) Integer limit,
+         @RequestParam(required = false) String sortBy) {
+      List<ActiveUserVO> activeUsers = homeService.getActiveUsers(limit, sortBy);
+      return ResponseDataStructureEnum.ok(activeUsers);
+   }
+
+   /**
+    * 首页数据接口 - 每月视频发布数量统计
+    * @param year 年份，可选，默认为当前年份
+    * @return 每月视频发布数量列表（按月份1-12顺序），每个元素表示该月的视频发布总数
+    */
+   @ApiOperation(value = "首页数据接口 - 每月视频发布数量统计")
+   @GetMapping("home/monthlyVideos")
+   public ResponseDataStructureEnum getMonthlyVideos(
+         @RequestParam(required = false) Integer year) {
+      List<Integer> monthlyVideos = homeService.getMonthlyVideos(year);
+      return ResponseDataStructureEnum.ok(monthlyVideos);
+   }
 
 }

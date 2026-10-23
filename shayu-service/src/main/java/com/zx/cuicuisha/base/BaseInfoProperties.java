@@ -47,6 +47,14 @@ public class BaseInfoProperties {
    // 视频推荐流排序配置（0-创建时间，1-点赞数，2-评论数）
    public static final String REDIS_VLOG_INDEX_SORT_TYPE = "redis_vlog_index_sort_type";
 
+   // UserCF推荐系统相关缓存
+   // 用户相似度缓存 redis_user_similarity:{userId}:{k}
+   public static final String REDIS_USER_SIMILARITY = "redis_user_similarity";
+   // 用户推荐结果缓存 redis_user_recommendations:{userId}:{topN}
+   public static final String REDIS_USER_RECOMMENDATIONS = "redis_user_recommendations";
+   // 用户行为矩阵缓存 redis_user_behavior_matrix
+   public static final String REDIS_USER_BEHAVIOR_MATRIX = "redis_user_behavior_matrix";
+
    public PagedGridResult setterPagedGrid(List<?> list, Integer page) {
       PageInfo<?> pageList = new PageInfo<>(list);
       PagedGridResult gridResult = new PagedGridResult();

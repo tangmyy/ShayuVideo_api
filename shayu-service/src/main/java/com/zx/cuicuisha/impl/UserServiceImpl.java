@@ -3,16 +3,27 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.bo.UpdatedUserBO;
-import com.zx.cuicuisha.enums.UserInfoModifyType;
+import com.zx.cuicuisha.enums.UserInfoModifyTypeEnum;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.UsersMapper;
+import com.zx.cuicuisha.mapper.VlogMapper;
+import com.zx.cuicuisha.mapper.CommentMapper;
+import com.zx.cuicuisha.mapper.MyLikedVlogMapper;
+import com.zx.cuicuisha.mapper.FansMapper;
+import com.zx.cuicuisha.mapper.ReportMapper;
+import com.zx.cuicuisha.pojo.Vlog;
+import com.zx.cuicuisha.pojo.Comment;
+import com.zx.cuicuisha.pojo.MyLikedVlog;
+import com.zx.cuicuisha.pojo.Fans;
+import com.zx.cuicuisha.pojo.Report;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.utils.DesensitizationUtil;
 import org.n3r.idworker.Sid;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.PagedGridResult;
+import com.zx.cuicuisha.vo.UsersVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +33,8 @@ import tk.mybatis.mapper.entity.Example;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
-import com.zx.cuicuisha.enums.Sex;
+import java.util.Map;
+import com.zx.cuicuisha.enums.SexTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.utils.DateUtil;
 import lombok.extern.slf4j.Slf4j;
@@ -34,18 +46,146 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    @Autowired
    private UsersMapper usersMapper;
    @Autowired
+   private VlogMapper vlogMapper;
+   @Autowired
+   private CommentMapper commentMapper;
+   @Autowired
+   private MyLikedVlogMapper myLikedVlogMapper;
+   @Autowired
+   private FansMapper fansMapper;
+   @Autowired
+   private ReportMapper reportMapper;
+   @Autowired
    private MessageRepository messageRepository;
    @Autowired
    private Sid sid;
    private static final String USER_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
    private static final String USER_BGIMG = "http://106.54.6.213:9000/shayu/1765019119.jpg";
 
+   // # ======================================== Users方法/提供用户端使用 ========================================
+
+   /**
+    * 查询用户（只查询未逻辑删除的用户）
+    * @return 用户信息，如果不存在则返回null
+    */
    @Override
-   public Users queryMobileIsExist(String mobile) {
+   public Users getUser(String userId) {
+      Users user = usersMapper.selectByPrimaryKey(userId);
+      // 检查用户是否存在且未被逻辑删除
+      if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
+         return null;
+      }
+      return user;
+   }
+
+   /**
+    * 查询自己的用户信息（需要token验证）
+    * @param userId 用户ID
+    * @param token 用户token
+    * @return 用户完整信息（包含手机号、token等），如果不存在或token无效则抛出异常
+    */
+   @Override
+   public UsersVO queryMe(String userId, String token) {
+      // 1. 验证 token 是否存在
+      if (StringUtils.isBlank(token)) {
+         GraceException.display(ResponseStatusEnum.TOKEN_INVALID_ERROR);
+      }
+      // 2. 从 Redis 中检查 token 是否存在
+      String redisToken = redis.get(REDIS_USER_TOKEN + ":" + userId);
+      if (StringUtils.isBlank(redisToken) || !redisToken.equals(token)) {
+         // token 不存在或不匹配，说明用户已被删除或 token 已失效
+         GraceException.display(ResponseStatusEnum.TICKET_INVALID);
+      }
+      // 3. 验证用户是否存在
+      Users user = getUser(userId);
+      if (user == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 4. 检查用户是否被逻辑删除
+      if (user.getIsDeleted() != null && user.getIsDeleted() == 1) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 5. 转换为VO对象
+      UsersVO usersVO = new UsersVO();
+      BeanUtils.copyProperties(user, usersVO);
+      // 6. 获取统计信息
+      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
+      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+      Integer myFollowsCounts = 0;
+      Integer myFansCounts = 0;
+      Integer likedVlogCounts = 0;
+      Integer likedVlogerCounts = 0;
+      Integer totalLikeMeCounts = 0;
+      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
+         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
+      }
+      if (StringUtils.isNotBlank(myFansCountsStr)) {
+         myFansCounts = Integer.valueOf(myFansCountsStr);
+      }
+      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
+         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
+      }
+      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
+      usersVO.setMyFollowsCounts(myFollowsCounts);
+      usersVO.setMyFansCounts(myFansCounts);
+      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
+      return usersVO;
+   }
+
+   /**
+    * 查询用户公开信息（用于查看他人主页，不需要token验证）
+    * @param userId 用户ID
+    * @return 用户公开信息，如果不存在则返回null
+    */
+   @Override
+   public UsersVO queryVloger(String userId) {
+      // 查询用户基本信息（不包括已逻辑删除的）
+      Users user = getUser(userId);
+      if (user == null) {
+         return null;
+      }
+      // 转换为VO对象
+      UsersVO usersVO = new UsersVO();
+      BeanUtils.copyProperties(user, usersVO);
+      // 不返回敏感信息
+      usersVO.setMobile(null);
+      usersVO.setUserToken(null);
+      // 获取统计信息
+      String myFollowsCountsStr = redis.get(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+      String myFansCountsStr = redis.get(REDIS_MY_FANS_COUNTS + ":" + userId);
+      String likedVlogerCountsStr = redis.get(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+      Integer myFollowsCounts = 0;
+      Integer myFansCounts = 0;
+      Integer likedVlogCounts = 0;
+      Integer likedVlogerCounts = 0;
+      Integer totalLikeMeCounts = 0;
+      if (StringUtils.isNotBlank(myFollowsCountsStr)) {
+         myFollowsCounts = Integer.valueOf(myFollowsCountsStr);
+      }
+      if (StringUtils.isNotBlank(myFansCountsStr)) {
+         myFansCounts = Integer.valueOf(myFansCountsStr);
+      }
+      if (StringUtils.isNotBlank(likedVlogerCountsStr)) {
+         likedVlogerCounts = Integer.valueOf(likedVlogerCountsStr);
+      }
+      totalLikeMeCounts = likedVlogCounts + likedVlogerCounts;
+      usersVO.setMyFollowsCounts(myFollowsCounts);
+      usersVO.setMyFansCounts(myFansCounts);
+      usersVO.setTotalLikeMeCounts(totalLikeMeCounts);
+      return usersVO;
+   }
+
+   /**
+    * 查询用户（包括已逻辑删除的用户）
+    * @param mobile 手机号
+    * @return 用户信息，如果不存在则返回null
+    */
+   @Override
+   public Users queryUserByMobileIncludeDeleted(String mobile) {
       Example userExample = new Example(Users.class);
       Example.Criteria criteria = userExample.createCriteria();
       criteria.andEqualTo("mobile", mobile);
-      criteria.andEqualTo("isDeleted", 0); // 只查询未逻辑删除的用户
       Users user = usersMapper.selectOneByExample(userExample);
       return user;
    }
@@ -56,14 +196,13 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       // 获取全局唯一主键
       String userId = sid.nextShort();
       Users user = new Users();
-
       user.setId(userId);
       user.setMobile(mobile);
       user.setNickname("用户:" + DesensitizationUtil.commonDisplay(mobile));
       user.setVideoNum(DesensitizationUtil.commonDisplay(mobile));
       user.setFace(USER_FACE);
       user.setBirthday(DateUtil.stringToDate("2000-01-01"));
-      user.setSex(Sex.secret.type);
+      user.setSex(SexTypeEnum.secret.type);
       user.setCountry("中国");
       user.setProvince("");
       user.setCity("");
@@ -75,18 +214,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       user.setIsDeleted(0); // 默认未逻辑删除
       user.setCreatedTime(new Date());
       user.setUpdatedTime(new Date());
-
       usersMapper.insert(user);
-      return user;
-   }
-
-   @Override
-   public Users getUser(String userId) {
-      Users user = usersMapper.selectByPrimaryKey(userId);
-      // 检查用户是否存在且未被逻辑删除
-      if (user == null || (user.getIsDeleted() != null && user.getIsDeleted() == 1)) {
-         return null;
-      }
       return user;
    }
 
@@ -104,14 +232,14 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       if (checkUser == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 检查用户是否被封禁
-      if (checkUser.getStatus() != null && checkUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      // 检查用户状态：封禁（status=2）不能修改用户信息
+      Integer status = checkUser.getStatus();
+      if (status != null && status == 2) {
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
-
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-      if (type == UserInfoModifyType.NICKNAME.type){
+      if (type == UserInfoModifyTypeEnum.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查） !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
@@ -119,7 +247,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
          }
       }
-      if (type == UserInfoModifyType.VIDEONUM.type){
+      if (type == UserInfoModifyTypeEnum.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);
@@ -150,9 +278,10 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       if (checkUser == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 检查用户是否被封禁
-      if (checkUser.getStatus() != null && checkUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      // 检查用户状态：封禁（status=2）不能修改用户信息
+      Integer status = checkUser.getStatus();
+      if (status != null && status == 2) {
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
 
       Users pendingUser = new Users();
@@ -164,8 +293,16 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       return getUser(updatedUserBO.getId());
    }
 
+   // # ======================================== Admin方法/提供管理员端使用 ========================================
+
+   // Admin - 根据用户主键查询用户信息（包括已逻辑删除的用户，管理端使用）
+   @Override
+   public Users getUserIncludeDeleted(String userId) {
+      return usersMapper.selectByPrimaryKey(userId);
+   }
+
    /**
-    * 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
+    * Admin - 管理后台修改用户信息（允许修改已逻辑删除的用户和status、isDeleted字段）
     */
    @Transactional
    @Override
@@ -178,7 +315,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
 
       Example example = new Example(Users.class);
       Example.Criteria criteria = example.createCriteria();
-      if (type == UserInfoModifyType.NICKNAME.type){
+      if (type == UserInfoModifyTypeEnum.NICKNAME.type){
          criteria.andEqualTo("nickname", updatedUserBO.getNickname());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（昵称唯一性检查）  !如果 要检查未被封号的用户,需要处理封号后昵称重构
          Users user = usersMapper.selectOneByExample(example);
@@ -186,7 +323,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
             GraceException.display(ResponseStatusEnum.USER_INFO_UPDATED_NICKNAME_EXIST_ERROR);
          }
       }
-      if (type == UserInfoModifyType.VIDEONUM.type){
+      if (type == UserInfoModifyTypeEnum.VIDEONUM.type){
          criteria.andEqualTo("videoNum", updatedUserBO.getVideoNum());
          criteria.andEqualTo("isDeleted", 0); // 只检查未逻辑删除的用户（视频号唯一性检查） !如果 要检查未被封号的用户,需要处理封号后视频号重构
          Users user = usersMapper.selectOneByExample(example);
@@ -212,7 +349,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 管理后台修改用户信息（不带type参数，用于修改头像、背景图等）
+    * Admin - 管理后台修改用户信息（不带type参数，用于修改头像、背景图等）
     */
    @Transactional
    @Override
@@ -222,7 +359,6 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
       if (existUser == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-
       Users pendingUser = new Users();
       BeanUtils.copyProperties(updatedUserBO, pendingUser);
       // 管理后台可以更新 status 和 isDeleted 字段
@@ -236,7 +372,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 管理后台查询用户列表（不过滤已逻辑删除的用户）
+    * Admin - 管理后台查询用户列表（不过滤已逻辑删除的用户）
     */
    @Override
    public PagedGridResult queryUserListForAdmin(String nickname, String mobile, String date, Integer page, Integer pageSize) {
@@ -291,73 +427,299 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 删除/恢复用户（切换逻辑删除状态）
-    * 如果用户是正常状态（is_deleted = 0），则逻辑删除（设置为 1）
-    * 如果用户是已逻辑删除状态（is_deleted = 1），则恢复（设置为 0）
+    * Admin - 删除用户（逻辑删除并清理相关数据）
+    * 如果用户是正常状态（is_deleted = 0），则逻辑删除（设置为 1）并清理所有相关数据
+    * 如果用户已经是已逻辑删除状态（is_deleted = 1），则不做任何操作
     */
    @Transactional
    @Override
-   public Users deleteOrRestoreUser(String userId) {
+   public Users deleteUser(String userId) {
       // 管理后台可以直接查询用户，不过滤 is_deleted
       Users user = usersMapper.selectByPrimaryKey(userId);
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 切换逻辑删除状态
+      // 如果已经是删除状态，直接返回
       Integer currentIsDeleted = user.getIsDeleted();
-      Integer newIsDeleted = (currentIsDeleted == null || currentIsDeleted == 0) ? 1 : 0;
+      if (currentIsDeleted != null && currentIsDeleted == 1) {
+         log.warn("用户已经是删除状态，无需重复删除：userId={}", userId);
+         return user;
+      }
+      // 删除/重置用户的所有相关数据
+      {
+         try {
+            // 1. 删除Redis缓存
+            // 清除用户会话信息（token），用户需要重新登录，前端也需要清除本地app中的用户信息和token信息
+            // 清除用户自己的统计数据（关注数、粉丝数、获赞数），直接删除key，避免重新注册时出现负数
+            redis.delete(REDIS_USER_TOKEN + ":" + userId);
+            redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
+            redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
+            redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
+            log.info("删除用户Redis缓存成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("删除用户Redis缓存失败：userId={}", userId, e);
+            // 缓存删除失败不影响主流程，只记录日志
+         }
+         try {
+            // 2. 重置用户个人信息（保留手机号和创建时间，其他字段重置为默认值，和新用户一样）
+            Users resetUser = new Users();
+            resetUser.setId(userId);
+            // 重置所有个人信息字段
+            resetUser.setNickname("用户:" + DesensitizationUtil.commonDisplay(user.getMobile()));
+            resetUser.setVideoNum(DesensitizationUtil.commonDisplay(user.getMobile()));
+            resetUser.setFace(USER_FACE);
+            resetUser.setBirthday(DateUtil.stringToDate("2000-01-01"));
+            resetUser.setSex(SexTypeEnum.secret.type);
+            resetUser.setCountry("中国");
+            resetUser.setProvince("");
+            resetUser.setCity("");
+            resetUser.setDistrict("");
+            resetUser.setBgImg(USER_BGIMG);
+            resetUser.setDescription("这家伙很懒，什么都没留下~");
+            // 重置账号限制：允许修改视频号（和新用户一样）
+            resetUser.setCanVideoNumBeUpdated(YesOrNo.YES.type);
+            // 重置状态为正常
+            resetUser.setStatus(0);
+            resetUser.setUpdatedTime(new Date());
+            // 使用updateByPrimaryKeySelective更新，只更新非null字段
+            int resetResult = usersMapper.updateByPrimaryKeySelective(resetUser);
+            if (resetResult != 1) {
+               log.error("重置用户个人信息失败：更新影响行数为{}，userId={}", resetResult, userId);
+               GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+            }
+            log.info("重置用户个人信息成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("重置用户个人信息失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 3. 逻辑删除用户发布的视频
+            Example vlogExample = new Example(Vlog.class);
+            Example.Criteria vlogCriteria = vlogExample.createCriteria();
+            vlogCriteria.andEqualTo("vlogerId", userId);
+            Vlog deleteVlog = new Vlog();
+            deleteVlog.setIsDeleted(1);
+            deleteVlog.setUpdatedTime(new Date());
+            vlogMapper.updateByExampleSelective(deleteVlog, vlogExample);
+            log.info("逻辑删除用户发布的视频成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("逻辑删除用户发布的视频失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 4. 逻辑删除用户发布的评论
+            // 注意：不操作Redis中的评论计数，因为评论是逻辑删除，计数应该从数据库实时计算
+            // 如果Redis中的计数不准确，会在查询时从数据库重新计算
+            Example commentExample = new Example(Comment.class);
+            Example.Criteria commentCriteria = commentExample.createCriteria();
+            commentCriteria.andEqualTo("commentUserId", userId);
+            List<Comment> commentList = commentMapper.selectByExample(commentExample);
+            // 逻辑删除数据库中的评论
+            Comment deleteComment = new Comment();
+            deleteComment.setIsDeleted(1);
+            commentMapper.updateByExampleSelective(deleteComment, commentExample);
+            log.info("逻辑删除用户发布的评论成功：userId={}, 共{}条评论", userId, commentList != null ? commentList.size() : 0);
+         } catch (Exception e) {
+            log.error("逻辑删除用户发布的评论失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 5. 删除用户点赞的视频记录，并清理Redis关联关系
+            // 先查询用户的所有点赞记录
+            Example likedVlogExample = new Example(MyLikedVlog.class);
+            Example.Criteria likedVlogCriteria = likedVlogExample.createCriteria();
+            likedVlogCriteria.andEqualTo("userId", userId);
+            List<MyLikedVlog> likedVlogList = myLikedVlogMapper.selectByExample(likedVlogExample);
+            // 删除Redis中的点赞关联关系
+            // 注意：不操作Redis中的视频点赞数和作者获赞数，这些计数应该从数据库实时计算
+            if (likedVlogList != null && !likedVlogList.isEmpty()) {
+               for (MyLikedVlog likedVlog : likedVlogList) {
+                  String vlogId = likedVlog.getVlogId();
+                  try {
+                     // 删除点赞关联关系
+                     redis.delete(REDIS_USER_LIKE_VLOG + ":" + userId + ":" + vlogId);
+                  } catch (Exception e) {
+                     log.error("删除点赞关联关系失败：userId={}, vlogId={}", userId, vlogId, e);
+                     // Redis操作失败不影响主流程，只记录日志
+                  }
+               }
+            }
+            // 删除数据库中的点赞记录
+            myLikedVlogMapper.deleteByExample(likedVlogExample);
+            log.info("删除用户点赞记录成功：userId={}, 共{}条记录", userId, likedVlogList != null ? likedVlogList.size() : 0);
+         } catch (Exception e) {
+            log.error("删除用户点赞记录失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 6. 删除用户的关注关系（作为博主和作为粉丝），并清理Redis关联关系
+            // 先查询用户作为粉丝的所有关注记录（我关注的人）
+            Example fansExample1 = new Example(Fans.class);
+            Example.Criteria fansCriteria1 = fansExample1.createCriteria();
+            fansCriteria1.andEqualTo("fanId", userId);
+            List<Fans> myFollowsList = fansMapper.selectByExample(fansExample1);
+            // 删除Redis中的关注关联关系
+            // 注意：不操作Redis中其他用户的粉丝数，这些计数应该从数据库实时计算
+            if (myFollowsList != null && !myFollowsList.isEmpty()) {
+               for (Fans fan : myFollowsList) {
+                  String vlogerId = fan.getVlogerId();
+                  try {
+                     // 删除关注关联关系
+                     redis.delete(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + userId + ":" + vlogerId);
+                  } catch (Exception e) {
+                     log.error("删除关注关联关系失败：userId={}, vlogerId={}", userId, vlogerId, e);
+                     // Redis操作失败不影响主流程，只记录日志
+                  }
+               }
+            }
+            // 查询用户作为博主的所有粉丝记录（关注我的人）
+            Example fansExample2 = new Example(Fans.class);
+            Example.Criteria fansCriteria2 = fansExample2.createCriteria();
+            fansCriteria2.andEqualTo("vlogerId", userId);
+            List<Fans> myFansList = fansMapper.selectByExample(fansExample2);
+            // 删除Redis中的关注关联关系
+            // 注意：不操作Redis中其他用户的关注数，这些计数应该从数据库实时计算
+            if (myFansList != null && !myFansList.isEmpty()) {
+               for (Fans fan : myFansList) {
+                  String fanId = fan.getFanId();
+                  try {
+                     // 删除关注关联关系
+                     redis.delete(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + fanId + ":" + userId);
+                  } catch (Exception e) {
+                     log.error("删除关注关联关系失败：fanId={}, userId={}", fanId, userId, e);
+                     // Redis操作失败不影响主流程，只记录日志
+                  }
+               }
+            }
+            // 删除数据库中的关注记录
+            fansMapper.deleteByExample(fansExample1);
+            fansMapper.deleteByExample(fansExample2);
+            log.info("删除用户关注关系成功：userId={}, 关注{}人, 粉丝{}人", 
+                     userId, 
+                     myFollowsList != null ? myFollowsList.size() : 0,
+                     myFansList != null ? myFansList.size() : 0);
+         } catch (Exception e) {
+            log.error("删除用户关注关系失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 7. 删除用户点赞的评论关联关系
+            // 从Redis Hash中查找所有该用户点赞的评论，删除关联关系
+            // 注意：不操作Redis中的评论点赞数，这些计数应该从数据库实时计算
+            try {
+               Map<Object, Object> userLikeCommentMap = redis.hgetall(REDIS_USER_LIKE_COMMENT);
+               if (userLikeCommentMap != null && !userLikeCommentMap.isEmpty()) {
+                  String userIdPrefix = userId + ":";
+                  List<String> fieldsToDelete = new java.util.ArrayList<>();
+                  for (Object fieldObj : userLikeCommentMap.keySet()) {
+                     String field = (String) fieldObj;
+                     // field格式为 "{userId}:{commentId}"
+                     if (field.startsWith(userIdPrefix)) {
+                        fieldsToDelete.add(field);
+                     }
+                  }
+                  // 删除用户点赞评论的关联关系
+                  if (!fieldsToDelete.isEmpty()) {
+                     redis.deleteHash(REDIS_USER_LIKE_COMMENT, fieldsToDelete.toArray());
+                  }
+                  log.info("删除用户点赞评论记录成功：userId={}, 共{}条记录", userId, fieldsToDelete.size());
+               }
+            } catch (Exception e) {
+               log.error("删除用户点赞评论Redis数据失败：userId={}", userId, e);
+               // Redis操作失败不影响主流程，只记录日志
+            }
+            // 8. 逻辑删除用户发起的举报记录
+            Example reportExample = new Example(Report.class);
+            Example.Criteria reportCriteria = reportExample.createCriteria();
+            reportCriteria.andEqualTo("reporterId", userId);
+            Report deleteReport = new Report();
+            deleteReport.setIsDeleted(1);
+            reportMapper.updateByExampleSelective(deleteReport, reportExample);
+            log.info("逻辑删除用户发起的举报记录成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("删除用户点赞评论或举报记录失败：userId={}", userId, e);
+            GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+         }
+         try {
+            // 9. 删除MongoDB中该用户发送和接收的所有消息
+            messageRepository.deleteAllByToUserId(userId);
+            messageRepository.deleteAllByFromUserId(userId);
+            log.info("删除用户MongoDB消息成功：userId={}", userId);
+         } catch (Exception e) {
+            log.error("删除用户MongoDB消息失败：userId={}", userId, e);
+            // 消息删除失败不影响主流程，只记录日志
+         }
+      }
+      // 最后设置逻辑删除标志
       Users updateUser = new Users();
       updateUser.setId(userId);
-      updateUser.setIsDeleted(newIsDeleted);
+      updateUser.setIsDeleted(1);
       updateUser.setUpdatedTime(new Date());
       int result = usersMapper.updateByPrimaryKeySelective(updateUser);
       if (result != 1) {
          GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
       }
-      // 如果是删除操作，删除Redis中的相关缓存和MongoDB中的消息
-      if (newIsDeleted == 1) {
-         try {
-            redis.delete(REDIS_USER_TOKEN + ":" + userId);
-            redis.delete(REDIS_MY_FOLLOWS_COUNTS + ":" + userId);
-            redis.delete(REDIS_MY_FANS_COUNTS + ":" + userId);
-            redis.delete(REDIS_VLOGER_BE_LIKED_COUNTS + ":" + userId);
-            log.info("删除用户缓存成功：userId={}", userId);
-         } catch (Exception e) {
-            log.error("删除用户缓存失败：userId={}", userId, e);
-            // 缓存删除失败不影响主流程，只记录日志
-         }
-         // 删除MongoDB中该用户收到的所有消息
-         try {
-            messageRepository.deleteAllByToUserId(userId);
-            log.info("删除用户消息成功：userId={}", userId);
-         } catch (Exception e) {
-            log.error("删除用户消息失败：userId={}", userId, e);
-            // 消息删除失败不影响主流程，只记录日志
-         }
-      }
-
+      log.info("用户逻辑删除完成：userId={}", userId);
       return usersMapper.selectByPrimaryKey(userId);
    }
 
    /**
-    * 封禁/恢复用户（切换用户状态）
-    * 如果用户是正常状态（status = 0），则封禁（设置为 1）
-    * 如果用户是封禁状态（status = 1），则恢复（设置为 0）
+    * Admin - 恢复用户 - 已逻辑删除的
+    * @param userId 用户ID
+    * @return 恢复后的用户信息
     */
    @Transactional
    @Override
-   public Users banOrRestoreUser(String userId) {
+   public Users restoreDeletedUser(String userId) {
+      Users existUser = usersMapper.selectByPrimaryKey(userId);
+      if (existUser == null) {
+         GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
+      }
+      // 如果用户未删除，直接返回
+      if (existUser.getIsDeleted() == null || existUser.getIsDeleted() == 0) {
+         log.warn("用户未删除，无需恢复：userId={}", userId);
+         return existUser;
+      }
+      // 恢复用户（设置 isDeleted = 0，同时解除封禁状态 status = 0）
+      Users updateUser = new Users();
+      updateUser.setId(userId);
+      updateUser.setIsDeleted(0);
+      updateUser.setStatus(0);
+      updateUser.setUpdatedTime(new Date());
+      int result = usersMapper.updateByPrimaryKeySelective(updateUser);
+      if (result != 1) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      log.info("恢复用户成功：userId={}", userId);
+      // 返回恢复后的用户信息
+      return usersMapper.selectByPrimaryKey(userId);
+   }
+
+
+   /**
+    * Admin - 设置用户状态
+    * status: 0-正常，1-禁言（禁止发布评论），2-封禁（禁止发视频和发评论和关注他人和被他人关注）
+    * 前端直接传递目标状态值，可以在三个状态之间任意转换
+    */
+   @Transactional
+   @Override
+   public Users banOrRestoreUser(String userId, Integer status) {
       // 管理后台可以直接查询用户，不过滤 is_deleted
       Users user = usersMapper.selectByPrimaryKey(userId);
       if (user == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      // 切换用户状态
-      Integer currentStatus = user.getStatus();
-      Integer newStatus = (currentStatus == null || currentStatus == 0) ? 1 : 0;
+      // 验证状态值
+      if (status == null) {
+         GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
+      }
+      if (status != 0 && status != 1 && status != 2) {
+         GraceException.display(ResponseStatusEnum.USER_STATUS_ERROR);
+      }
+      // 直接设置为目标状态
       Users updateUser = new Users();
       updateUser.setId(userId);
-      updateUser.setStatus(newStatus);
+      updateUser.setStatus(status);
       updateUser.setUpdatedTime(new Date());
       int result = usersMapper.updateByPrimaryKeySelective(updateUser);
       if (result != 1) {
@@ -368,7 +730,7 @@ public class UserServiceImpl extends BaseInfoProperties implements UserService {
    }
 
    /**
-    * 获取所有用户的数量
+    * Admin - 获取所有用户的数量
     * 从数据库中统计所有用户（不包括已逻辑删除的）
     * @return 所有用户的数量
     */

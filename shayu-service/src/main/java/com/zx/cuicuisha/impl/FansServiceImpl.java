@@ -3,7 +3,7 @@ package com.zx.cuicuisha.impl;
 import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.enums.YesOrNo;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
@@ -47,6 +47,8 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    private Sid sid;
    @Autowired
    public RabbitTemplate rabbitTemplate;
+   @Autowired
+   private MsgService msgService;
 
    /**
     * 查询粉丝关系 --> 提供给关注和取关使用
@@ -88,21 +90,25 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    @Transactional
    @Override
    public void doFollow(String myId, String vlogerId) {
-      // 检查关注者是否被封禁
+      // 检查关注者状态：只有封禁（status=2）不能关注他人
       Users fanUser = usersMapper.selectByPrimaryKey(myId);
       if (fanUser == null) {
          GraceException.display(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
       }
-      if (fanUser.getStatus() != null && fanUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer fanStatus = fanUser.getStatus();
+      if (fanStatus != null && fanStatus == 2) {
+         // 封禁状态，不能关注他人
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
-      // 检查被关注者是否被封禁（被封禁的用户不能被关注）
+      // 检查被关注者状态：只有封禁（status=2）不能被关注
       Users vlogerUser = usersMapper.selectByPrimaryKey(vlogerId);
       if (vlogerUser == null) {
          GraceException.display(ResponseStatusEnum.VLOGER_NOT_EXIST_ERROR);
       }
-      if (vlogerUser.getStatus() != null && vlogerUser.getStatus() == 1) {
-         GraceException.display(ResponseStatusEnum.USER_FROZEN);
+      Integer vlogerStatus = vlogerUser.getStatus();
+      if (vlogerStatus != null && vlogerStatus == 2) {
+         // 封禁状态，不能被关注
+         GraceException.display(ResponseStatusEnum.USER_BANNED);
       }
       String fanId = sid.nextShort();
       Fans fans = new Fans();
@@ -123,12 +129,12 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       // 插入新的粉丝关系记录
       fansMapper.insert(fans);
       // 系统消息：关注
-      // msgService.createMsg(myId, vlogerId, MessageEnum.FOLLOW_YOU.type, null);
+      // msgService.createMsg(myId, vlogerId, MessageTypeEnum.FOLLOW_YOU.type, null);
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(myId);
       messageMO.setToUserId(vlogerId);
       // 优化：使用mq异步解耦
-      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
+      rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.FOLLOW_YOU.enValue, JsonUtils.objectToJson(messageMO));
    }
 
    // 更新关注相关的缓存
@@ -158,6 +164,14 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       }
       // 删除我的关注记录
       fansMapper.delete(fan);
+      // 删除关注消息
+      try {
+         msgService.deleteMsgByCondition(myId, vlogerId, MessageTypeEnum.FOLLOW_YOU.type, null, null);
+         log.info("删除关注消息成功：myId={}, vlogerId={}", myId, vlogerId);
+      } catch (Exception e) {
+         log.error("删除关注消息失败：myId={}, vlogerId={}", myId, vlogerId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
    }
    // 更新取关时相关的缓存
    public void updateCancelCache(String myId, String vlogerId) {
@@ -171,17 +185,6 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
       }
    }
 
-   // 查询我关注的博主列表
-   @Override
-   public PagedGridResult queryMyFollows(String myId, Integer page, Integer pageSize) {
-      Map<String, Object> map = new HashMap<>();
-      map.put("myId", myId);
-      PageHelper.startPage(page, pageSize);
-      List<VlogerVO> list = fansMapperCustom.queryMyFollows(map);
-      return setterPagedGrid(list, page);
-   }
-
-   // 查询我的粉丝列表
    /**
     * <判断粉丝是否是我的朋友（互粉互关）>
     * 一、普通做法：
@@ -194,6 +197,18 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
     * 1. 关注/取关的时候，关联关系保存在redis中，不要依赖数据库
     * 2. 数据库查询后，直接循环查询redis，避免第二次循环查询数据库的尴尬局面
     */
+
+   // 查询我的关注列表
+   @Override
+   public PagedGridResult queryMyFollows(String myId, Integer page, Integer pageSize) {
+      Map<String, Object> map = new HashMap<>();
+      map.put("myId", myId);
+      PageHelper.startPage(page, pageSize);
+      List<VlogerVO> list = fansMapperCustom.queryMyFollows(map);
+      return setterPagedGrid(list, page);
+   }
+
+   // 查询我的粉丝列表
    @Override
    public PagedGridResult queryMyFans(String myId, Integer page, Integer pageSize) {
       Map<String, Object> map = new HashMap<>();
@@ -211,7 +226,7 @@ public class FansServiceImpl extends BaseInfoProperties implements FansService {
    }
 
    /**
-    * 查询所有粉丝关系（管理端使用）
+    * Admin - 查询所有粉丝关系
     * @param myId 用户ID，如果为空则查询所有粉丝关系，否则查询指定用户的粉丝
     * @param page 页码
     * @param pageSize 每页数量

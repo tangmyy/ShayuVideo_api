@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.zx.cuicuisha.mapper.AppealMapperCustom" >
+
+    <select id="getAppealList" parameterType="map" resultType="com.zx.cuicuisha.vo.AppealAdminVO">
+        SELECT
+            a.id as id,
+            a.report_id as reportId,
+            a.appealer_id as appealerId,
+            appealer.nickname as appealerNickname,
+            appealer.face as appealerFace,
+            a.appeal_type as appealType,
+            a.target_id as targetId,
+            CASE 
+                WHEN a.appeal_type = 1 THEN v.title
+                ELSE NULL
+            END as targetTitle,
+            CASE 
+                WHEN a.appeal_type = 2 THEN c.content
+                ELSE NULL
+            END as targetContent,
+            a.reason as reason,
+            a.description as description,
+            a.status as status,
+            a.handler_id as handlerId,
+            COALESCE(handler.real_name, handler.username) as handlerNickname,
+            a.handle_time as handleTime,
+            a.handle_result as handleResult,
+            a.create_time as createTime,
+            a.updated_time as updatedTime,
+            a.is_deleted as isDeleted
+        FROM
+            `appeal` as a
+            LEFT JOIN users as appealer ON a.appealer_id = appealer.id
+            LEFT JOIN admin_users as handler ON a.handler_id = CAST(handler.id AS CHAR)
+            LEFT JOIN report as r ON a.report_id = r.id
+            LEFT JOIN vlog as v ON a.appeal_type = 1 AND a.target_id = v.id
+            LEFT JOIN comment as c ON a.appeal_type = 2 AND a.target_id = c.id
+        <where>
+            <if test="paramMap.appealType != null and paramMap.appealType != ''">
+                AND a.appeal_type = #{paramMap.appealType}
+            </if>
+            <if test="paramMap.status != null and paramMap.status != ''">
+                AND a.status = #{paramMap.status}
+            </if>
+            <if test="paramMap.targetId != null and paramMap.targetId != ''">
+                AND a.target_id = #{paramMap.targetId}
+            </if>
+            <if test="paramMap.reportId != null and paramMap.reportId != ''">
+                AND a.report_id = #{paramMap.reportId}
+            </if>
+            <if test="paramMap.appealerId != null and paramMap.appealerId != ''">
+                AND a.appealer_id = #{paramMap.appealerId}
+            </if>
+            AND (a.is_deleted = 0 OR a.is_deleted IS NULL)
+        </where>
+        ORDER BY
+            a.create_time DESC
+    </select>
+
+    <select id="checkAppealExists" resultType="java.lang.String">
+        SELECT id
+        FROM `appeal`
+        WHERE appealer_id = #{appealerId}
+          AND report_id = #{reportId}
+          AND (is_deleted = 0 OR is_deleted IS NULL)
+        LIMIT 1
+    </select>
+
+    <update id="resetAppealStatus" parameterType="java.lang.String">
+        UPDATE `appeal`
+        SET status = 0,
+            handler_id = NULL,
+            handle_time = NULL,
+            handle_result = NULL,
+            updated_time = NOW()
+        WHERE id = #{appealId}
+    </update>
+
+</mapper>
+

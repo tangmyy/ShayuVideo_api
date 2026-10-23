@@ -3,7 +3,7 @@ package com.zx.cuicuisha.enums;
 /**
  * 视频排序类型枚举
  */
-public enum VlogSortType {
+public enum VlogSortTypeEnum {
    CREATED_TIME(0, "created_time", "按创建时间排序"),
    LIKE_COUNTS(1, "like_counts", "按点赞数排序"),
    COMMENTS_COUNTS(2, "comments_counts", "按评论数排序");
@@ -12,7 +12,7 @@ public enum VlogSortType {
    public final String field;
    public final String desc;
 
-   VlogSortType(Integer type, String field, String desc) {
+   VlogSortTypeEnum(Integer type, String field, String desc) {
       this.type = type;
       this.field = field;
       this.desc = desc;
@@ -23,11 +23,11 @@ public enum VlogSortType {
     * @param type 排序类型值
     * @return 对应的排序枚举，如果未找到则返回null
     */
-   public static VlogSortType getByType(Integer type) {
+   public static VlogSortTypeEnum getByType(Integer type) {
       if (type == null) {
          return null;
       }
-      for (VlogSortType sortType : VlogSortType.values()) {
+      for (VlogSortTypeEnum sortType : VlogSortTypeEnum.values()) {
          if (sortType.type.equals(type)) {
             return sortType;
          }
@@ -40,8 +40,8 @@ public enum VlogSortType {
     * @param type 排序类型值
     * @return 对应的排序枚举，如果未找到则返回默认值CREATED_TIME
     */
-   public static VlogSortType getByTypeWithDefault(Integer type) {
-      VlogSortType sortType = getByType(type);
+   public static VlogSortTypeEnum getByTypeWithDefault(Integer type) {
+      VlogSortTypeEnum sortType = getByType(type);
       return sortType != null ? sortType : CREATED_TIME;
    }
 }

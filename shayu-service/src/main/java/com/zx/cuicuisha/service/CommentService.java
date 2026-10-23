@@ -27,4 +27,7 @@ public interface CommentService {
    // Admin - 获取所有视频评论的总数
    Integer getTotalCommentCount();
 
+   // Admin - 更新评论内容（管理员专用）
+   Comment updateCommentForAdmin(com.zx.cuicuisha.bo.CommentUpdateBO commentUpdateBO);
+
 }

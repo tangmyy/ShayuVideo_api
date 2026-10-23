@@ -12,7 +12,7 @@ import lombok.AllArgsConstructor;
 @ToString
 @NoArgsConstructor
 @AllArgsConstructor
-public class AdminVO {
+public class AdminUsersVO {
     private Long id;                    // 管理员ID
     private String username;            // 用户名
     private String email;                // 邮箱

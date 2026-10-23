@@ -3,7 +3,7 @@ package com.zx.cuicuisha.controller;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.CommentBO;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.grace.result.ResponseDataStructureEnum;
 import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.pojo.Comment;
@@ -96,7 +96,7 @@ public class CommentController extends BaseInfoProperties {
       msgContent.put("vlogCover", vlog.getCover());
       msgContent.put("commentId", commentId);
       // MQ异步解耦
-      // msgService.createMsg(userId, comment.getCommentUserId(), MessageEnum.LIKE_COMMENT.type, msgContent);
+      // msgService.createMsg(userId, comment.getCommentUserId(), MessageTypeEnum.LIKE_COMMENT.type, msgContent);
       // 3. 构建消息对象
       MessageMO messageMO = new MessageMO();
       messageMO.setFromUserId(userId);                    // 点赞者ID
@@ -105,7 +105,7 @@ public class CommentController extends BaseInfoProperties {
       // 4. 发送到MQ（异步，立即返回，不阻塞）
       rabbitTemplate.convertAndSend(
             RabbitMQConfig.EXCHANGE_MSG,                    // 交换机
-            "sys.msg." + MessageEnum.LIKE_COMMENT.enValue,  // 路由键
+            "sys.msg." + MessageTypeEnum.LIKE_COMMENT.enValue,  // 路由键
             JsonUtils.objectToJson(messageMO)               // 消息体（JSON字符串）
       );
       return ResponseDataStructureEnum.ok();
@@ -113,9 +113,22 @@ public class CommentController extends BaseInfoProperties {
 
    @PostMapping("unlike")
    public ResponseDataStructureEnum unlike(@RequestParam String commentId, @RequestParam String userId) {
+      // 1. 更新Redis点赞数（核心业务）
       redis.decrementHash(REDIS_VLOG_COMMENT_LIKED_COUNTS, commentId, 1);
       // redis.hdel(REDIS_USER_LIKE_COMMENT, userId, "1");        hdel = deleteHash
       redis.deleteHash(REDIS_USER_LIKE_COMMENT, userId + ":" + commentId);
+      // 2. 删除点赞评论消息
+      try {
+         Comment comment = commentService.getComment(commentId);
+         if (comment != null) {
+            // 删除消息（根据 commentId 匹配 msgContent）
+            msgService.deleteMsgByCondition(userId, comment.getCommentUserId(), MessageTypeEnum.LIKE_COMMENT.type, "commentId", commentId);
+            log.info("删除点赞评论消息成功：userId={}, commentId={}", userId, commentId);
+         }
+      } catch (Exception e) {
+         log.error("删除点赞评论消息失败：userId={}, commentId={}", userId, commentId, e);
+         // 删除消息失败不影响主流程，只记录日志
+      }
       return ResponseDataStructureEnum.ok();
    }
 

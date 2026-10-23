@@ -1,12 +1,15 @@
 package com.zx.cuicuisha.impl;
 
 import com.zx.cuicuisha.base.BaseInfoProperties;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
+import com.zx.cuicuisha.mo.MessageUpdateMO;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mo.MessageMO;
+import com.zx.cuicuisha.pojo.AdminUsers;
 import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.repository.MessageRepository;
+import com.zx.cuicuisha.service.AdminService;
 import com.zx.cuicuisha.service.MsgService;
 import com.zx.cuicuisha.service.UserService;
 import com.zx.cuicuisha.utils.PagedGridResult;
@@ -31,8 +34,36 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
    private MessageRepository messageRepository;
    @Autowired
    private UserService userService;
+   @Autowired
+   private AdminService adminService;
 
-   private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/1765019302.jpg";
+   private static final String ADMIN_DEFAULT_FACE = "http://106.54.6.213:9000/shayu/zzx.jpg";
+
+   // # ==================== Users方法/提供用户端使用 ====================
+
+   @Override
+   public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
+      Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
+      List<MessageMO> list =  messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(toUserId, pageable);
+      log.info("查询消息列表：toUserId={}, page={}, pageSize={}, 查询到{}条消息", toUserId, page, pageSize, list.size());
+      for (MessageMO msg : list) {
+         // 如果类型是关注消息，则需要查询我之前有没有关注过他，用于在前端标记“互粉”“互关”
+         if (msg.getMsgType() != null && msg.getMsgType() == MessageTypeEnum.FOLLOW_YOU.type) {
+            Map map = msg.getMsgContent();
+            if (map == null) {
+               map = new HashMap();
+            }
+            String relationship = redis.get(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + msg.getToUserId() + ":" + msg.getFromUserId());
+            if (StringUtils.isNotBlank(relationship) && relationship.equalsIgnoreCase("1")) {
+               map.put("isFriend", true);
+            } else {
+               map.put("isFriend", false);
+            }
+            msg.setMsgContent(map);
+         }
+      }
+      return list;
+   }
 
    @Override
    public void createMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
@@ -54,74 +85,53 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       messageRepository.save(messageMO);
    }
 
+   // 根据业务条件删除消息（用于取消关注、取消点赞等操作）
    @Override
-   public void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
-      MessageMO messageMO = new MessageMO();
-      messageMO.setFromUserId(fromUserId);
-      messageMO.setFromNickname("系统消息");
-      messageMO.setFromFace(ADMIN_DEFAULT_FACE);
-      messageMO.setToUserId(toUserId);
-      messageMO.setMsgType(type);
-      if (msgContent != null) {
-         messageMO.setMsgContent(msgContent);
-      }
-      messageMO.setCreateTime(new Date());
-      MessageMO savedMsg = messageRepository.save(messageMO);
-      log.info("系统消息创建成功：msgId={}, fromUserId={}, toUserId={}, msgType={}", 
-               savedMsg.getId(), fromUserId, toUserId, type);
-   }
-
-   @Override
-   public List<MessageMO> queryList(String toUserId, Integer page, Integer pageSize) {
-      Pageable pageable = PageRequest.of(page, pageSize, Sort.Direction.DESC, "createTime");
-      List<MessageMO> list =  messageRepository.findAllByToUserIdEqualsOrderByCreateTimeDesc(toUserId, pageable);
-      log.info("查询消息列表：toUserId={}, page={}, pageSize={}, 查询到{}条消息", toUserId, page, pageSize, list.size());
-      for (MessageMO msg : list) {
-         // 如果类型是关注消息，则需要查询我之前有没有关注过他，用于在前端标记“互粉”“互关”
-         if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {
-            Map map = msg.getMsgContent();
-            if (map == null) {
-               map = new HashMap();
-            }
-            String relationship = redis.get(REDIS_FANS_AND_VLOGGER_RELATIONSHIP + ":" + msg.getToUserId() + ":" + msg.getFromUserId());
-            if (StringUtils.isNotBlank(relationship) && relationship.equalsIgnoreCase("1")) {
-               map.put("isFriend", true);
-            } else {
-               map.put("isFriend", false);
-            }
-            msg.setMsgContent(map);
-         }
-      }
-      return list;
-   }
-
-   @Override
-   public void deleteMsg(String msgId, String toUserId) {
+   public void deleteMsgByCondition(String fromUserId, String toUserId, Integer msgType, String msgContentKey, String msgContentValue) {
       // 参数校验
-      if (StringUtils.isBlank(msgId)) {
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      if (StringUtils.isBlank(fromUserId) || StringUtils.isBlank(toUserId) || msgType == null) {
+         log.warn("删除消息参数不完整：fromUserId={}, toUserId={}, msgType={}", fromUserId, toUserId, msgType);
+         return; // 参数不完整时不删除，避免误删
       }
-      if (StringUtils.isBlank(toUserId)) {
-         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      try {
+         // 根据 fromUserId, toUserId, msgType 查询消息
+         List<MessageMO> messages = messageRepository.findByFromUserIdAndToUserIdAndMsgType(fromUserId, toUserId, msgType);
+         if (messages == null || messages.isEmpty()) {
+            log.debug("未找到需要删除的消息：fromUserId={}, toUserId={}, msgType={}", fromUserId, toUserId, msgType);
+            return;
+         }
+         // 如果指定了 msgContentKey 和 msgContentValue，需要进一步过滤
+         if (StringUtils.isNotBlank(msgContentKey) && StringUtils.isNotBlank(msgContentValue)) {
+            for (MessageMO message : messages) {
+               Map msgContent = message.getMsgContent();
+               if (msgContent != null) {
+                  Object value = msgContent.get(msgContentKey);
+                  if (value != null && value.toString().equals(msgContentValue)) {
+                     // 匹配到符合条件的消息，删除
+                     messageRepository.deleteById(message.getId());
+                     log.info("删除消息成功：msgId={}, fromUserId={}, toUserId={}, msgType={}, {}={}",
+                           message.getId(), fromUserId, toUserId, msgType, msgContentKey, msgContentValue);
+                  }
+               }
+            }
+         } else {
+            // 没有指定 msgContentKey，删除所有匹配的消息（通常用于关注、点赞视频等简单消息）
+            for (MessageMO message : messages) {
+               messageRepository.deleteById(message.getId());
+               log.info("删除消息成功：msgId={}, fromUserId={}, toUserId={}, msgType={}",
+                     message.getId(), fromUserId, toUserId, msgType);
+            }
+         }
+      } catch (Exception e) {
+         log.error("删除消息失败：fromUserId={}, toUserId={}, msgType={}, msgContentKey={}, msgContentValue={}",
+               fromUserId, toUserId, msgType, msgContentKey, msgContentValue, e);
+         // 删除消息失败不影响主流程，只记录日志
       }
-      // 查询消息是否存在，并验证消息是否属于该用户
-      MessageMO messageMO = messageRepository.findById(msgId).orElse(null);
-      if (messageMO == null) {
-         log.warn("消息不存在：msgId={}", msgId);
-         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
-      }
-      // 验证消息是否属于该用户（只能删除自己接收的消息）
-      if (!messageMO.getToUserId().equals(toUserId)) {
-         log.warn("无权删除该消息：msgId={}, toUserId={}, messageToUserId={}",
-               msgId, toUserId, messageMO.getToUserId());
-         GraceException.display(ResponseStatusEnum.NO_AUTH);
-      }
-      // 删除消息
-      messageRepository.deleteById(msgId);
-      log.info("消息删除成功：msgId={}, toUserId={}", msgId, toUserId);
    }
 
-   // admin 管理员端专用方法
+   // # ==================== Admin方法/提供管理员端使用 ====================
+
+   // Admin - 查询所有消息（管理员专用，支持按用户ID筛选）
    @Override
    public PagedGridResult queryAllMessagesForAdmin(String userId, Integer page, Integer pageSize) {
       // MongoDB分页从0开始，需要将页码从1转换为0
@@ -139,7 +149,7 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       }
       // 处理关注消息的互粉关系（与queryList相同的逻辑）
       for (MessageMO msg : list) {
-         if (msg.getMsgType() != null && msg.getMsgType() == MessageEnum.FOLLOW_YOU.type) {
+         if (msg.getMsgType() != null && msg.getMsgType() == MessageTypeEnum.FOLLOW_YOU.type) {
             Map map = msg.getMsgContent();
             if (map == null) {
                map = new HashMap();
@@ -164,6 +174,56 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       return gridResult;
    }
 
+   // Admin - 创建管理员消息（使用系统消息作为发送者）
+   @Override
+   public void createAdminMsg(String fromUserId, String toUserId, Integer type, Map msgContent) {
+      // 获取管理员头像
+      String adminUsersAvatar = ADMIN_DEFAULT_FACE; // 默认头像
+      if (StringUtils.isNotBlank(fromUserId)) {
+         try {
+            // 将String类型的fromUserId转换为Long类型
+            Long adminId = Long.parseLong(fromUserId);
+            AdminUsers admin = adminService.getAdminById(adminId);
+            if (admin != null && StringUtils.isNotBlank(admin.getAvatar())) {
+               adminUsersAvatar = admin.getAvatar();
+            } else {
+               log.warn("管理员不存在或没有头像，使用默认头像：fromUserId={}", fromUserId);
+            }
+         } catch (NumberFormatException e) {
+            log.warn("fromUserId不是有效的管理员ID，使用默认头像：fromUserId={}", fromUserId);
+         } catch (Exception e) {
+            log.error("查询管理员信息失败，使用默认头像：fromUserId={}, error={}", fromUserId, e.getMessage());
+         }
+      }
+      // 根据消息类型设置不同的发送者昵称
+      String fromNickname = "系统通知"; // 默认昵称
+      if (type != null) {
+         if (type == MessageTypeEnum.REPORT_HANDLED.type) {
+            fromNickname = "举报结果";
+         } else if (type == MessageTypeEnum.APPEAL_HANDLED.type) {
+            fromNickname = "申诉结果";
+         } else if (type == MessageTypeEnum.SYSTEM_MESSAGE.type) {
+            fromNickname = "系统消息";
+         } else if (type == MessageTypeEnum.SYSTEM_ANNOUNCEMENT.type) {
+            fromNickname = "系统通知";
+         }
+      }
+      MessageMO messageMO = new MessageMO();
+      messageMO.setFromUserId(fromUserId);
+      messageMO.setFromNickname(fromNickname);
+      messageMO.setFromFace(adminUsersAvatar);
+      messageMO.setToUserId(toUserId);
+      messageMO.setMsgType(type);
+      if (msgContent != null) {
+         messageMO.setMsgContent(msgContent);
+      }
+      messageMO.setCreateTime(new Date());
+      MessageMO savedMsg = messageRepository.save(messageMO);
+      log.info("系统消息创建成功：msgId={}, fromUserId={}, toUserId={}, msgType={}, fromNickname={}, avatar={}", savedMsg.getId(), fromUserId, toUserId, type, fromNickname, adminUsersAvatar);
+   }
+
+
+   // Admin - 删除消息（管理员专用，不需要权限校验）
    @Override
    public void deleteMsgForAdmin(String msgId) {
       // 参数校验
@@ -180,5 +240,84 @@ public class MsgServiceImpl extends BaseInfoProperties implements MsgService {
       messageRepository.deleteById(msgId);
       log.info("管理员删除消息成功：msgId={}", msgId);
    }
+
+   // Admin - 更新消息（管理员专用，支持灵活更新）
+   @Override
+   public MessageMO updateMsgForAdmin(MessageUpdateMO messageUpdateMO) {
+      // 参数校验
+      if (messageUpdateMO == null || StringUtils.isBlank(messageUpdateMO.getId())) {
+         GraceException.display(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      // 查询原消息
+      MessageMO existMessage = messageRepository.findById(messageUpdateMO.getId()).orElse(null);
+      if (existMessage == null) {
+         log.warn("消息不存在：msgId={}", messageUpdateMO.getId());
+         GraceException.display(ResponseStatusEnum.SYSTEM_OPERATION_ERROR);
+      }
+      // 只更新传入的非空字段
+      boolean hasUpdate = false;
+      // 更新发送者用户ID
+      if (StringUtils.isNotBlank(messageUpdateMO.getFromUserId())) {
+         existMessage.setFromUserId(messageUpdateMO.getFromUserId());
+         hasUpdate = true;
+         // 如果更新了fromUserId，可能需要同步更新fromNickname和fromFace
+         // 这里可以选择是否自动同步，根据业务需求决定
+         // 如果前端传入了fromNickname和fromFace，则使用传入的值
+         // 如果未传入，可以从用户表查询（可选）
+      }
+      // 更新发送者昵称
+      if (StringUtils.isNotBlank(messageUpdateMO.getFromNickname())) {
+         existMessage.setFromNickname(messageUpdateMO.getFromNickname());
+         hasUpdate = true;
+      }
+      // 更新发送者头像
+      if (StringUtils.isNotBlank(messageUpdateMO.getFromFace())) {
+         existMessage.setFromFace(messageUpdateMO.getFromFace());
+         hasUpdate = true;
+      }
+      // 更新接收者用户ID
+      if (StringUtils.isNotBlank(messageUpdateMO.getToUserId())) {
+         existMessage.setToUserId(messageUpdateMO.getToUserId());
+         hasUpdate = true;
+      }
+      // 更新消息类型
+      if (messageUpdateMO.getMsgType() != null) {
+         existMessage.setMsgType(messageUpdateMO.getMsgType());
+         hasUpdate = true;
+      }
+      // 更新消息内容（支持完全替换或合并更新）
+      if (messageUpdateMO.getMsgContent() != null) {
+         Map<String, Object> newContent = messageUpdateMO.getMsgContent();
+         if (Boolean.TRUE.equals(messageUpdateMO.getMergeContent())) {
+            // 合并模式：将新内容合并到原有内容中
+            Map<String, Object> existingContent = existMessage.getMsgContent();
+            if (existingContent == null) {
+               existingContent = new HashMap<>();
+            }
+            // 将新内容合并到原有内容中（新内容会覆盖相同key的值）
+            existingContent.putAll(newContent);
+            existMessage.setMsgContent(existingContent);
+            log.info("合并更新消息内容：msgId={}, 原有内容={}, 新增内容={}", 
+                    messageUpdateMO.getId(), existingContent, newContent);
+         } else {
+            // 完全替换模式：直接替换原有内容
+            existMessage.setMsgContent(newContent);
+            log.info("完全替换消息内容：msgId={}, 新内容={}", 
+                    messageUpdateMO.getId(), newContent);
+         }
+         hasUpdate = true;
+      }
+      // 如果没有需要更新的字段，返回原消息
+      if (!hasUpdate) {
+         log.warn("没有需要更新的字段：msgId={}", messageUpdateMO.getId());
+         return existMessage;
+      }
+      // 保存更新后的消息（MongoDB的save方法，如果对象有ID会自动更新）
+      MessageMO updatedMessage = messageRepository.save(existMessage);
+      log.info("管理员更新消息成功：msgId={}", messageUpdateMO.getId());
+      return updatedMessage;
+   }
+
 }
+
 

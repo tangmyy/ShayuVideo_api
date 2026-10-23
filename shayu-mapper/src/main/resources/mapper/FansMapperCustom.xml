@@ -15,6 +15,7 @@
         f.vloger_id = u.id
     WHERE
       f.fan_id = #{paramMap.myId}
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
     ORDER BY
       u.nickname
     ASC
@@ -33,6 +34,7 @@
         f.fan_id = u.id
     WHERE
       f.vloger_id = #{paramMap.myId}
+      AND (u.is_deleted = 0 OR u.is_deleted IS NULL)
     ORDER BY
       u.nickname
         ASC

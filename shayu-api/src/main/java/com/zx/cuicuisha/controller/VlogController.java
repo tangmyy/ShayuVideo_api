@@ -11,6 +11,7 @@ import com.zx.cuicuisha.service.VlogService;
 import com.zx.cuicuisha.utils.PagedGridResult;
 import com.zx.cuicuisha.vo.IndexVlogVO;
 import io.swagger.annotations.Api;
+import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +33,7 @@ public class VlogController extends BaseInfoProperties {
    @Autowired
    private VlogService vlogService;
 
+   @ApiOperation(value = "用户上传视频")
    @PostMapping("publish")
    public ResponseDataStructureEnum publish(@RequestBody VlogBO vlogBO) {
       System.out.println("接收到的tag: " + vlogBO.getTag());
@@ -74,7 +76,9 @@ public class VlogController extends BaseInfoProperties {
     * @return
     */
    @GetMapping("followList")
-   public ResponseDataStructureEnum followList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+   public ResponseDataStructureEnum followList(@RequestParam String myId,
+                                               @RequestParam Integer page,
+                                               @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult gridResult = vlogService.getMyFollowVlogList(myId, page, pageSize);
@@ -85,13 +89,16 @@ public class VlogController extends BaseInfoProperties {
     * @return
     */
    @GetMapping("friendList")
-   public ResponseDataStructureEnum friendList(@RequestParam String myId, @RequestParam Integer page, @RequestParam Integer pageSize){
+   public ResponseDataStructureEnum friendList(@RequestParam String myId,
+                                               @RequestParam Integer page,
+                                               @RequestParam Integer pageSize){
       if (page == null){ page = COMMON_START_PAGE; }
       if (pageSize == null){ pageSize = COMMON_PAGE_SIZE; }
       PagedGridResult gridResult = vlogService.getMyFriendVlogList(myId, page, pageSize);
       return  ResponseDataStructureEnum.ok(gridResult);
    }
 
+   // 视频详情页面
    @GetMapping("detail")
    public ResponseDataStructureEnum detail(@RequestParam(defaultValue = "") String userId, @RequestParam String vlogId){
       return ResponseDataStructureEnum.ok(vlogService.getVlogDetailById(userId, vlogId));
@@ -110,7 +117,7 @@ public class VlogController extends BaseInfoProperties {
    }
 
    /**
-    * 我的公开视频
+    * 用户个人公开视频
     * @return
     */
    @GetMapping("myPublicList")
@@ -121,7 +128,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
    /**
-    * 我的私密视频
+    * 用户个人私密视频
     * @return
     */
    @GetMapping("myPrivateList")
@@ -132,7 +139,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok(gridResult);
    }
    /**
-    * 我的喜欢视频
+    * 用户个人喜欢视频
     * @return
     */
    @GetMapping("myLikedList")
@@ -147,6 +154,7 @@ public class VlogController extends BaseInfoProperties {
    @Value("${nacos.counts}")
    private Integer nacosCounts;
 
+   @ApiOperation(value = "用户点赞视频")
    @PostMapping("like")
    public ResponseDataStructureEnum like(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
       // 判断三个id不能为空
@@ -157,10 +165,6 @@ public class VlogController extends BaseInfoProperties {
       Users user = userService.getUser(userId);
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      // 检查用户是否被封禁
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
       }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
@@ -190,6 +194,7 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   @ApiOperation(value = "用户取消点赞视频")
    @PostMapping("unlike")
    public ResponseDataStructureEnum unlike(@RequestParam String userId, @RequestParam String vlogerId, @RequestParam String vlogId){
       // 判断三个id不能为空
@@ -200,10 +205,6 @@ public class VlogController extends BaseInfoProperties {
       Users user = userService.getUser(userId);
       if (user == null) {
          return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_NOT_EXIST_ERROR);
-      }
-      // 检查用户是否被封禁
-      if (user.getStatus() != null && user.getStatus() == 1) {
-         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.USER_FROZEN);
       }
       // 判断博主id对应的用户是否存在
       Users vloger = userService.getUser(vlogerId);
@@ -221,9 +222,24 @@ public class VlogController extends BaseInfoProperties {
       return  ResponseDataStructureEnum.ok();
    }
 
+   @ApiOperation(value = "获取该视频获赞总数")
    @PostMapping("totalLikedCounts")
    public ResponseDataStructureEnum totalLikedCounts(@RequestParam String vlogId) {
       return ResponseDataStructureEnum.ok(vlogService.getVlogBeLikedCounts(vlogId));
+   }
+
+   @ApiOperation(value = "删除视频")
+   @PostMapping("delete")
+   public ResponseDataStructureEnum delete(@RequestHeader(value = "headerUserId", required = false) String headerUserId,
+                                           @RequestParam String vlogId) {
+      if (StringUtils.isBlank(headerUserId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.UN_LOGIN);
+      }
+      if (StringUtils.isBlank(vlogId)) {
+         return ResponseDataStructureEnum.errorCustom(ResponseStatusEnum.SYSTEM_ERROR);
+      }
+      vlogService.deleteMyVlog(headerUserId, vlogId);
+      return ResponseDataStructureEnum.ok();
    }
 
 }

@@ -13,8 +13,9 @@
             <property name="mappers" value="com.zx.cuicuisha.my.mapper.MyMapper"/>
         </plugin>
 
+        <!-- localhost 修改为sql所在的实际地址 -->
         <jdbcConnection driverClass="com.mysql.jdbc.Driver"
-                        connectionURL="jdbc:mysql://localhost:3306/shayuvideo"
+                        connectionURL="jdbc:mysql://localhost:3306/shayuvideo?useUnicode=true&amp;characterEncoding=utf8&amp;useSSL=false&amp;serverTimezone=Asia/Shanghai"
                         userId="root"
                         password="2004">
         </jdbcConnection>
@@ -35,6 +36,8 @@
 		<table tableName="users"></table>
 		<table tableName="vlog"></table>
 		<table tableName="admin_users"></table>
-
+		<table tableName="vlog_audit"></table>
+		<table tableName="report"></table>
+		<table tableName="appeal"></table>
     </context>
 </generatorConfiguration>

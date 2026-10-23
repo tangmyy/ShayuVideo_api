@@ -4,7 +4,7 @@ import com.github.pagehelper.PageHelper;
 import com.zx.cuicuisha.base.BaseInfoProperties;
 import com.zx.cuicuisha.base.RabbitMQConfig;
 import com.zx.cuicuisha.bo.ReportBO;
-import com.zx.cuicuisha.enums.MessageEnum;
+import com.zx.cuicuisha.enums.MessageTypeEnum;
 import com.zx.cuicuisha.exceptions.GraceException;
 import com.zx.cuicuisha.grace.result.ResponseStatusEnum;
 import com.zx.cuicuisha.mapper.CommentMapper;
@@ -16,7 +16,6 @@ import com.zx.cuicuisha.mo.MessageMO;
 import com.zx.cuicuisha.repository.MessageRepository;
 import com.zx.cuicuisha.pojo.Comment;
 import com.zx.cuicuisha.pojo.Report;
-import com.zx.cuicuisha.pojo.Users;
 import com.zx.cuicuisha.pojo.Vlog;
 import com.zx.cuicuisha.service.CommentService;
 import com.zx.cuicuisha.service.MsgService;
@@ -182,7 +181,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return report;
     }
 
-    // 查询举报列表
+    // Admin - 查询举报列表
     @Override
     public PagedGridResult queryReports(Integer reportType, Integer status, String targetId, Integer page, Integer pageSize) {
         Map<String, Object> map = new HashMap<>();
@@ -200,7 +199,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return setterPagedGrid(list, page);
     }
 
-    // 处理举报
+    // Admin - 处理举报
     @Override
     @Transactional
     public Report handleReport(String reportId, String handlerId, Integer status, String handleResult, Boolean notifyReporter) {
@@ -225,8 +224,9 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         updateReport.setHandleResult(handleResult);
         updateReport.setUpdatedTime(new Date());
         reportMapper.updateByPrimaryKeySelective(updateReport);
-        // 如果选择通知举报人，发送消息
+        // 如果选择通知，发送消息通知双方
         if (notifyReporter != null && notifyReporter) {
+            // 通知举报人
             try {
                 Map<String, Object> msgContent = new HashMap<>();
                 // 从已查询的 report 对象获取举报类型
@@ -264,12 +264,12 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                         }
                     }
                 }
-                // 发送消息到MQ（异步）
+                // 发送消息到MQ（异步）- 通知举报人
                 MessageMO messageMO = new MessageMO();
                 messageMO.setFromUserId(handlerId);
                 messageMO.setToUserId(report.getReporterId());
                 messageMO.setMsgContent(msgContent);
-                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(messageMO)
                 );
                 log.info("举报处理通知已发送到MQ：reportId={}, reporterId={}", reportId, report.getReporterId());
             } catch (Exception e) {
@@ -277,10 +277,76 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
                 // 通知失败不影响主流程，只记录日志
             }
         }
+        // 通知被举报人
+        try {
+            String reportedUserId = null;  // 被举报人的用户ID
+            Vlog vlog = null;
+            Comment comment = null;
+            // 根据举报类型获取被举报人ID
+            if (report.getReportType() == REPORT_TYPE_VLOG) {
+                vlog = vlogService.getVlog(report.getTargetId());
+                if (vlog != null) {
+                    reportedUserId = vlog.getVlogerId();
+                }
+            } else if (report.getReportType() == REPORT_TYPE_COMMENT) {
+                comment = commentService.getComment(report.getTargetId());
+                if (comment != null) {
+                    reportedUserId = comment.getCommentUserId();
+                }
+            }
+            // 如果找到了被举报人，且被举报人和举报人不是同一个人，则发送通知
+            if (StringUtils.isNotBlank(reportedUserId) && !reportedUserId.equals(report.getReporterId())) {
+                Map<String, Object> reportedMsgContent = new HashMap<>();
+                // 从已查询的 report 对象获取举报类型
+                Integer reportType = report.getReportType();  // 1-视频，2-评论
+                // 使用方法参数的 status（新的处理状态），而不是 report.getStatus()（旧状态）
+                Integer reportStatus = status;  // 1-已处理，2-已驳回
+                // 转换为可读的字符串
+                String reportTypeStr = reportType == REPORT_TYPE_VLOG ? "视频" : "评论";
+                String reportStatusStr = reportStatus == REPORT_STATUS_HANDLED ? "已处理" : "已驳回";
+                // 如果handleResult为空，设置默认值
+                String finalHandleResult = StringUtils.isBlank(handleResult) ? "已收到反馈！" : handleResult;
+                // 被举报人的消息文案：您的xxx被举报xxx
+                String reportedMsg = "您的" + reportTypeStr + "被举报" + reportStatusStr + "\n处理结果：" + finalHandleResult;
+                reportedMsgContent.put("reportId", reportId);
+                reportedMsgContent.put("handleResult", reportedMsg);
+                // 如果是举报视频
+                if (report.getReportType() == REPORT_TYPE_VLOG && vlog != null) {
+                    reportedMsgContent.put("vlogId", vlog.getId());
+                    reportedMsgContent.put("vlogCover", vlog.getCover());
+                    reportedMsgContent.put("vlogTitle", vlog.getTitle());
+                // 如果是举报评论
+                } else if (report.getReportType() == REPORT_TYPE_COMMENT && comment != null) {
+                    reportedMsgContent.put("commentId", comment.getId());
+                    reportedMsgContent.put("commentContent", comment.getContent());
+                    Vlog commentVlog = vlogService.getVlog(comment.getVlogId());
+                    if (commentVlog != null) {
+                        reportedMsgContent.put("vlogId", commentVlog.getId());
+                        reportedMsgContent.put("vlogCover", commentVlog.getCover());
+                        reportedMsgContent.put("vlogTitle", commentVlog.getTitle());
+                    }
+                }
+                // 发送消息到MQ（异步）- 通知被举报人
+                MessageMO reportedMessageMO = new MessageMO();
+                reportedMessageMO.setFromUserId(handlerId);
+                reportedMessageMO.setToUserId(reportedUserId);
+                reportedMessageMO.setMsgContent(reportedMsgContent);
+                rabbitTemplate.convertAndSend(RabbitMQConfig.EXCHANGE_MSG, "sys.msg." + MessageTypeEnum.REPORT_HANDLED.enValue, JsonUtils.objectToJson(reportedMessageMO)
+                );
+                log.info("被举报人通知已发送到MQ：reportId={}, reportedUserId={}", reportId, reportedUserId);
+            } else if (StringUtils.isNotBlank(reportedUserId) && reportedUserId.equals(report.getReporterId())) {
+                log.info("被举报人和举报人是同一人，跳过被举报人通知：reportId={}, userId={}", reportId, reportedUserId);
+            } else {
+                log.warn("未找到被举报人信息，跳过被举报人通知：reportId={}, reportType={}", reportId, report.getReportType());
+            }
+        } catch (Exception e) {
+            log.error("发送被举报人通知失败：reportId={}", reportId, e);
+            // 通知失败不影响主流程，只记录日志
+        }
         return reportMapper.selectByPrimaryKey(reportId);
     }
 
-    // 修改已处理的举报记录（同时更新SQL和MongoDB消息）
+    // Admin - 修改已处理的举报记录（同时更新SQL和MongoDB消息）
     @Override
     @Transactional
     public Report updateReport(String reportId, String handlerId, Integer status, String handleResult) {
@@ -317,7 +383,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             boolean found = false;
             for (MessageMO message : allMessages) {
                 // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
-                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
                         // 找到对应的消息，更新处理结果
@@ -347,7 +413,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return reportMapper.selectByPrimaryKey(reportId);
     }
 
-    // 重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）
+    // Admin - 重置举报的处理记录（将状态归零，清空处理信息，并删除MongoDB消息）
     @Override
     @Transactional
     public Report resetReport(String reportId) {
@@ -372,7 +438,7 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             boolean found = false;
             for (MessageMO message : allMessages) {
                 // 检查消息类型是否为举报处理，且msgContent中包含对应的reportId
-                if (message.getMsgType() != null && message.getMsgType() == MessageEnum.REPORT_HANDLED.type) {
+                if (message.getMsgType() != null && message.getMsgType() == MessageTypeEnum.REPORT_HANDLED.type) {
                     Map<String, Object> msgContent = message.getMsgContent();
                     if (msgContent != null && reportId.equals(msgContent.get("reportId"))) {
                         // 找到对应的消息，删除
@@ -394,13 +460,13 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
         return reportMapper.selectByPrimaryKey(reportId);
     }
 
-    // 统计指定对象的举报次数
+    // Admin - 统计指定对象的举报次数
     @Override
     public Integer countReportsByTarget(Integer reportType, String targetId) {
         return reportMapperCustom.countReportsByTarget(reportType, targetId);
     }
 
-    // 统计所有举报的数量
+    // Admin - 统计所有举报的数量
     @Override
     public Integer getTotalReportCount() {
         try {
@@ -414,6 +480,44 @@ public class ReportServiceImpl extends BaseInfoProperties implements ReportServi
             return count;
         } catch (Exception e) {
             log.error("获取所有举报数量时发生错误", e);
+            // 发生异常时返回0，避免影响接口调用
+            return 0;
+        }
+    }
+
+    // Admin - 统计所有视频举报的数量
+    @Override
+    public Integer getTotalVlogReportCount() {
+        try {
+            // 使用Example查询，过滤掉已逻辑删除的举报，且只统计视频举报
+            Example example = new Example(Report.class);
+            Example.Criteria criteria = example.createCriteria();
+            criteria.andEqualTo("isDeleted", 0);
+            criteria.andEqualTo("reportType", REPORT_TYPE_VLOG);
+            int count = reportMapper.selectCountByExample(example);
+            log.info("统计所有视频举报数量完成，视频举报数：{}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("获取所有视频举报数量时发生错误", e);
+            // 发生异常时返回0，避免影响接口调用
+            return 0;
+        }
+    }
+
+    // Admin - 统计所有评论举报的数量
+    @Override
+    public Integer getTotalCommentReportCount() {
+        try {
+            // 使用Example查询，过滤掉已逻辑删除的举报，且只统计评论举报
+            Example example = new Example(Report.class);
+            Example.Criteria criteria = example.createCriteria();
+            criteria.andEqualTo("isDeleted", 0);
+            criteria.andEqualTo("reportType", REPORT_TYPE_COMMENT);
+            int count = reportMapper.selectCountByExample(example);
+            log.info("统计所有评论举报数量完成，评论举报数：{}", count);
+            return count;
+        } catch (Exception e) {
+            log.error("获取所有评论举报数量时发生错误", e);
             // 发生异常时返回0，避免影响接口调用
             return 0;
         }

@@ -21,6 +21,9 @@ public interface VlogMapperCustom {
 
    public List<IndexVlogVO> getMyFriendVlogList(@Param("paramMap")Map<String, Object> map);
 
+   // 查询用户的视频列表（公开/私密）
+   public List<IndexVlogVO> queryMyVlogList(@Param("paramMap")Map<String, Object> map);
+
    // Admin - 查询视频列表（管理端使用，不过滤is_deleted）
    public List<IndexVlogVO> getIndexVlogListForAdmin(@Param("paramMap")Map<String, Object> map);
 }
